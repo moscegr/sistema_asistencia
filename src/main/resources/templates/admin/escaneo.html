@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Punto de Control - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+        :root { --guinda: #7b1b37; }
+        .bg-institucional { background-color: var(--guinda) !important; }
+        .text-institucional { color: var(--guinda); }
+        #reader { 
+            width: 100%; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            border: 3px solid var(--guinda) !important; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .especialidad-card { border-top: 5px solid; transition: transform 0.2s; cursor: pointer; }
+        .especialidad-card:hover { transform: scale(1.02); }
+        /* Para que el contenido sea fluido */
+        #page-content-wrapper { width: 100%; min-width: 0; }
+        
+        /* Efecto visual para el directorio interactivo */
+		.table-active-hover {
+		    transition: background-color 0.2s;
+		}
+		.table-active-hover:hover {
+		    background-color: #f1f3f5 !important;
+		    cursor: pointer;
+		}
+		/* Evitar que los que ya están dentro parezcan clickeables */
+		.fila-bloqueada {
+		    cursor: default !important;
+		    background-color: transparent !important;
+		}
+		
+		.swal2-toast {
+		    border-left: 5px solid var(--guinda) !important;
+		    border-radius: 10px !important;
+		    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+		}
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="d-flex toggled" id="wrapper">
+        
+        <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+        <div id="page-content-wrapper">
+            
+            <div th:replace="~{fragments/header :: navbar('Punto de Control', 'Validación de accesos en tiempo real')}"></div>
+
+            <div class="container-fluid px-4 py-4">
+                <div class="row g-4">
+                    
+                    <div class="col-xl-4 col-lg-5">
+					    <div id="bannerContingencia" class="alert alert-warning border-0 shadow-sm mb-3 animate__animated animate__pulse animate__infinite" style="display: none;">
+					        <div class="d-flex align-items-center">
+					            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+					            <div>
+					                <h6 class="fw-bold mb-0">SALIDA LIBRE AUTORIZADA</h6>
+					                <p class="mb-0 small">Modo contingencia activo. No es necesario validar pases.</p>
+					            </div>
+					        </div>
+					    </div>
+					
+					    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+						    <div class="card-header bg-white border-0 pt-3 pb-0 text-center">
+						        <button id="btnToggleFaceID" class="btn rounded-pill fw-bold" style="border: 2px solid var(--guinda); color: var(--guinda);" onclick="toggleReconocimientoFacial()">
+						            <i class="bi bi-person-bounding-box me-2"></i>Activar Face ID
+						        </button>
+						    </div>
+						
+						    <div class="card-body text-center p-4">
+						        <div id="contenedorQR">
+						            <div id="reader"></div>
+						        </div>
+						        
+						        <div id="contenedorFacial" style="display: none; position: relative; width: 100%; border-radius: 15px; overflow: hidden; border: 3px solid var(--guinda); box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+						            <video id="videoReconocimiento" autoplay muted playsinline style="width: 100%; height: auto; display: block; transform: scaleX(-1);"></video>
+						            <canvas id="canvasOverlayFacial" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; transform: scaleX(-1);"></canvas>
+						        </div>
+						
+						        <div id="controlesModoFacial" class="mt-3" style="display: none;">
+						            <p class="small fw-bold text-muted mb-2"><i class="bi bi-cpu me-1"></i>Filtro de Optimización</p>
+						            <div class="btn-group shadow-sm" role="group">
+						                <button type="button" id="btnModoAmbos" class="btn btn-sm btn-secondary" onclick="cambiarModoFacial('AMBOS')">Todos</button>
+						                <button type="button" id="btnModoEntrada" class="btn btn-sm btn-outline-success" onclick="cambiarModoFacial('ENTRADA')">Entradas</button>
+						                <button type="button" id="btnModoSalida" class="btn btn-sm btn-outline-primary" onclick="cambiarModoFacial('SALIDA')">Salidas</button>
+						            </div>
+						        </div>
+						
+						        <p id="textoInstruccion" class="text-muted small mt-3 mb-0">
+						            <i class="bi bi-camera me-1"></i> Posicione el código frente a la cámara
+						        </p>
+						    </div>
+						</div>
+					
+					    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+					        <div class="card-header bg-white border-0 pt-3">
+					            <h6 class="fw-bold text-muted mb-0">Directorio de Estudiantes</h6>
+					        </div>
+					        <div class="card-body">
+					            <input type="text" id="filtroRapido" class="form-control form-control-sm mb-3 shadow-sm" 
+					                   placeholder="Buscar por nombre o matrícula...">
+					            
+					            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+					                <table class="table table-sm table-hover align-middle mb-0">
+					                    <tbody id="tablaSimpleAlumnos">
+					                        </tbody>
+					                </table>
+					            </div>
+					            <div class="mt-2 text-center">
+					                <span class="x-small text-muted">Haga clic en un alumno para consultar su estatus en tiempo real.</span>
+					            </div>
+					        </div>
+					    </div>
+					</div>
+
+                    <div class="col-xl-8 col-lg-7">
+                        
+
+                        <div class="mb-4">
+						    <div class="d-flex justify-content-between align-items-center mb-3">
+						        <h5 class="fw-bold mb-0" style="color: var(--guinda);"> 
+						            <i class="bi bi-grid-3x3-gap-fill me-2"></i>Autorizaciones del Día (Pases de Salida)
+						        </h5>
+						        
+						        <div id="relojActual" class="fw-bold border-start border-2 ps-3" 
+						             style="color: var(--guinda); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 1.1rem; letter-spacing: 0.5px;">
+						             CARGANDO...
+						        </div>
+						    </div>
+						
+						    <div class="d-flex flex-wrap gap-4 p-3 bg-white rounded-3 shadow-sm border">
+						
+						        <div class="d-flex align-items-center flex-grow-1">
+						            <span class="badge bg-success me-3 d-flex align-items-center justify-content-center"
+						                  style="width:38px; height:38px; border-radius: 10px;">
+						                <i class="bi bi-check-lg fs-5"></i>
+						            </span>
+						            <div class="lh-sm">
+						                <span class="d-block fw-bold small text-success">AUTORIZADO</span>
+						                <span class="small text-muted">
+						                    El grupo o alumno cuentan con pase grupal vigente hoy.
+						                </span>
+						            </div>
+						        </div>
+						
+						        <div class="vr d-none d-md-block" style="opacity: 0.1;"></div>
+						
+						        <div class="d-flex align-items-center flex-grow-1">
+						            <span class="badge bg-light text-secondary border me-3 d-flex align-items-center justify-content-center"
+						                  style="width:38px; height:38px; border-radius: 10px;">
+						                <i class="bi bi-dash fs-5"></i>
+						            </span>
+						
+						            <div class="lh-sm">
+						                <span class="d-block fw-bold small text-secondary">SIN PASE GRUPAL</span>
+						                <span class="small text-muted">
+						                    Los alumnos no cuentan con pase grupal o individual para salir.
+						                </span>
+						            </div>
+						        </div>
+						    </div>
+						</div>
+						
+						<div class="row g-3" id="tableroEspecialidades"></div>
+                    </div>
+                </div>
+            </div> </div> </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script th:src="@{/js/firebase-init.js}"></script>
+    <script th:src="@{/js/escaneo.js}"></script>
+    <script th:src="@{/js/nav_tigre.js}"></script>
+
+    <script>
+        function iniciarReloj() {
+            const elReloj = document.getElementById('relojActual');
+            const tick = () => {
+                const ahora = new Date();
+                const opciones = { 
+                    weekday: 'short', day: '2-digit', month: 'short', 
+                    hour: '2-digit', minute: '2-digit', second: '2-digit' 
+                };
+                elReloj.innerText = ahora.toLocaleDateString('es-MX', opciones).toUpperCase();
+            };
+            setInterval(tick, 1000);
+            tick();
+        }
+        document.addEventListener('DOMContentLoaded', iniciarReloj);
+    </script>
+</body>
+</html>

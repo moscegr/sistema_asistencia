@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuración del Sistema - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+        :root { --guinda: #7b1b37; }
+        .text-guinda { color: var(--guinda); }
+        .bg-guinda { background-color: var(--guinda) !important; color: white !important; }
+        .btn-guinda { background-color: var(--guinda); color: white; border-radius: 50px; border: none; transition: 0.3s; }
+        .btn-guinda:hover { background-color: #5a1428; transform: translateY(-2px); color: white; }
+        .card-custom { border: none; border-radius: 15px; border-top: 5px solid var(--guinda); }
+        #page-content-wrapper { width: 100%; min-width: 0; }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="d-flex" id="wrapper">
+        <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+        <div id="page-content-wrapper">
+            <div th:replace="~{fragments/header :: navbar('Panel de Configuración', 'Administración de parámetros globales del plantel')}"></div>
+
+            <div class="container-fluid px-4 py-4">
+                
+                <div class="row g-4">
+                
+                <div class="col-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 h-100">
+				        <div class="row align-items-center">
+				            <div class="col-md-8">
+				                <h5 class="fw-bold mb-3 text-guinda">
+				                    <i class="bi bi-arrow-repeat me-2"></i>Ciclo Escolar Vigente
+				                </h5>
+				                <p class="text-muted small mb-0">
+				                *Visualización del ciclo escolar actual.
+				                </p>
+				                <p class="text-muted small mb-0">
+				                *Se actualiza al hacer un "Cambio de Ciclo Escolar" a nivel general desde el Dashboard.
+				                </p>
+				                <p class="text-muted small mb-0">
+				                *Determina qué incidencias se muestran en las gráficas del Dashboard.
+				                </p>
+				            </div>
+				            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+				                <div class="p-3 bg-light rounded border shadow-sm">
+				                    <span class="d-block x-small text-uppercase text-muted fw-bold">Ciclo Activo</span>
+				                    <h4 class="fw-bold text-guinda mb-0" id="labelCicloActual">Cargando...</h4>
+				                    <small class="text-muted x-small">Sincronizado con Firestore</small>
+				                </div>
+				            </div>
+				        </div>
+				    </div>
+				</div>
+				
+
+
+				<div class="col-md-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 h-100">
+				        <div class="d-flex justify-content-between align-items-center user-select-none" data-bs-toggle="collapse" data-bs-target="#colapsoInstitucion" aria-expanded="true" style="cursor: pointer;">
+				            <h5 class="fw-bold mb-0 text-guinda">
+				                <i class="bi bi-building me-2"></i>Datos de la Institución
+				            </h5>
+				            <i class="bi bi-chevron-down text-muted fs-5"></i>
+				        </div>
+				        
+				        <div id="colapsoInstitucion" class="collapse show mt-3">
+				            <p class="text-muted small">Esta información aparecerá automáticamente en las credenciales y justificantes impresos.</p>
+				            
+				            <form id="formInstitucional">
+				                <div class="row g-3">
+				                    <div class="col-md-6">
+				                        <label class="form-label small fw-bold">Nombre del Director(a)</label>
+				                        <input type="text" id="confDirector" class="form-control" placeholder="EJ: JOSE MARTIN RODEA ZUÑIGA">
+				                    </div>
+				                    <div class="col-md-6">
+				                        <label class="form-label small fw-bold">Responsable de Orientación (Justificantes)</label>
+				                        <input type="text" id="confOrientacion" class="form-control" placeholder="EJ: MATILDE ABIGAIL GARCIA NAJERA">
+				                    </div>
+				                    <div class="col-md-4">
+				                        <label class="form-label small fw-bold">Clave del Centro de Trabajo (CCT)</label>
+				                        <input type="text" id="confCCT" class="form-control" placeholder="EJ: 12DCT0001L">
+				                    </div>
+				                    <div class="col-md-4">
+				                        <label class="form-label small fw-bold">Teléfono de la Escuela</label>
+				                        <input type="text" id="confTelefono" class="form-control" placeholder="EJ: 747 47 2 34 64">
+				                    </div>
+				                    <div class="col-md-4">
+				                        <label class="form-label small fw-bold">Vigencia por Defecto (Credenciales)</label>
+				                        <input type="text" id="confVigencia" class="form-control" placeholder="EJ: Agosto 2026">
+				                    </div>
+				                </div>
+				                <div class="text-end mt-4">
+				                    <button type="submit" class="btn btn-guinda w-100 mt-2 rounded-pill px-4">
+				                        <i class="bi bi-save me-2"></i>Guardar Cambios
+				                    </button>
+				                </div>
+				            </form>
+				        </div>
+				    </div>
+				</div>
+				
+				
+				<div class="col-md-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 h-100">
+				        <div class="d-flex justify-content-between align-items-center user-select-none" data-bs-toggle="collapse" data-bs-target="#colapsoEspecialidades" aria-expanded="false" style="cursor: pointer;">
+				            <h5 class="fw-bold mb-0 text-guinda">
+				                <i class="bi bi-mortarboard me-2"></i>Gestión de Especialidades
+				            </h5>
+				            <i class="bi bi-chevron-down text-muted fs-5"></i>
+				        </div>
+				
+				        <div id="colapsoEspecialidades" class="collapse mt-4">
+				            <div class="row g-4">
+				                
+				                <div class="col-lg-4">
+				                    <div class="p-3 bg-light rounded border">
+				                        <h6 class="fw-bold mb-3 text-guinda">Nueva Especialidad</h6>
+				                        <form id="formEspecialidad">
+				                            <div class="mb-3">
+				                                <label class="form-label small fw-bold">Nombre Completo</label>
+				                                <input type="text" id="confNombre" class="form-control" placeholder="Ej: PROGRAMACIÓN" required>
+				                            </div>
+				                            <div class="mb-3">
+				                                <label class="form-label small fw-bold">Alias (Excel)</label>
+				                                <input type="text" id="confAlias" class="form-control" placeholder="Ej: PROG" maxlength="5" required>
+				                            </div>
+				                            <div class="mb-3">
+				                                <label class="form-label small fw-bold">Color Identidad</label>
+				                                <input type="color" id="confColor" class="form-control form-control-color w-100" value="#7b1b37">
+				                            </div>
+				                            <div class="mb-3">
+				                                <label class="form-label small fw-bold">Turno Predeterminado</label>
+				                                <select id="confTurno" class="form-select" required>
+				                                    <option value="Matutino">Matutino</option>
+				                                    <option value="Vespertino">Vespertino</option>
+				                                </select>
+				                            </div>
+				                            <button type="submit" class="btn btn-guinda w-100 mt-2">
+				                                <i class="bi bi-plus-circle me-2"></i>Registrar Carrera
+				                            </button>
+				                        </form>
+				                    </div>
+				                </div>
+				
+				                <div class="col-lg-8">
+				                    <h6 class="fw-bold mb-3">Carreras Registradas</h6>
+				                    <div class="table-responsive border rounded bg-white">
+				                        <table class="table table-hover align-middle text-center mb-0">
+				                            <thead class="table-light small">
+				                                <tr>
+				                                    <th>Color</th><th>Nombre</th><th>Alias</th><th>Turno</th><th>Acciones</th>
+				                                </tr>
+				                            </thead>
+				                            <tbody id="tablaEspecialidades"></tbody>
+				                        </table>
+				                    </div>
+				                </div>
+				            </div>
+				        </div>
+				    </div>
+				</div>
+
+
+				<div class="col-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-success h-100">
+				        <div class="d-flex justify-content-between align-items-center user-select-none" data-bs-toggle="collapse" data-bs-target="#colapsoWhatsApp" aria-expanded="false" style="cursor: pointer;">
+				            <h5 class="fw-bold mb-0 text-success">
+				                <i class="bi bi-whatsapp me-2"></i>Configuración de API WhatsApp
+				            </h5>
+				            <div>
+				                <span id="badgeWsStatus" class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-2 me-3">
+				                    <i class="bi bi-arrow-clockwise fa-spin me-1"></i> Cargando...
+				                </span>
+				                <i class="bi bi-chevron-down text-muted fs-5"></i>
+				            </div>
+				        </div>
+				
+				        <div id="colapsoWhatsApp" class="collapse mt-4">
+				            <div class="row g-3 mb-3">
+				                <div class="col-md-4">
+				                    <label class="form-label small fw-bold">Proveedor de API</label>
+				                    <select id="tipoApiWs" class="form-select border-success" onchange="cambiarFormularioWs(this.value)">
+				                        <option value="META">Meta (WhatsApp Business API)</option>
+				                        <option value="ULTRAMSG">Ultramsg (API No Oficial)</option>
+				                        <option value="TWILIO">Twilio (API Oficial / Sandbox)</option>
+				                        <option value="OPENWA">OpenWA (Servidor Docker Local)</option>
+				                    </select>
+				                </div>
+				            </div>
+				
+				            <div class="row g-3 bg-light p-3 rounded border">
+				                <div class="col-md-6">
+				                    <label id="lblWsCampo1" class="form-label small fw-bold text-success">Permanent Access Token</label>
+				                    <div class="input-group">
+				                        <input type="password" id="wsCampo1" class="form-control" placeholder="Ej. EAABw..." autocomplete="new-password">
+				                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('wsCampo1')">
+				                            <i class="bi bi-eye"></i>
+				                        </button>
+				                    </div>
+				                    <small id="descWsCampo1" class="text-muted" style="font-size: 0.7rem;">Token generado en la consola de Meta Developers.</small>
+				                </div>
+				
+				                <div class="col-md-3">
+				                    <label id="lblWsCampo2" class="form-label small fw-bold text-success">Phone Number ID</label>
+				                    <input type="text" id="wsCampo2" class="form-control" placeholder="Ej. 1234567890" autocomplete="off">
+				                </div>
+				
+				                <div class="col-md-3" id="contenedorCampo3" style="display: none;">
+				                    <label id="lblWsCampo3" class="form-label small fw-bold text-success">Número Remitente</label>
+				                    <input type="text" id="wsCampo3" class="form-control" placeholder="Ej. +14155238886" autocomplete="off">
+				                </div>
+				
+				                <div class="col-12 mt-3 text-end">
+				                    <button class="btn btn-success" onclick="guardarConfigWhatsApp()">
+				                        <i class="bi bi-cloud-check me-2"></i>Guardar Configuración
+				                    </button>
+				                </div>
+				            </div>
+				        </div>
+				    </div>
+				</div>
+
+
+				<div class="modal fade" id="modalEditarEsp" tabindex="-1" aria-hidden="true">
+				    <div class="modal-dialog modal-dialog-centered">
+				        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+				            <div class="modal-header bg-guinda text-white">
+				                <h5 class="modal-title fw-bold">Editar Especialidad</h5>
+				                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+				            </div>
+				            <div class="modal-body p-4">
+				                <form id="formEditarEsp">
+				                    <input type="hidden" id="editIndex">
+				                    <div class="mb-3">
+				                        <label class="form-label small fw-bold">Nombre Completo</label>
+				                        <input type="text" id="editNombre" class="form-control" required>
+				                    </div>
+				                    <div class="mb-3">
+				                        <label class="form-label small fw-bold">Alias (Excel)</label>
+				                        <input type="text" id="editAlias" class="form-control" required>
+				                    </div>
+				                    <div class="mb-3">
+				                        <label class="form-label small fw-bold">Color Identidad</label>
+				                        <input type="color" id="editColor" class="form-control form-control-color w-100">
+				                    </div>
+				                    <div class="mb-3">
+				                        <label class="form-label small fw-bold">Turno Predeterminado</label>
+				                        <select id="editTurno" class="form-select" required>
+				                            <option value="Matutino">Matutino</option>
+				                            <option value="Vespertino">Vespertino</option>
+				                        </select>
+				                    </div>
+				                    <div class="mb-3 text-center mt-4">
+				                        <button type="submit" class="btn btn-guinda px-5 rounded-pill">Guardar Cambios</button>
+				                    </div>
+				                </form>
+				            </div>
+				        </div>
+				    </div>
+				</div>
+				
+				
+				<div class="col-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-danger">
+				        <h5 class="fw-bold mb-3 text-danger">
+				            <i class="bi bi-exclamation-triangle-fill me-2"></i>Configuraciones de Mantenimiento
+				        </h5>
+				        <p class="text-muted small">Acciones avanzadas para el mantenimiento de la base de datos. <strong>Úselas con extrema precaución.</strong></p>
+				        
+				        <div class="row g-3 mt-2">
+				            <div class="col-md-6">
+				                <div class="p-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10">
+				                    <h6 class="fw-bold text-danger">Depuración de Alumnos</h6>
+				                    <p class="small mb-3">Elimina permanentemente a todos los alumnos con estatus "Baja" o "Egresado".</p>
+				                    <button class="btn btn-danger w-100" onclick="depurarAlumnosInactivos()">
+				                        <i class="bi bi-trash3-fill me-2"></i>Limpiar Base de Datos
+				                    </button>
+				                </div>
+				            </div>
+				            
+				            <div class="col-md-6">
+							    <div class="p-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10">
+							        <h6 class="fw-bold text-dark">Restaurar Ciclo Escolar</h6>
+							        <p class="small text-dark mb-3">Revierte el ciclo global y <b>regresa a los alumnos a su grado/estatus anterior</b> (Deshace promociones y egresos).</p>
+							        <button class="btn btn-warning w-100 fw-bold" onclick="revertirCicloEscolar()">
+							            <i class="bi bi-arrow-counterclockwise me-2"></i>Deshacer Último Cambio
+							        </button>
+							    </div>
+							</div>
+				        </div>
+				    </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+	<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <script th:src="@{/js/firebase-init.js}"></script>
+    <script th:src="@{/js/configuracion.js}"></script>
+    <script th:src="@{/js/nav_tigre.js}"></script>
+    
+    <script>
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

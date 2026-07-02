@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Alumnos - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+</head>
+<body class="bg-light">
+<div class="d-flex" id="wrapper">
+    <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+    
+    <div id="page-content-wrapper">
+    <div th:replace="~{fragments/header :: navbar('Control de Estudiantes', 'Listado general y registros')}"></div>
+
+    <div class="container-fluid px-4 py-4">
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="/admin/alumnos/nuevo" class="btn text-white" style="background-color: #7b1b37;">
+                        <i class="bi bi-person-plus me-1"></i> Nuevo Registro
+                    </a>
+                </div>
+
+                <div class="row g-2 align-items-end">
+				    <div class="col-md-3">
+				        <label class="form-label small fw-bold text-muted">Búsqueda rápida</label>
+				        <div class="input-group">
+				            <input type="text" id="busquedaGeneral" class="form-control" placeholder="Nombre o Matrícula...">
+				            <button class="btn btn-primary" style="background-color: #7b1b37; border-color: #7b1b37" type="button" id="btnBuscar">
+				                <i class="bi bi-search"></i>
+				            </button>
+				        </div>
+				    </div>
+				
+				    <div class="col-md-2">
+				        <label class="form-label small fw-bold text-muted">Carrera</label>
+				        <select id="filtroEspecialidad" class="form-select">
+				            <option value="">Todas...</option>
+				            <option value="CONSTRUCCIÓN">Construcción</option>
+				            <option value="LABORATORISTA CLÍNICO">Laboratorio Clínico</option>
+				            <option value="INTELIGENCIA ARTIFICIAL">I.A.</option>
+				            <option value="E.COMMERCE">E-Commerce</option>
+				            <option value="CONTABILIDAD">Contabilidad</option>
+				            <option value="PROGRAMACIÓN">Programación</option>
+				        </select>
+				    </div>
+				    
+				    <div class="col-md-2">
+					    <label class="form-label small fw-bold text-muted">Estatus</label>
+					    <select id="filtroEstatus" class="form-select">
+					        <option value="Activo">Solo Activos</option>
+					        <option value="Baja">Solo Bajas</option>
+					        <option value="Egresado">Solo Egresados</option>
+					        <option value="">Todos</option>
+					    </select>
+					</div>
+				
+				    <div class="col-md-1">
+				        <label class="form-label small fw-bold text-muted">Grado</label>
+				        <select id="filtroGrado" class="form-select">
+				            <option value="">Todo</option>
+				            <option th:each="i : ${#numbers.sequence(1, 6)}" th:value="${i}" th:text="${i}"></option>
+				        </select>
+				    </div>
+				
+				    <div class="col-md-1">
+				        <label class="form-label small fw-bold text-muted">Gpo</label>
+				        <input type="text" id="filtroGrupo" class="form-control text-uppercase" placeholder="A" maxlength="1">
+				    </div>
+				
+				    <div class="col-md-2">
+				        <label class="form-label small fw-bold text-muted">Turno</label>
+				        <select id="filtroTurno" class="form-select">
+				            <option value="">Ambos...</option>
+				            <option value="Matutino">Matutino</option>
+				            <option value="Vespertino">Vespertino</option>
+				        </select>
+				    </div>
+				
+				    <div class="col-md-2">
+				        <button class="btn btn-outline-danger w-100" onclick="limpiarFiltros()">
+				            <i class="bi bi-eraser-fill me-1"></i>Limpiar
+				        </button>
+				    </div>
+				</div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+            <div class="table-responsive p-3">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Matrícula</th>
+                            <th>Estudiante</th>
+                            <th>Especialidad</th>
+                            <th>Grado/Gpo</th>
+                            <th>Semáforo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaAlumnosBody">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="modalQR" tabindex="-1" aria-hidden="true">
+	    <div class="modal-dialog modal-dialog-centered">
+	        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+	            <div class="modal-header border-0 bg-light">
+	                <h5 class="modal-title fw-bold" style="color: #7b1b37;">
+	                    <i class="bi bi-qr-code-scan me-2"></i>Identidad Digital
+	                </h5>
+	                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body text-center pb-5">
+	                <div class="bg-white p-3 d-inline-block shadow-sm mb-3" style="border-radius: 15px; border: 1px solid #eee;">
+					    <div id="imgQR" class="d-inline-block" style="width: 200px; height: 200px;"></div>
+					</div>
+	                
+	                <h4 id="matriculaQR" class="fw-bold mb-4" style="color: #7b1b37;"></h4>
+	                
+	                <div class="d-grid gap-2 d-md-block">
+	                    <button onclick="descargarQRCompuesto(alumnoSeleccionado.matricula)" class="btn btn-outline-dark btn-sm px-4 rounded-pill">
+	                        <i class="bi bi-download me-2"></i>Descargar PNG
+	                    </button>
+	                    
+	                    <button onclick="generarCredencialPDF()" class="btn btn-danger btn-sm px-4 rounded-pill" style="background-color: #7b1b37; border: none;">
+	                        <i class="bi bi-file-earmark-pdf-fill me-2"></i>Credencial PDF
+	                    </button>
+	                </div>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	</div>
+	</div>
+	
+	
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <script th:src="@{/js/firebase-init.js}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script th:src="@{/js/alumnos_list.js}"></script>
+    
+    <script th:src="@{/js/nav_tigre.js}"></script>
+</body>
+</html>

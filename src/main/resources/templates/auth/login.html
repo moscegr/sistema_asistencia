@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CBTis 134</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #ffffff 0%, #3d0d1b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden; 
+            margin: 0;
+        }
+
+        #particles-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .glass-container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            width: 900px;
+            max-width: 95%;
+            position: relative; 
+            z-index: 1;
+        }
+
+        .left-panel {
+            background: linear-gradient(135deg, rgba(123, 27, 55, 0.95) 0%, rgba(61, 13, 27, 0.95) 100%);
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .right-panel {
+            padding: 4rem 3rem;
+            background: transparent;
+        }
+
+        .system-title {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            color: #333 !important;
+            border-left: none !important;
+        }
+        .glass-input::placeholder {
+            color: rgba(0, 0, 0, 0.4);
+        }
+        .glass-input:focus {
+            background: #ffffff !important;
+            box-shadow: 0 0 0 0.25rem rgba(123, 27, 55, 0.15) !important;
+            border-color: #7b1b37 !important;
+        }
+
+        .input-group-text.glass-addon {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-right: none;
+            color: #7b1b37;
+        }
+
+        .btn-institucional {
+            background-color: #7b1b37;
+            color: white;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .btn-institucional:hover {
+            background-color: #922243;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(123, 27, 55, 0.4);
+        }
+
+        .text-glass-link {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .text-glass-link:hover {
+            color: #7b1b37;
+            text-decoration: underline;
+        }
+        
+        .loader-overlay {
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: linear-gradient(135deg, #7b1b37 0%, #3d0d1b 100%);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .loader-overlay.active {
+            opacity: 1;
+        }
+
+        .loader-logo {
+            width: 130px;
+            filter: drop-shadow(0 4px 15px rgba(0,0,0,0.5));
+            animation: pulse-logo 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse-logo {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+<div id="loader-overlay" class="loader-overlay d-none">
+    <div class="loader-content text-center">
+        <img th:src="@{/img/tigres.png}" alt="Cargando..." class="loader-logo mb-4">
+        <h2 id="lbl-saludo-usuario" class="text-white fw-light mb-1" style="display: none; font-size: 1.5rem;"></h2>
+        <h3 class="text-white fw-bold" style="letter-spacing: 1px;">
+            Preparando <span id="lbl-rol-destino" class="fw-bold text-white"></span>
+        </h3>
+        <p id="loader-texto-secundario" class="text-white-50" style="font-size: 0.9rem;">Verificando credenciales...</p>
+    </div>
+</div>
+
+    <canvas id="particles-canvas"></canvas>
+
+    <div class="glass-container row mx-0">
+        <div class="col-md-5 d-none d-md-flex left-panel">
+            <img th:src="@{/img/logo_aniversario.jpg}" alt="Logo CBTis 134" class="img-fluid mb-4" style="max-height: 160px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); border-radius: 10px;">
+            <h4 class="fw-bold mb-3">CBTIS 134</h4>
+            <p class="mb-0 text-white-50 system-title">
+                "POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134"
+            </p>
+        </div>
+
+        <div class="col-md-7 right-panel d-flex flex-column justify-content-center">
+            <div class="text-center mb-5">
+                
+                <img th:src="@{/img/tigres.png}" alt="Mascota Tigre" class="img-fluid mb-3" style="max-height: 100px;">
+                
+                <h4 class="fw-bold text-uppercase" style="color: #7b1b37;">Iniciar Sesión</h4>
+                <p class="mb-1 small text-muted fw-semibold">SISTEMA DE CONTROL DE ACCESO INTELIGENTE Y GESTIÓN COMPLEMENTARIA DEL ALUMNADO EN CBTIS NO. 134</p>
+            </div>
+
+            <form id="loginForm">
+                
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text glass-addon"><i class="bi bi-person"></i></span>
+                        <input type="email" id="email" class="form-control glass-input" placeholder="Correo Institucional" required>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text glass-addon"><i class="bi bi-lock"></i></span>
+                        <input type="password" id="password" class="form-control glass-input" placeholder="Contraseña" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-institucional w-100 py-2 mb-3 fw-bold rounded-3">
+                    Ingresar al Sistema
+                </button>
+                
+                <div class="text-center mt-3">
+				    <a href="#" onclick="recuperarPassword(event)" class="text-glass-link small">¿Olvidaste tu contraseña?</a>
+				</div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+	<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+	
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	
+	<script th:src="@{/js/firebase-init.js}"></script>
+	
+	<script th:src="@{/js/auth.js}"></script>
+	
+
+</body>
+</html>

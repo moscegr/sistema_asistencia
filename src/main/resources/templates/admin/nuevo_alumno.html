@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro Estudiantes - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+        .accordion-button:not(.collapsed) { background-color: #7b1b37; color: white; }
+        .form-label { color: #7b1b37; }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container-fluid px-4 py-4">
+    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h4 class="fw-bold mb-0" style="color: #7b1b37;">
+                <i class="bi bi-person-plus-fill me-2"></i>Nuevo Registro de Estudiante
+            </h4>
+            <a href="/admin/alumnos" class="btn btn-outline-secondary btn-sm">Volver al Listado</a>
+        </div>
+        
+        <div class="card-body">
+            <form id="formAlumno" class="needs-validation" novalidate>
+                <div class="accordion" id="accordionAlumno">
+                    
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button fw-bold text-white rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#secPersonal" style="background-color: #7b1b37;">
+                                <i class="bi bi-person-vcard me-2"></i> 1. Identificación y Datos Personales
+                            </button>
+                        </h2>
+                        <div id="secPersonal" class="accordion-collapse collapse show">
+                            <div class="accordion-body row g-3">
+                                <div class="col-md-3">
+							        <label class="form-label small fw-bold">Matrícula (14 dígitos)</label>
+							        <input type="text" id="matricula" class="form-control" pattern="^[0-9]{14}$" maxlength="14" required>
+							    </div>
+							    <div class="col-md-6">
+							        <label class="form-label small fw-bold">CURP</label>
+							        <input type="text" id="curp" class="form-control text-uppercase" pattern="^[A-Z]{4}[0-9]{6}[H,M][A-Z]{5}[A-Z0-9][0-9]$" required>
+							    </div>
+							    
+							    <div class="col-md-3">
+							        <label class="form-label small fw-bold">Género</label>
+							        <select id="genero" class="form-select" required>
+							            <option value="">Seleccionar...</option>
+							            <option value="H">HOMBRE</option>
+							            <option value="M">MUJER</option>
+							        </select>
+							    </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Nombre(s)</label>
+                                    <input type="text" id="nombre" class="form-control" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,50}$" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Apellido Paterno</label>
+                                    <input type="text" id="apepat" class="form-control" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,50}$">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Apellido Materno</label>
+                                    <input type="text" id="apemat" class="form-control" pattern="^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]{2,50}$">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Email Institucional</label>
+                                    <input type="email" id="email" class="form-control" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Celular Estudiante</label>
+                                    <input type="text" id="celular" class="form-control" pattern="^[0-9]{10}$" maxlength="10" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Dirección Completa</label>
+                                    <input type="text" id="direccion" class="form-control" required>
+                                </div>
+                                <div class="col-md-12 mt-4 pt-3 border-top">
+								    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-bounding-box me-2"></i> Registro Biométrico Facial (Opcional)</h6>
+								    <div class="row align-items-center bg-light p-3 rounded border">
+								        
+								        <div class="col-md-4 text-center">
+								            <div id="contenedorCamara" class="bg-dark rounded shadow-sm position-relative mx-auto" style="width: 200px; height: 150px; overflow: hidden; display: none;">
+								                <video id="videoRegistro" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+								            </div>
+								            
+								            <div id="rostroCapturado" class="bg-success text-white rounded p-4 mx-auto" style="width: 200px; display: none;">
+								                <i class="bi bi-check-circle-fill fs-1"></i>
+								                <p class="mb-0 fw-bold small mt-2">Rostro Registrado</p>
+								            </div>
+								            
+								            <div id="iconoEspera" class="text-muted" style="width: 200px; height: 150px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc; border-radius: 10px; margin: 0 auto;">
+								                <i class="bi bi-camera-video-off fs-1"></i>
+								            </div>
+								        </div>
+								        
+								        <div class="col-md-8">
+								            <p class="x-small text-muted mb-3">Escanee el rostro del estudiante para habilitar el acceso automático por cámara. No se guardará ninguna fotografía, únicamente se generará un patrón matemático por seguridad.</p>
+								            
+								            <div class="d-flex gap-2">
+								                <button type="button" id="btnActivarCamara" class="btn btn-outline-primary btn-sm fw-bold" onclick="iniciarCamaraRegistro()">
+								                    <i class="bi bi-camera-video me-1"></i> Activar Cámara
+								                </button>
+								                <button type="button" id="btnCapturarRostro" class="btn bg-guinda text-white btn-sm fw-bold" onclick="capturarFirmaFacial()" style="display: none; background-color: #7b1b37;">
+								                    <i class="bi bi-person-bounding-box me-1"></i> Escanear Rostro
+								                </button>
+								            </div>
+								            <p id="msgBiometria" class="x-small text-danger mt-2 mb-0" style="display: none;">Cargando IA...</p>
+								        </div>
+								    </div>
+								</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+					    <h2 class="accordion-header">
+					        <button class="accordion-button collapsed fw-bold text-white rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#secAcademico" style="background-color: #7b1b37;">
+					            <i class="bi bi-mortarboard me-2"></i> 2. Información Académica y Procedencia
+					        </button>
+					    </h2>
+					    <div id="secAcademico" class="accordion-collapse collapse show">
+					        <div class="accordion-body row g-3">
+					            <div class="col-md-6">
+							        <label class="form-label small fw-bold">Especialidad</label>
+							        <select id="especialidad" class="form-select" onchange="ajustarTurnos(this.value)" required>
+							            <option value="">Cargando especialidades...</option>
+							        </select>
+							    </div>
+					            <div class="col-md-2">
+					                <label class="form-label small fw-bold">Grado</label>
+					                <select id="grado" class="form-select" required>
+					                    <option value="">...</option>
+					                    <option th:each="i : ${#numbers.sequence(1, 6)}" th:value="${i}" th:text="${i}"></option>
+					                </select>
+					            </div>
+					            <div class="col-md-2">
+					                <label class="form-label small fw-bold">Grupo</label>
+					                <input type="text" id="grupo" class="form-control text-uppercase" pattern="^[A-Z]$" maxlength="1" required>
+					            </div>
+					            <div class="col-md-2">
+							        <label class="form-label small fw-bold">Turno</label>
+							        <select id="turno" class="form-select" required>
+							            <option value="Matutino">Matutino</option>
+							            <option value="Vespertino">Vespertino</option>
+							        </select>
+							    </div>
+					            
+					            <div class="col-md-3">
+					                <label class="form-label small fw-bold">Estatus Escolar</label>
+					                <select id="estatus_escolar" class="form-select" required>
+					                    <option value="Activo">Activo</option>
+					                    <option value="Baja">Baja</option>
+					                    <option value="Egresado">Egresado</option>
+					                </select>
+					            </div>
+					        </div>
+					    </div>
+					</div>
+
+                    <div class="accordion-item border-0 mb-3 shadow-sm">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold text-white rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#secTutor" style="background-color: #7b1b37;">
+                                <i class="bi bi-heart-pulse me-2"></i> 3. Salud y Datos del Tutor
+                            </button>
+                        </h2>
+                        <div id="secTutor" class="accordion-collapse collapse show">
+                            <div class="accordion-body row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Semáforo de Salud</label>
+                                    <select id="color_semaforo" class="form-select" onchange="toggleAula(this.value)" required>
+                                        <option value="Verde">Sin condiciones (Verde)</option>
+                                        <option value="Amarillo">Discapacidad/Visual (Amarillo)</option>
+                                        <option value="Rojo">Condición Especial (Rojo)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4" id="divAula" style="display:none;">
+                                    <label class="form-label small fw-bold">Aula Específica</label>
+                                    <input type="text" id="aula_especifica" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Nombre del Tutor</label>
+                                    <input type="text" id="nombretutor" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Teléfono Tutor (WhatsApp)</label>
+                                    <input type="text" id="teltutor" class="form-control" pattern="^[0-9]{10}$" maxlength="10" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Ocupación Tutor</label>
+                                    <input type="text" id="ocupaciontutor" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light px-4">Limpiar</button>
+                    <button type="submit" class="btn text-white px-5" style="background-color: #7b1b37;">
+                        <i class="bi bi-qr-code me-2"></i>Generar Registro y QR
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script th:src="@{/js/firebase-init.js}"></script>
+<script th:src="@{/js/alumnos.js}"></script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --guinda:       #7b1b37;
+            --guinda-dark:  #5a1228;
+            --guinda-light: #f7eaee;
+            --guinda-mid:   rgba(123,27,55,0.08);
+            --radius-card:  14px;
+            --shadow-card:  0 2px 12px rgba(0,0,0,0.07);
+            --shadow-hover: 0 6px 24px rgba(123,27,55,0.14);
+            --font:         'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            background: #f1f4f9;
+            font-family: var(--font);
+            color: #1e2533;
+            overflow-x: hidden;
+        }
+
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.8); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .anim-up {
+            opacity: 0;
+            animation: fadeUp 0.5s ease forwards;
+        }
+
+        /* Stagger de secciones */
+        .anim-d1 { animation-delay: 0.08s; }
+        .anim-d2 { animation-delay: 0.16s; }
+        .anim-d3 { animation-delay: 0.24s; }
+        .anim-d4 { animation-delay: 0.32s; }
+        .anim-d5 { animation-delay: 0.40s; }
+        .anim-d6 { animation-delay: 0.48s; }
+        .anim-d7 { animation-delay: 0.56s; }
+
+
+        .navbar-institucional {
+            background-color: var(--guinda) !important;
+        }
+
+
+        .card-dash {
+            background: #fff;
+            border: none;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .card-dash:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .welcome-banner {
+            background: linear-gradient(110deg, var(--guinda) 0%, #a02248 60%, #7b1b37 100%);
+            border-radius: var(--radius-card);
+            padding: 22px 28px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-banner::after {
+            content: '';
+            position: absolute;
+            right: -30px; top: -40px;
+            width: 200px; height: 200px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .welcome-banner::before {
+            content: '';
+            position: absolute;
+            right: 60px; bottom: -50px;
+            width: 140px; height: 140px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .welcome-avatar {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 22px;
+            color: rgba(255,255,255,0.85);
+        }
+
+        .welcome-name {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 0 0 4px;
+        }
+
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.18);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 50px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: 20px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            border-top: 3px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .stat-card .stat-num {
+            font-size: 28px;
+            font-weight: 600;
+            line-height: 1;
+            margin: 0;
+            animation: countUp 0.5s ease both;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin: 4px 0 0;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Variantes de color */
+        .stat-card.s-blue  { border-top-color: #3b82f6; }
+        .stat-card.s-green { border-top-color: #22c55e; }
+        .stat-card.s-amber { border-top-color: #f59e0b; }
+        .stat-card.s-red   { border-top-color: #ef4444; }
+
+        .stat-icon.s-blue  { background: #eff6ff; color: #3b82f6; }
+        .stat-icon.s-green { background: #f0fdf4; color: #22c55e; }
+        .stat-icon.s-amber { background: #fffbeb; color: #f59e0b; }
+        .stat-icon.s-red   { background: #fef2f2; color: #ef4444; }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--guinda);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .section-title i { font-size: 16px; }
+
+        .section-sub {
+            font-size: 12px;
+            color: #9ca3af;
+            margin: 2px 0 0;
+        }
+
+        #calendar {
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+        }
+
+        .fc-button-primary {
+            background-color: var(--guinda) !important;
+            border-color: var(--guinda) !important;
+            text-transform: capitalize;
+            border-radius: 7px !important;
+            font-family: var(--font) !important;
+            font-size: 13px !important;
+            transition: background 0.2s !important;
+        }
+
+        .fc-button-primary:hover { background-color: var(--guinda-dark) !important; }
+        .fc-button-active        { background-color: var(--guinda-dark) !important; }
+
+        .fc-col-header-cell-cushion {
+            color: var(--guinda);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+
+        .session-card {
+            border-radius: var(--radius-card);
+            background: #fff;
+            box-shadow: var(--shadow-card);
+        }
+
+        .contingency-box {
+            background: #fff8f8;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .ciclo-card {
+            border-top: 4px solid var(--guinda);
+            border-radius: var(--radius-card);
+            background: #fff;
+            box-shadow: var(--shadow-card);
+        }
+
+        .intel-card {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+        }
+
+        .intel-header {
+            padding: 20px 24px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .corte-badge {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 5px 12px;
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-box {
+            background: #f9fafb;
+            border: 1px solid #f3f4f6;
+            border-radius: 10px;
+            padding: 14px;
+            position: relative;
+        }
+
+        .chart-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+
+
+        #previewImpacto {
+            background: var(--guinda-light) !important;
+            border: 1px dashed var(--guinda) !important;
+            border-radius: 10px;
+        }
+
+        .btn-guinda {
+            background: var(--guinda);
+            color: #fff;
+            border: none;
+            border-radius: 9px;
+            font-weight: 600;
+            font-size: 14px;
+            padding: 10px 20px;
+            transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s;
+            font-family: var(--font);
+        }
+
+        .btn-guinda:hover {
+            background: var(--guinda-dark);
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(123,27,55,0.3);
+        }
+
+        .btn-guinda:disabled {
+            background: #ccc;
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .border-guinda { border-color: var(--guinda) !important; }
+        .text-guinda   { color: var(--guinda) !important; }
+        .bg-guinda     { background-color: var(--guinda) !important; }
+
+        .inner-divider {
+            border: none;
+            border-top: 1px solid #f3f4f6;
+            margin: 20px 0;
+        }
+
+        .alert-info-guinda {
+            background: var(--guinda-light);
+            border-left: 4px solid var(--guinda);
+            border-radius: 0 9px 9px 0;
+            padding: 14px 16px;
+            font-size: 13px;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: var(--radius-card);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+
+        .form-select, .form-control {
+            border-radius: 8px;
+            font-family: var(--font);
+            font-size: 13px;
+            border-color: #e5e7eb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-select:focus, .form-control:focus {
+            border-color: var(--guinda);
+            box-shadow: 0 0 0 3px rgba(123,27,55,0.1);
+        }
+
+        .x-small { font-size: 0.78rem; }
+
+        .list-group-item { font-family: var(--font); }
+
+    </style>
+</head>
+
+<body class="bg-light">
+<div class="d-flex" id="wrapper" style="min-height: 100vh; align-items: stretch;">
+
+    <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+    <div id="page-content-wrapper" class="w-100 overflow-hidden">
+
+        <div th:replace="~{fragments/header :: navbar('Panel de Control','Escritorio principal')}"></div>
+
+        <div class="container-fluid px-4 pt-4 pb-5">
+
+            <div class="row mb-4 anim-up anim-d1">
+                <div class="col-12">
+                    <div class="welcome-banner">
+                        <div class="welcome-avatar">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                        <div>
+                            <p class="welcome-name">Bienvenido, <span id="userBannerName">Cargando...</span></p>
+                            <span class="role-badge">
+                                <i class="bi bi-shield-check"></i>
+                                Rol: <span id="userBannerRol">ADMINISTRADOR</span>
+                            </span>
+                        </div>
+                        <!-- Ciclo en el lado derecho -->
+                        <div class="ms-auto text-end" style="position:relative; z-index:1;">
+                            <span style="font-size:11px; opacity:.6; display:block; margin-bottom:2px;">Ciclo activo</span>
+                            <span id="displayCicloActual"
+                                  style="font-size:17px; font-weight:700; letter-spacing:0.5px;">
+                                Cargando...
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 2. STAT CARDS ── -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3 anim-up anim-d2">
+                    <div class="stat-card s-blue">
+                        <div>
+                            <h3 id="totalAlumnos" class="stat-num">0</h3>
+                            <p class="stat-label">Alumnos</p>
+                        </div>
+                        <div class="stat-icon s-blue"><i class="bi bi-people-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 anim-up anim-d3">
+                    <div class="stat-card s-green">
+                        <div>
+                            <h3 id="totalPases" class="stat-num">0</h3>
+                            <p class="stat-label">Pases Activos</p>
+                        </div>
+                        <div class="stat-icon s-green"><i class="bi bi-check-square-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 anim-up anim-d4">
+                    <div class="stat-card s-amber">
+                        <div>
+                            <h3 id="totalJustificantes" class="stat-num">0</h3>
+                            <p class="stat-label">Justificantes</p>
+                        </div>
+                        <div class="stat-icon s-amber"><i class="bi bi-file-earmark-check-fill"></i></div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3 anim-up anim-d5">
+                    <div class="stat-card s-red">
+                        <div>
+                            <h3 id="totalIncidencias" class="stat-num">0</h3>
+                            <p class="stat-label">Incidencias</p>
+                        </div>
+                        <div class="stat-icon s-red"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 3. CALENDARIO ── -->
+            <div class="row g-4 mb-4 anim-up anim-d5">
+                <div class="col-12">
+                    <div class="card-dash p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-4">
+                            <div>
+                                <h5 class="section-title">
+                                    <i class="bi bi-calendar-event"></i> Agenda Escolar CBTis 134
+                                </h5>
+                                <p class="section-sub">Gestión de eventos y días inhábiles</p>
+                            </div>
+                        </div>
+                        <div id="calendar" style="min-height: 400px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 4. SESIÓN ACTIVA + CAMBIO DE CICLO ── -->
+            <div class="row g-4 mb-4 requiere-permiso" data-roles="ADMIN">
+
+                <!-- Sesión activa -->
+                <div class="col-md-4 anim-up anim-d6">
+                    <div class="card-dash p-4 h-100">
+                        <h5 class="section-title mb-3">
+                            <i class="bi bi-person-circle"></i> Sesión Activa
+                        </h5>
+                        <p class="mb-1" style="font-size:14px;">
+                            Bienvenido, <span id="userName" class="fw-bold text-uppercase">...</span>
+                        </p>
+                        <hr class="inner-divider">
+
+                        <div class="contingency-box">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="switchSalidaGeneral">
+                                <label class="form-check-label fw-bold text-danger" for="switchSalidaGeneral" style="font-size:13px;">
+                                    <i class="bi bi-exclamation-octagon-fill me-1"></i> MODO CONTINGENCIA
+                                </label>
+                            </div>
+                            <p class="x-small text-muted mt-2 mb-0">
+                                Activa la salida libre de todo el plantel. Se notificará a los tutores.
+                            </p>
+                        </div>
+
+                        <p class="x-small text-muted mt-3 mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Tu última conexión ha sido registrada en el log de auditoría.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Cambio de ciclo -->
+                <div class="col-md-8 anim-up anim-d7">
+                    <div class="ciclo-card p-4 h-100">
+                        <h5 class="section-title mb-3">
+                            <i class="bi bi-calendar-check"></i> Cambio de Ciclo Escolar
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold" style="color:var(--guinda);">
+                                    1. Definir Alcance del Movimiento
+                                </label>
+                                <select id="promocionScope" class="form-select" onchange="cambiarScope(this.value)">
+                                    <option value="">--- Selecciona qué quieres promover ---</option>
+                                    <option value="especialidad">Por Especialidad (Toda la carrera)</option>
+                                    <option value="grupo">Por Grupo Específico (Control total)</option>
+                                    <option value="general">Todo el Plantel (General)</option>
+                                </select>
+                            </div>
+
+                            <div id="infoInicioPromocion" class="col-12">
+                                <div class="alert-info-guinda">
+                                    <p class="x-small fw-bold text-muted text-uppercase mb-2">Información de los Modos:</p>
+                                    <ul class="list-unstyled mb-0 x-small">
+                                        <li class="mb-2">
+                                            <i class="bi bi-collection-fill text-guinda me-1"></i>
+                                            <b>Por Especialidad:</b> Mantiene letras de grupo al subir de semestre.
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-person-badge-fill text-guinda me-1"></i>
+                                            <b>Por Grupo:</b> Permite cambios de letra (ej. 2A a 3B).
+                                        </li>
+                                        <li>
+                                            <i class="bi bi-buildings-fill text-guinda me-1"></i>
+                                            <b>General:</b> Sube un grado a todos. 6° pasan a egresados.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6" id="colEsp" style="display:none;">
+                                <label class="form-label small fw-bold">2. Carrera</label>
+                                <select id="selectCicloEsp" class="form-select" onchange="actualizarGruposPromocion(this.value)">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="colGpo" style="display:none;">
+                                <label class="form-label small fw-bold">3. Grupo Actual</label>
+                                <select id="selectCicloGpo" class="form-select" onchange="previsualizarImpacto()">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="colNuevaLetra" style="display:none;">
+                                <label class="form-label small fw-bold text-primary">Nueva Letra</label>
+                                <input type="text" id="nuevaLetraGrupo" class="form-control text-uppercase border-primary"
+                                       placeholder="Ej: B" maxlength="1">
+                            </div>
+
+                            <div class="col-12">
+                                <div id="previewImpacto" class="mt-1 p-3" style="display:none;">
+                                    <h6 class="x-small fw-bold text-uppercase text-muted mb-2">Previsualización de Cambios:</h6>
+                                    <div id="detalleImpacto" class="small"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-grid">
+                                <button id="btnEjecutarCambio" class="btn-guinda py-2"
+                                        onclick="confirmarCambioCiclo()" disabled>
+                                    <i class="bi bi-rocket-takeoff-fill me-2"></i>Aplicar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 5. CENTRO DE INTELIGENCIA ── -->
+            <div class="row mb-4 anim-up anim-d7">
+                <div class="col-12">
+                    <div class="intel-card">
+                        <div class="intel-header">
+                            <div>
+                                <h5 class="section-title">
+                                    <i class="bi bi-graph-up-arrow"></i> Centro de Inteligencia y Reportes
+                                </h5>
+                                <p class="section-sub">Monitoreo de actividad y exportación masiva a Excel</p>
+                            </div>
+                            <div class="corte-badge">
+                                <i class="bi bi-clock-history"></i>
+                                Corte: <span id="ultimaAct">Sincronizando...</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4">
+                            <!-- Gráficas -->
+                            <div class="row mb-4 g-3">
+                                <div class="col-12 col-xl-8">
+                                    <div class="chart-box" style="height: 300px;">
+                                        <p class="chart-label">
+                                            <i class="bi bi-bar-chart-line-fill me-1 text-guinda"></i>
+                                            Alumnos en Plantel por Especialidad
+                                        </p>
+                                        <canvas id="graficoEspecialidades"></canvas>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-xl-4">
+                                    <div class="chart-box" style="height: 300px;">
+                                        <p class="chart-label">
+                                            <i class="bi bi-pie-chart-fill me-1 text-primary"></i>
+                                            Estatus de Asistencia
+                                        </p>
+                                        <canvas id="graficoEstatus"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="inner-divider">
+
+                            <!-- Asistencias + Especialidad -->
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold mb-3 x-small text-uppercase" style="letter-spacing:1px; color:#374151;">
+                                        <i class="bi bi-calendar-x-fill me-2 text-danger"></i>Control de Asistencias y Riesgo
+                                    </h6>
+
+                                    <div class="chart-box mb-3">
+                                        <label class="x-small fw-bold text-muted mb-2 d-block">1. Historial Mensual (Excel)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="month" id="mesReporteAsistencia" class="form-control">
+                                            <button class="btn btn-success px-3" onclick="generarExcelAsistencias()"
+                                                    style="border-radius:0 7px 7px 0; font-size:12px;">
+                                                <i class="bi bi-file-earmark-excel-fill me-1"></i>Descargar
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="chart-box">
+                                        <label class="x-small fw-bold text-muted mb-2 d-block">
+                                            2. Alerta de Inasistencias (Posible Baja)
+                                        </label>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="small text-muted" style="font-size:12px;">
+                                                Alumnos sin registro en los últimos 5 días:
+                                            </span>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="calcularRiesgoDesercion()"
+                                                    style="font-size:12px; border-radius:7px;">
+                                                <i class="bi bi-search me-1"></i>Analizar
+                                            </button>
+                                        </div>
+                                        <div id="listaDesercion" class="mt-3" style="display:none; max-height:150px; overflow-y:auto;">
+                                            <ul class="list-group list-group-flush small" id="ulAlertaDesercion"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold mb-3 x-small text-uppercase" style="letter-spacing:1px; color:#374151;">
+                                        <i class="bi bi-diagram-3-fill me-2 text-primary"></i>Rendimiento por Especialidad
+                                    </h6>
+
+                                    <div class="input-group input-group-sm mb-3">
+                                        <select id="selectFiltroModulo" class="form-select"
+                                                onchange="actualizarGraficaGrupos()">
+                                            <option value="" disabled selected>Selecciona una Especialidad...</option>
+                                        </select>
+                                        <button class="btn btn-outline-dark px-3" onclick="generarExcelModulos()"
+                                                style="font-size:12px; border-radius:0 7px 7px 0;">
+                                            <i class="bi bi-download me-1"></i>Evidencias
+                                        </button>
+                                    </div>
+
+                                    <div class="chart-box" style="height:200px;">
+                                        <canvas id="graficoGruposModulo"></canvas>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-2 px-1">
+                                        <span class="x-small text-muted fw-bold">Total de Evidencias (Incidencias):</span>
+                                        <span class="badge bg-guinda" id="totalEvidenciasModulo"
+                                              style="border-radius:6px; font-size:11px;">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /container-fluid -->
+    </div><!-- /page-content-wrapper -->
+</div><!-- /wrapper -->
+
+<!-- Modal confirmación salida general -->
+<div class="modal fade" id="modalConfirmacionGeneral" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white" style="border-radius: var(--radius-card) var(--radius-card) 0 0;">
+                <h5 class="modal-title" style="font-size:15px;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Acción de Emergencia
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="font-size:14px;">
+                <p>¿Estás seguro de modificar el estado de <strong>Salida General</strong>?</p>
+                <div class="alert alert-warning x-small">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    Si activas esto, el sistema registrará la salida de cualquier alumno que se encuentre dentro de la
+                    institución, y presente o no su QR sin validar permisos específicos.
+                </div>
+            </div>
+            <div class="modal-footer bg-light" style="border-radius: 0 0 var(--radius-card) var(--radius-card);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        style="border-radius:8px; font-size:13px;">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarSalida"
+                        style="border-radius:8px; font-size:13px;">Confirmar y Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+<script th:src="@{/js/firebase-init.js}"></script>
+<script th:src="@{/js/dashboard.js}"></script>
+<script th:src="@{/js/nav_tigre.js}"></script>
+
+</body>
+</html>
