@@ -1,6 +1,9 @@
 serviceAccountKey.json
 src/main/resources/serviceAccountKey.json
-target/
+target/generated-sources
+target/generated-test-sources
+target/maven-archiver
+target/maven-status
 .idea/
 .env
 residencia-cbtis.tar

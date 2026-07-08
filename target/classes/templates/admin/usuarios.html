@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Personal - CBTis 134</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+    /* Colores Institucionales */
+	.bg-guinda {
+	    background-color: #7b1b37 !important;
+	    color: white !important;
+	}
+	
+	/* Opcional: para que los badges se vean más modernos */
+	.badge {
+	    letter-spacing: 0.5px;
+	    padding: 0.5em 0.8em;
+	    font-weight: 600;
+	}
+    </style>
+</head>
+<body class="bg-light">
+
+    <div class="d-flex" id="wrapper">
+        <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+        <div id="page-content-wrapper">
+            
+            <div th:replace="~{fragments/header :: navbar('Administración de Personal', 'Panel de Control > Usuarios')}"></div>
+
+            <div class="container-fluid px-4 py-4">
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold text-dark mb-1">Directorio de Usuarios</h5>
+                        <p class="text-muted small mb-0">Habilita o deshabilita accesos al personal de la institución.</p>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                        <button class="btn btn-guinda px-4 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
+                            <i class="bi bi-person-plus-fill me-2"></i>Registrar Nuevo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body p-0 text-center">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr class="small text-uppercase text-muted">
+                                        <th class="ps-4 py-3">Nombre</th>
+                                        <th class="py-3">Contacto</th>
+                                        <th class="py-3">Rol / Cargo</th>
+                                        <th class="py-3">Estatus</th>
+                                        <th class="py-3 text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaUsuariosBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+         </div>
+       </div>
+            <div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-guinda text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-person-plus-fill me-2"></i>Registrar Personal
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formNuevoUsuario">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Nombre Completo</label>
+                            <input type="text" id="regNombre" class="form-control" placeholder="Ej. Juan Pérez" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Correo Institucional</label>
+                            <input type="email" id="regCorreo" class="form-control" placeholder="usuario@gmail.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Rol en el Sistema</label>
+                            <select id="regRol" class="form-select" required>
+                                <option value="" selected disabled>Seleccionar rol...</option>
+                                <option value="ADMIN">ADMIN (Control Total)</option>
+                                <option value="PREFECTO">PREFECTO</option>
+                                <option value="ORIENTACION">ORIENTACIÓN</option>
+                                <option value="GUARDIA">GUARDIA / VIGILANCIA</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+						    <label class="form-label small fw-bold">Contraseña de Acceso</label>
+						    <input type="password" id="regPassword" class="form-control" placeholder="Mínimo 6 caracteres" required>
+						</div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-guinda px-4" onclick="crearUsuarioFirestore()">
+                        <i class="bi bi-save me-2"></i>Guardar Usuario
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <script th:src="@{/js/firebase-init.js}"></script>
+    <script th:src="@{/js/usuarios_admin.js}"></script>
+    <script th:src="@{/js/nav_tigre.js}"></script>
+</body>
+</html>

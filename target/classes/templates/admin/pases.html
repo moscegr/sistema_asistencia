@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Orientación - Pases de Salida</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
+    <link rel="icon" type="image/png" href="/img/favicon.png">
+    <style>
+    /* Estilos globales de tu tema (Mantenemos tus variables originales) */
+    :root { --guinda: #7b1b37; }
+    .nav-pills .nav-link.active { background-color: var(--guinda); }
+    .text-guinda { color: var(--guinda); }
+    #page-content-wrapper { width: 100%; min-width: 0; }
+
+    /* === HOJA AMARILLA VECTORIAL === */
+    .hoja-pase {
+      width: 793px; 
+      min-width: 793px;
+      flex-shrink: 0;
+      min-height: 415px;
+      background: #FFFAB9;
+      border: 1px solid #c8b44a;
+      padding: 13px 18px 13px 14px;
+      font-size: 11.5px; 
+      color: #000;
+      box-shadow: 0 3px 12px rgba(0,0,0,.22);
+    }
+    
+    .cabecera {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:9px;
+    }
+    .logo-izq { width:74px; flex-shrink:0; }
+    .logo-izq img { width:74px; height:auto; display:block; }
+    
+    .texto-inst { 
+	  flex:1; 
+	  text-align:center; 
+	  line-height:1.45; 
+	  font-size:11px; 
+	  color:#7b1b37;
+	}
+    .texto-inst .titulo-doc { font-style:italic; font-weight:bold; font-size:15.5px; margin-top:5px; }
+    
+    .logo-der { flex-shrink:0; display:flex; flex-direction:column; align-items:center; }
+    .logo-der img { width:68px; height:auto; display:block; }
+    
+    .folio-caja { width:72px; margin-top:4px; }
+    .folio-label { background:#7b1b37; color:#fff; font-weight:bold; font-size:10px; letter-spacing:2.5px; text-align:center; padding:2px 0; border:2px solid #7b1b37; }
+    .folio-numero {
+      background:#fffde4; color:#7b1b37; font-weight:bold; font-size:20px;
+      text-align:center; letter-spacing:1px; border:2px solid #7b1b37; border-top:none;
+      padding:1px 0; min-height:28px; display:flex; align-items:center; justify-content:center;
+    }
+    
+    .fila-dest-fecha { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:5px; }
+    .destinatario { 
+	  font-weight:bold; 
+	  font-size:11.5px; 
+	  line-height:1.5; 
+	  text-align: left;
+	}
+    .bloque-fecha { font-size:11.5px; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+    .bloque-fecha span { font-weight:bold; }
+    
+    .linea-dato { 
+	  display:inline-block; border-bottom:1px solid #000; min-width:160px; 
+	  vertical-align:bottom; padding-bottom: 1px; /* Reducido para que no flote */
+	}
+    
+    .cuerpo { margin-bottom:3px; }
+    .linea-cuerpo { font-size:11.5px; line-height:2.0; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px; margin-bottom:2px; }
+    .linea-cuerpo .dato {
+	  display:inline-block; border-bottom:1px solid #000; min-width:100px; 
+	  font-size:11.5px; color:#000; vertical-align:bottom; flex:1; max-width:420px;
+	  padding-bottom: 1px; /* Reducido para que no flote */
+	}
+    .linea-cuerpo .dato-sm  { min-width:55px; max-width:75px; }
+    .linea-cuerpo .dato-med { min-width:90px; max-width:130px; }
+    .linea-cuerpo .dato-lg  { min-width:150px; max-width:280px; }
+    .linea-cuerpo .dato-xl  { min-width:300px; max-width:100%; }
+    
+    .linea-motivo { font-size:11.5px; line-height:2.0; display:flex; align-items:baseline; gap:4px; }
+    .linea-motivo .dato-mot { 
+	  display:inline-block; border-bottom:1px solid #000; flex:1; 
+	  color:#000; vertical-align:bottom; padding-bottom: 1px; 
+	}
+    
+    .observacion { font-weight:bold; text-decoration:underline; font-size:10.5px; text-align:justify; margin:9px 0 18px 0; line-height:1.4; }
+    
+    .fila-firmas { display:flex; justify-content:space-between; align-items:flex-end; margin-top:4px; }
+    .bloque-firma { width:42%; text-align:center; }
+    .linea-firma { border-top:1px solid #000; margin-bottom:4px; }
+    .etiqueta-firma { font-weight:bold; font-size:11.5px; }
+    
+    @media print {
+      body { background:none; padding:0; gap:0; }
+      .panel-captura { display:none !important; }
+      
+      .hoja-pase { 
+          box-shadow:none; 
+          border:none; 
+          min-height:auto; 
+          background: #FFFAB9 !important;
+          -webkit-print-color-adjust: exact; 
+          print-color-adjust: exact; 
+      }
+      @page { size: A5 landscape; margin:5mm; }
+    }
+</style>
+</head>
+<body class="bg-light">
+
+    <div class="d-flex" id="wrapper">
+        <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+        <div id="page-content-wrapper">
+            <div th:replace="~{fragments/header :: navbar('Gestión de Pases de Salida', 'Autorización de salidas grupales e individuales')}"></div>
+
+            <div class="container-fluid px-4 py-4">
+                
+                <ul class="nav nav-pills nav-justified mb-4 shadow-sm p-2 bg-white rounded-pill" id="pills-tab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active rounded-pill" id="pills-grupal-tab" data-bs-toggle="pill" data-bs-target="#pills-grupal" type="button">
+                            <i class="bi bi-people-fill me-2"></i>Autorización Grupal
+                        </button>
+                    </li>
+                    <li class="nav-item requiere-permiso" data-roles="ADMIN,ORIENTACION">
+				        <button class="nav-link rounded-pill" id="pills-individual-tab" data-bs-toggle="pill" data-bs-target="#pills-individual" type="button">
+				            <i class="bi bi-person-badge-fill me-2"></i>Pase Individual
+				        </button>
+				    </li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="pills-grupal">
+                        <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                            <h5 class="fw-bold mb-4" style="color: #7b1b37;">Tablero de Salidas Anticipadas</h5>
+                            <div class="row g-3" id="tableroOrientacion"></div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="pills-individual">
+                        <div class="row g-4">
+                            <div class="col-lg-4">
+                                <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 15px;">
+                                    <h6 class="fw-bold mb-3 text-guinda">Búsqueda de Alumno</h6>
+                                    <div class="mb-3 position-relative">
+                                        <label class="form-label small fw-bold">Nombre o Matrícula</label>
+                                        <input type="text" id="busquedaGlobalAl" class="form-control" placeholder="Escriba para buscar..." required>
+                                        <div id="sugerenciasAl" class="list-group position-absolute w-100 shadow-lg z-3 mt-1" style="display: none; max-height: 250px; overflow-y: auto;"></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Motivo</label>
+                                        <input type="text" id="motInd" class="form-control" placeholder="Ej: Malestar físico" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">Hora de Salida</label>
+                                        <input type="time" id="horaInd" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-8 text-center">
+                                <div class="hoja-pase mx-auto" id="contenedorPaseReal">
+
+							    <div class="cabecera">
+							        <div class="logo-izq">
+							            <img th:src="@{/img/logoMujerGob.png}" alt="Gobierno">
+							        </div>
+							        
+							        <div class="texto-inst">
+							            Dirección General de Educación Tecnológica y de Servicios<br>
+							            Centro de Bachillerato tecnológico industrial y de servicios No. 134°<br>
+							            Departamento de Servicios Escolares<br>
+							            Oficina de Orientación Educativa<br>
+							            <div class="titulo-doc">PASE DE SALIDA INDIVIDUAL.</div>
+							        </div>
+							        
+							        <div class="logo-der">
+							            <img th:src="@{/img/logoSep.png}" alt="SEP">
+							            <div class="folio-caja">
+							                <div class="folio-label">FOLIO</div>
+							                <div class="folio-numero" id="prevFolio">----</div> 
+							            </div>
+							        </div>
+							    </div>
+							
+							    <div class="fila-dest-fecha">
+							        <div class="destinatario">
+							            CC: PREFECTOS Y PERSONAL DE VIGILANCIA.<br>
+							            P R E S E N T E S
+							        </div>
+							        <div class="bloque-fecha">
+							            <span>Fecha:</span>
+							            <span class="linea-dato" id="prevFecha" style="text-align: center;">&nbsp;</span>
+							        </div>
+							    </div>
+							
+							    <div class="cuerpo">
+							        <div class="linea-cuerpo">
+							            <span>Por medio del presente se les solicita permitan la salida del alumno (a):</span>
+							            <span class="dato dato-xl text-center fw-bold" id="prevNombre">&nbsp;</span>
+							        </div>
+							        
+							        <div class="linea-cuerpo">
+							            <span>del</span>
+							            <span class="dato dato-sm text-center fw-bold" id="prevGrado">&nbsp;</span>
+							            <span>SEMESTRE, GRUPO: “</span>
+							            <span class="dato dato-sm text-center fw-bold" id="prevGpo">&nbsp;</span>
+							            <span>” ESPECIALIDAD</span>
+							            <span class="dato dato-lg text-center fw-bold" id="prevEsp">&nbsp;</span>
+							            <span style="margin-left:6px;">Hora de Salida:</span>
+							            <span class="dato dato-med text-center fw-bold" id="prevHora">&nbsp;</span>
+							        </div>
+							        
+							        <div class="linea-motivo">
+							            <span>horas por motivo de</span>
+							            <span class="dato-mot text-center fw-bold" id="prevMot">&nbsp;</span>
+							        </div>
+							    </div>
+							
+							    <div class="observacion">
+							        OBSERVACIONES: EL PRESENTE PASE DE SALIDA NO JUSTIFICA LAS INASISTENCIAS DE LOS MÓDULOS EN QUE SE AUSENTA.
+							    </div>
+							
+							    <div class="fila-firmas">
+							        <div class="bloque-firma">
+							            <div class="linea-firma"></div>
+							            <div class="etiqueta-firma">Autoriza Salida de Alumno.</div>
+							        </div>
+							        <div class="bloque-firma">
+							            <div class="linea-firma"></div>
+							            <div class="etiqueta-firma">Orientación Educativa.</div>
+							        </div>
+							    </div>
+							
+							</div>
+                                <button class="btn btn-success mt-4 px-5 rounded-pill shadow" onclick="guardarPaseIndividual()">
+                                    <i class="bi bi-printer-fill me-2"></i>Imprimir y Guardar
+                                </button>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="fw-bold mb-0 text-guinda">Registro Global de Pases</h5>
+                                        <div class="d-flex gap-2 w-50">
+                                            <input type="text" id="buscarFolioGlobal" class="form-control form-control-sm" placeholder="Folio...">
+                                            <input type="text" id="buscarNombreGlobal" class="form-control form-control-sm" placeholder="Nombre o Matrícula...">
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+									    <table class="table table-hover align-middle text-center">
+									        <thead class="table-light">
+									            <tr>
+									                <th>Folio</th>
+									                <th>Estudiante</th>
+									                <th>Fecha</th>
+									                <th>Motivo</th>
+									                <th>Vigencia</th>
+									                <th class="requiere-permiso" data-roles="ADMIN,ORIENTACION">Acciones</th>
+									            </tr>
+									        </thead>
+									        <tbody id="tablaPasesGlobal"></tbody>
+									    </table>
+									</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+               </div>
+           </div>
+        </div>
+     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script th:src="@{/js/firebase-init.js}"></script>
+    <script th:src="@{/js/pases.js}"></script>
+    <script th:src="@{/js/nav_tigre.js}"></script>
+</body>
+</html>
