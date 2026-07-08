@@ -89,4 +89,34 @@ public class WhatsappController {
             return ResponseEntity.status(500).body("Error de OpenWA: " + e.getMessage());
         }
     }
+    
+    @PostMapping("/ultramsg")
+    public ResponseEntity<?> enviarMensajeUltramsg(@RequestBody Map<String, String> payload) {
+        String instanceId = payload.get("instanceId");
+        String token = payload.get("token");
+        String to = payload.get("to");
+        String body = payload.get("body");
+
+        String urlFinal = "https://api.ultramsg.com/" + instanceId + "/messages/chat";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        try {
+            String requestBody = "token=" + URLEncoder.encode(token, StandardCharsets.UTF_8.toString()) +
+                                 "&to=" + URLEncoder.encode(to, StandardCharsets.UTF_8.toString()) +
+                                 "&body=" + URLEncoder.encode(body, StandardCharsets.UTF_8.toString());
+
+            HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
+            RestTemplate restTemplate = new RestTemplate();
+
+            System.out.println("[Proxy UltraMsg] Despachando a: " + urlFinal);
+            ResponseEntity<String> response = restTemplate.postForEntity(urlFinal, request, String.class);
+            return ResponseEntity.ok(response.getBody());
+            
+        } catch (Exception e) {
+            System.err.println("Fallo en el Proxy de UltraMsg: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error de UltraMsg: " + e.getMessage());
+        }
+    }
 }

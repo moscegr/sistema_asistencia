@@ -1,11 +1,8 @@
-/**
- * Gestión Dinámica de Especialidades - CBTis 134
- */
-
 let modalEdicion;
 
 document.addEventListener('DOMContentLoaded', cargarDatosInstitucionales);
 document.addEventListener('DOMContentLoaded', inicializarVistaCiclo);
+document.addEventListener('DOMContentLoaded', cargarConfigFirebaseLocal);
 document.addEventListener('DOMContentLoaded', () => {
 
     modalEdicion = new bootstrap.Modal(document.getElementById('modalEditarEsp'));
@@ -26,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listener para Editar Especialidad
     document.getElementById('formEditarEsp').addEventListener('submit', async (e) => {
         e.preventDefault();
         const index = document.getElementById('editIndex').value;
@@ -164,7 +160,7 @@ function cambiarFormularioWs(tipo) {
     const lbl1 = document.getElementById('lblWsCampo1');
     const desc1 = document.getElementById('descWsCampo1');
     const lbl2 = document.getElementById('lblWsCampo2');
-    const lbl3 = document.getElementById('lblWsCampo3'); // Referencia al label 3
+    const lbl3 = document.getElementById('lblWsCampo3');
     const cont3 = document.getElementById('contenedorCampo3');
 
     document.getElementById('wsCampo1').value = '';
@@ -555,5 +551,70 @@ async function revertirCicloEscolar() {
     } catch (e) {
         console.error("Error al revertir:", e);
         Swal.fire("Error crítico", "No se pudo completar la reversión: " + e.message, "error");
+    }
+}
+
+function cargarConfigFirebaseLocal() {
+    const configTextarea = document.getElementById('textareaFirebase');
+    if (!configTextarea) return;
+    
+    const configGuardada = localStorage.getItem('customFirebaseConfig');
+    if (configGuardada) {
+        try {
+
+            configTextarea.value = JSON.stringify(JSON.parse(configGuardada), null, 2);
+        } catch (e) {
+            configTextarea.value = configGuardada;
+        }
+    }
+}
+
+async function guardarConfigFirebaseExterna() {
+    const jsonText = document.getElementById('textareaFirebase').value.trim();
+
+    if (!jsonText) {
+        Swal.fire("Campo vacío", "Por favor pegue el objeto JSON de configuración de Firebase.", "warning");
+        return;
+    }
+
+    try {
+
+        const parsedConfig = JSON.parse(jsonText);
+
+        if (!parsedConfig.apiKey || !parsedConfig.projectId || !parsedConfig.authDomain) {
+            Swal.fire("Estructura Inválida", "El JSON no contiene los parámetros esenciales de Firebase (apiKey, projectId, authDomain).", "error");
+            return;
+        }
+
+        const result = await Swal.fire({
+            title: '¿Vincular nueva Base de Datos?',
+            text: "El sistema cambiará de entorno inmediatamente. Se cerrará la sesión actual y el backend de Java generará el Administrador Maestro en la nueva BD al arrancar.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, cambiar Base de Datos',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+
+            localStorage.setItem('customFirebaseConfig', JSON.stringify(parsedConfig));
+
+            localStorage.removeItem('userRole');
+
+            await Swal.fire({
+                title: "¡Conexión Vinculada!",
+                text: "Configuración guardada en el navegador. La página se reiniciará. Asegúrese de que el Ing. Cruz asigne la variable de entorno en Coolify para sincronizar el backend.",
+                icon: "success",
+                confirmButtonColor: '#0d6efd'
+            });
+
+            window.location.reload();
+        }
+
+    } catch (error) {
+        console.error("Error al procesar el JSON de Firebase:", error);
+        Swal.fire("JSON Inválido", "El texto ingresado no tiene un formato JSON válido. Revise que no falten comillas o llaves.", "error");
     }
 }

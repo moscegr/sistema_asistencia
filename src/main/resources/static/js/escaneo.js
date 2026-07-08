@@ -215,16 +215,37 @@ async function enviarPorMeta(config, tel, msg) {
 
 // Ultramsg
 async function enviarPorUltramsg(config, tel, msg) {
-    const params = new URLSearchParams({
-        'token': config.token,
-        'to': "52" + tel.trim(),
-        'body': msg
-    });
-    return fetch(`https://api.ultramsg.com/${config.instanceId}/messages/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params
-    });
+    try {
+        const numeroLimpio = tel.replace(/\s+/g, '').replace(/[-()]/g, '');
+        
+        console.log(`[UltraMsg Proxy] Pidiendo a Spring Boot que despache a +52${numeroLimpio}...`);
+
+        const response = await fetch('/api/whatsapp/ultramsg', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                instanceId: config.instanceId.trim(),
+                token: config.token.trim(),
+                to: `+52${numeroLimpio}`,
+                body: msg
+            })
+        });
+
+        const textResponse = await response.text();
+
+        if (!response.ok) {
+            console.error("[UltraMsg Backend Error]:", textResponse);
+        } else {
+            console.log("[UltraMsg Backend Éxito]: ¡Mensaje procesado con éxito por UltraMsg!");
+        }
+
+        return response;
+
+    } catch (err) {
+        console.error("Fallo crítico al conectar con el backend local de Java:", err);
+    }
 }
 
 // Twilio

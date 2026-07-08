@@ -1,4 +1,3 @@
-// static/js/auth.js
 const loginForm = document.getElementById('loginForm');
 
 if (loginForm) {
@@ -90,9 +89,7 @@ if (loginForm) {
     });
 }
 
-/**
- * Envía un correo de recuperación de contraseña a través de Firebase Auth
- */
+
 async function recuperarPassword(e) {
     if(e) e.preventDefault(); 
 

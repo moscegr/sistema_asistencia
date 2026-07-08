@@ -37,6 +37,7 @@ public class FirebaseConfig {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setDatabaseUrl("https://cbtis134-37029.firebaseio.com")
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {
