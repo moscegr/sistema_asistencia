@@ -8,3 +8,5 @@ target/maven-status
 .env
 residencia-cbtis.tar
 *.tar
+node_modules/
+*.zip

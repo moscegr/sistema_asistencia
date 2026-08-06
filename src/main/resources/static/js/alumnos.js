@@ -43,9 +43,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-/**
- * Carga las carreras desde la colección 'configuracion'
- */
 async function cargarEspecialidadesConfig() {
     const select = document.getElementById('especialidad');
     try {
@@ -65,9 +62,6 @@ async function cargarEspecialidadesConfig() {
     }
 }
 
-/**
- * Ajusta el turno automáticamente según la carrera seleccionada
- */
 function ajustarTurnos(nombreCarrera) {
     const turnoSelect = document.getElementById('turno');
     const config = especialidadesCache.find(e => e.nombre === nombreCarrera);
@@ -76,9 +70,6 @@ function ajustarTurnos(nombreCarrera) {
     }
 }
 
-/**
- * Carga los datos del alumno en el formulario para editar
- */
 async function configurarModoEdicion(matricula) {
     document.getElementById('matricula').readOnly = true; 
     document.querySelector('button[type="submit"]').innerHTML = '<i class="bi bi-pencil-square me-2"></i> Actualizar Estudiante';
@@ -164,14 +155,11 @@ async function capturarFirmaFacial() {
     const video = document.getElementById('videoRegistro');
     Swal.fire({ title: 'Analizando rostro...', html: 'Mire directamente a la cámara...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
-    // Aquí ocurre la magia: Busca 1 cara, mapea los puntos y extrae los 128 números
     const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
     
     if (deteccion) {
-        // Convertimos el Float32Array que da face-api a un Array normal compatible con Firebase
         descriptorFacialGlobal = Array.from(deteccion.descriptor); 
         
-        // Apagamos la cámara por seguridad y recursos
         if (streamCamara) streamCamara.getTracks().forEach(track => track.stop());
         
         document.getElementById('contenedorCamara').style.display = 'none';
@@ -187,7 +175,6 @@ async function capturarFirmaFacial() {
     }
 }
 
-// --- PROCESO DE GUARDADO (REGISTRO/ACTUALIZACIÓN) ---
 document.getElementById('formAlumno').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -199,7 +186,6 @@ document.getElementById('formAlumno').addEventListener('submit', async (e) => {
     const matricula = document.getElementById('matricula').value.trim();
     const curp = document.getElementById('curp').value.toUpperCase().trim();
 
-    // 1. VALIDACIÓN DE DUPLICADOS (Solo si es registro nuevo)
     if (!editMatricula) {
         Swal.fire({ title: 'Validando...', didOpen: () => Swal.showLoading() });
         
@@ -213,17 +199,14 @@ document.getElementById('formAlumno').addEventListener('submit', async (e) => {
     Swal.fire({ title: 'Guardando datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
-        // 2. CONSTRUCCIÓN DEL STRING ÚNICO PARA EL QR
-        // Obtenemos los nombres para construir la cadena
+
         const nombre = document.getElementById('nombre').value.trim();
         const apepat = document.getElementById('apepat').value.trim();
         const apemat = document.getElementById('apemat').value.trim();
         
-        // Formato propuesto: "MATRICULA|NOMBRE COMPLETO"
         const nombreCompleto = `${nombre} ${apepat} ${apemat}`.trim().toUpperCase();
         const textoUnicoQR = `${matricula}|${nombreCompleto}`;
 
-        // 3. CONSTRUCCIÓN DEL OBJETO FINAL
         const teltutor = document.getElementById('teltutor').value.trim();
         const alumnoObj = {
             matricula: matricula,
@@ -247,14 +230,12 @@ document.getElementById('formAlumno').addEventListener('submit', async (e) => {
             teltutor: teltutor,
             ocupaciontutor: document.getElementById('ocupaciontutor').value.trim(),
             
-            // Reemplazamos la URL de la imagen por el texto crudo del QR
             qr_texto: textoUnicoQR, 
             perfil_completo: !!teltutor,
             registradoPor: adminUID,
             fecharegistro: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        // 4. GUARDADO EN FIRESTORE
         await db.collection("alumnos").doc(matricula).set(alumnoObj, { merge: true });
 
         Swal.fire("Éxito", "Estudiante gestionado correctamente.", "success")

@@ -64,7 +64,7 @@ function protegerRutasCentralizado(rol) {
     const reglasDeAcceso = {
         '/admin/dashboard': ['ADMIN', 'PREFECTO', 'ORIENTACION'],
         
-        // Gestión -> Alumnos
+        // Gestión
         '/admin/alumnos': ['ADMIN'],
         '/admin/alumnos/nuevo': ['ADMIN'],
         '/admin/alumnos/gestion-archivos': ['ADMIN'],
@@ -73,7 +73,7 @@ function protegerRutasCentralizado(rol) {
         '/admin/alumnos/seguimiento-conductual': ['ADMIN', 'PREFECTO', 'ORIENTACION'],
         '/admin/alumnos/monitoreo-salud': ['ADMIN', 'PREFECTO', 'ORIENTACION'],
         
-        // Gestión -> Administrativos
+        // Gestión
         '/admin/usuarios': ['ADMIN'],
         
         // Movimientos
