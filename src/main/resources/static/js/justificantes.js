@@ -267,7 +267,7 @@ function renderizarTablaJustificantes() {
 		                <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirJust('${folio}')" title="Reimprimir">
 		                    <i class="bi bi-file-pdf-fill fs-5"></i>
 		                </button>
-		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarJustificante('${j.id || folio}')" title="Eliminar Justificante">
+		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarJustificante('${j._id || j.folio_justificante || j.id}')" title="Eliminar Justificante">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
 		            </div>

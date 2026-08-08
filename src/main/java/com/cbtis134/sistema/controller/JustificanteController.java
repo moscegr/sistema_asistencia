@@ -3,6 +3,8 @@ package com.cbtis134.sistema.controller;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +40,18 @@ public class JustificanteController {
         }
         mongoTemplate.save(doc, "justificantes");
         return ResponseEntity.ok(doc);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "justificantes");
+        mongoTemplate.remove(new Query(Criteria.where("folio_justificante").is(id)), "justificantes");
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/limpiar-todos")
+    public ResponseEntity<Map<String, String>> eliminarTodos() {
+        mongoTemplate.dropCollection("justificantes");
+        return ResponseEntity.ok(Map.of("mensaje", "Todos los justificantes han sido eliminados correctamente."));
     }
 }
