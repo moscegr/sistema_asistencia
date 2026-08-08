@@ -104,6 +104,7 @@ function verificarIntegridadSistema() {
 
 async function cargarEstadisticas() {
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+    const hoy = new Date().toLocaleDateString('en-CA');
 
     try {
         const r1 = await fetch('/api/alumnos');
@@ -117,7 +118,8 @@ async function cargarEstadisticas() {
         const r2 = await fetch('/api/pases');
         if (r2.ok) {
             const list = await r2.json();
-            setVal('totalPases', list.length);
+            const pasesActivos = list.filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO'));
+            setVal('totalPases', pasesActivos.length);
         }
     } catch(e){}
 
@@ -284,8 +286,6 @@ function renderizarGraficoPastel(dentro, fuera) {
         }
     });
 }
-
-// --- FUNCIONES INLINE EVENT HANDLERS DE DASHBOARD.HTML ---
 
 function cambiarScope(val) {
     const colEsp = document.getElementById('colEsp');

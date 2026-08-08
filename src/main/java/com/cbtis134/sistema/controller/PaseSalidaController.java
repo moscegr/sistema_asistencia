@@ -3,6 +3,8 @@ package com.cbtis134.sistema.controller;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,5 +40,12 @@ public class PaseSalidaController {
         }
         mongoTemplate.save(doc, "pases_salida");
         return ResponseEntity.ok(doc);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "pases_salida");
+        mongoTemplate.remove(new Query(Criteria.where("folio_pase").is(id)), "pases_salida");
+        return ResponseEntity.noContent().build();
     }
 }
