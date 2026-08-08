@@ -10,6 +10,9 @@ import java.util.Optional;
 @Repository
 public interface AlumnoRepository extends MongoRepository<Alumno, String> {
     Optional<Alumno> findFirstByNcontrol(String ncontrol);
+    Optional<Alumno> findFirstByMatricula(String matricula);
+    Optional<Alumno> findFirstByNcontrolOrMatricula(String ncontrol, String matricula);
+
     List<Alumno> findByNcontrol(String ncontrol);
 
     Optional<Alumno> findFirstByQrCode(String qrCode);

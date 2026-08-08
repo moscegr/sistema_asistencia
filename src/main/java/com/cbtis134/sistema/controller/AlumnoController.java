@@ -29,7 +29,7 @@ public class AlumnoController {
 
     @GetMapping("/ncontrol/{ncontrol}")
     public ResponseEntity<Alumno> obtenerPorNControl(@PathVariable String ncontrol) {
-        return alumnoRepository.findFirstByNcontrol(ncontrol)
+        return alumnoRepository.findFirstByNcontrolOrMatricula(ncontrol, ncontrol)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -43,9 +43,12 @@ public class AlumnoController {
 
     @PostMapping
     public Alumno guardar(@RequestBody Alumno alumno) {
-        if (alumno.getId() == null && alumno.getNcontrol() != null) {
-            alumnoRepository.findFirstByNcontrol(alumno.getNcontrol())
-                    .ifPresent(existente -> alumno.setId(existente.getId()));
+        if (alumno.getId() == null) {
+            String searchKey = alumno.getNcontrol() != null ? alumno.getNcontrol() : alumno.getMatricula();
+            if (searchKey != null) {
+                alumnoRepository.findFirstByNcontrolOrMatricula(searchKey, searchKey)
+                        .ifPresent(existente -> alumno.setId(existente.getId()));
+            }
         }
         return alumnoRepository.save(alumno);
     }

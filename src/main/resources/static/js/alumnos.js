@@ -2,12 +2,18 @@ let iaCargada = false;
 let streamCamara = null;
 let descriptorFacialGlobal = null;
 let fotoPerfilGlobal = null;
+let alumnoEdicionId = null;
 let adminUID = "ADMIN_DEFAULT";
 
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarEspecialidadesForm();
     cargarModelosIABackground();
-    verificarEdicion();
+    const esEdicion = await verificarEdicion();
+
+    // Si es un nuevo estudiante y no hay foto cargada, activar cámara automáticamente de inmediato
+    if (!esEdicion && !fotoPerfilGlobal) {
+        iniciarCamaraRegistro();
+    }
 });
 
 async function cargarEspecialidadesForm() {
@@ -34,13 +40,15 @@ function ajustarTurnos(especialidadSel) {
 async function verificarEdicion() {
     const urlParams = new URLSearchParams(window.location.search);
     const matEdit = urlParams.get('edit');
-    if (!matEdit) return;
+    if (!matEdit) return false;
 
     try {
         const res = await fetch(`/api/alumnos/ncontrol/${matEdit}`);
         if (res.ok) {
             const d = await res.json();
             
+            alumnoEdicionId = d.id; // ¡ALMACENAR ID MONGODB OBLIGATORIO PARA EDICIÓN!
+
             if (document.getElementById('matricula')) {
                 document.getElementById('matricula').value = d.ncontrol || d.matricula;
                 document.getElementById('matricula').readOnly = true;
@@ -69,53 +77,51 @@ async function verificarEdicion() {
             if (fotoExistente) {
                 fotoPerfilGlobal = fotoExistente;
                 mostrarFotoPreview(fotoPerfilGlobal);
+            } else {
+                iniciarCamaraRegistro();
             }
             
             toggleAula(d.color_semaforo);
             if (d.aula_especifica && document.getElementById('aula_especifica')) document.getElementById('aula_especifica').value = d.aula_especifica;
+            return true;
         }
     } catch (e) { console.error("Error al cargar datos para edición:", e); }
+    return false;
 }
 
 async function cargarModelosIABackground() {
     try {
-        const msg = document.getElementById('msgBiometria');
-        if (msg) {
-            msg.style.display = 'block';
-            msg.className = "x-small text-muted mt-2 mb-0";
-            msg.innerText = "Cargando motor biométrico en segundo plano...";
-        }
-        
         await Promise.all([
             faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
             faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
             faceapi.nets.faceRecognitionNet.loadFromUri('/models')
         ]);
-        
         iaCargada = true;
-        if (msg) msg.style.display = 'none';
     } catch (e) {
-        console.warn("Módulo de IA adicional no disponible, modo cámara activa listo:", e);
-        const msg = document.getElementById('msgBiometria');
-        if (msg) msg.style.display = 'none';
+        console.warn("Extracción vectorial omitida:", e);
     }
 }
 
 async function iniciarCamaraRegistro() {
     const video = document.getElementById('videoRegistro');
+    if (!video) return;
     
     try {
+        if (streamCamara) {
+            streamCamara.getTracks().forEach(t => t.stop());
+        }
         streamCamara = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
         video.srcObject = streamCamara;
         
         if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
         if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'none';
         if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'block';
-        if (document.getElementById('btnActivarCamara')) document.getElementById('btnActivarCamara').style.display = 'none';
-        if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'block';
+        if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'inline-block';
+        if (document.getElementById('btnTomarOtraFoto')) document.getElementById('btnTomarOtraFoto').style.display = 'none';
+        if (document.getElementById('btnEliminarFoto')) document.getElementById('btnEliminarFoto').style.display = 'none';
         
     } catch (e) {
-        Swal.fire("Error", "No se detectó cámara o denegaste los permisos de acceso.", "error");
+        console.warn("Cámara no iniciada:", e);
     }
 }
 
@@ -130,14 +136,12 @@ async function capturarFirmaFacial() {
         canvasSnap.height = 400;
         const ctxSnap = canvasSnap.getContext('2d');
 
-        // Draw crop centered
         const vW = video.videoWidth || 640;
         const vH = video.videoHeight || 480;
         ctxSnap.drawImage(video, 0, 0, vW, vH, 0, 0, 300, 400);
         
-        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.82);
+        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
 
-        // Extraer descriptor de IA si el modelo terminó de cargar
         if (iaCargada) {
             try {
                 const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
@@ -154,11 +158,6 @@ async function capturarFirmaFacial() {
         
         mostrarFotoPreview(fotoPerfilGlobal);
 
-        if (document.getElementById('btnActivarCamara')) {
-            document.getElementById('btnActivarCamara').style.display = 'inline-block';
-            document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Tomar otra Foto';
-        }
-        
         Swal.fire("¡Foto Capturada!", "La fotografía de perfil se ha asignado correctamente al estudiante.", "success");
 
     } catch (err) {
@@ -181,7 +180,7 @@ function cargarFotoDesdeArchivo(event) {
             canvasSnap.height = 400;
             const ctxSnap = canvasSnap.getContext('2d');
             ctxSnap.drawImage(img, 0, 0, 300, 400);
-            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.82);
+            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
             mostrarFotoPreview(fotoPerfilGlobal);
         };
     };
@@ -194,6 +193,7 @@ function mostrarFotoPreview(srcFoto) {
     
     const divRes = document.getElementById('rostroCapturado');
     const imgPrev = document.getElementById('imgFotoPerfilPreview');
+    const btnTomarOtra = document.getElementById('btnTomarOtraFoto');
     const btnDel = document.getElementById('btnEliminarFoto');
 
     if (divRes) divRes.style.display = 'block';
@@ -201,6 +201,7 @@ function mostrarFotoPreview(srcFoto) {
         imgPrev.src = srcFoto;
         imgPrev.style.display = 'block';
     }
+    if (btnTomarOtra) btnTomarOtra.style.display = 'inline-block';
     if (btnDel) btnDel.style.display = 'inline-block';
 }
 
@@ -212,13 +213,10 @@ function eliminarFotoEstudiante() {
     if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
     if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'flex';
     if (document.getElementById('btnEliminarFoto')) document.getElementById('btnEliminarFoto').style.display = 'none';
+    if (document.getElementById('btnTomarOtraFoto')) document.getElementById('btnTomarOtraFoto').style.display = 'none';
     if (document.getElementById('inputFotoArchivo')) document.getElementById('inputFotoArchivo').value = '';
     
-    if (document.getElementById('btnActivarCamara')) {
-        document.getElementById('btnActivarCamara').style.display = 'inline-block';
-        document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-camera-video me-1"></i> Activar Cámara';
-    }
-
+    iniciarCamaraRegistro();
     Swal.fire({ icon: 'info', title: 'Fotografía removida', text: 'Se eliminará la foto de perfil del estudiante al guardar.', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
 }
 
@@ -247,6 +245,7 @@ if (formAlumno) {
 
             const teltutor = document.getElementById('teltutor').value.trim();
             const alumnoObj = {
+                id: alumnoEdicionId || null, // ¡ID MONGODB PARA OVERWRITE GARANTIZADO!
                 ncontrol: matricula,
                 matricula: matricula,
                 curp: curp,
