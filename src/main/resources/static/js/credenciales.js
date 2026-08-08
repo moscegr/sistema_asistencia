@@ -445,12 +445,9 @@ async function descargarPNGsDelGrupo() {
     }
 }
 
-// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (1:1 FIDELIDAD) ---
+// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (GLASS DESIGN & POSICIONAMIENTO PERFECTO) ---
 
 async function generarCanvasCredencialFrente(alumno) {
-    if (plantillaFrente) {
-        return generarCanvasCustomFrente(alumno);
-    }
     return new Promise(async (resolve) => {
         let container = document.getElementById('tempCardContainer');
         if (!container) {
@@ -479,7 +476,7 @@ async function generarCanvasCredencialFrente(alumno) {
                     <div style="width: 28mm; height: 34mm; background: #eee; border: 1px dashed #999; margin: 0 auto 6px auto; background-image: url('${fotoSrc}'); background-size: contain; background-repeat: no-repeat; background-position: center; border-radius: 4px;"></div>
                     <div style="font-size: 9.5px; font-weight: bold; color: #222; text-transform: uppercase; line-height: 1.1; margin-bottom: 8px; text-align: center;">${nombreCompleto}</div>
                     
-                    <div style="background: #f8f9fa; border-radius: 6px; padding: 8px 10px; font-size: 7px; color: #333; margin: 8px auto 0 auto; border: 1px solid #e9ecef; line-height: 1.6; text-align: center;">
+                    <div style="background: rgba(255, 255, 255, 0.85); border-radius: 10px; padding: 8px 12px; font-size: 7px; color: #333; margin: 14px auto 0 auto; border: 1px solid rgba(123, 27, 55, 0.18); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); backdrop-filter: blur(8px); line-height: 1.6; text-align: center;">
                         <div><strong>MATRÍCULA:</strong> <span style="color: #7b1b37; font-weight: bold;">${mat}</span></div>
                         <div><strong>CARRERA:</strong> <span>${alumno.especialidad || 'N/A'}</span></div>
                         <div><strong>GRUPO:</strong> <span>${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}</span></div>
@@ -504,9 +501,6 @@ async function generarCanvasCredencialFrente(alumno) {
 }
 
 async function generarCanvasCredencialReverso(alumno) {
-    if (plantillaReverso) {
-        return generarCanvasCustomReverso(alumno);
-    }
     return new Promise(async (resolve) => {
         let container = document.getElementById('tempCardContainer');
         if (!container) {
@@ -532,12 +526,12 @@ async function generarCanvasCredencialReverso(alumno) {
                     <div style="width: 34mm; height: 34mm; margin: 4px auto 8px auto;">
                         <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
                     </div>
-                    <div style="font-size: 6.5px; color: #333; line-height: 1.3; margin-bottom: 15px;">
+                    <div style="font-size: 6.5px; color: #333; line-height: 1.3; margin-bottom: 20px;">
                         Esta credencial es personal e intransferible.<br>
                         Acredita al portador como alumno(a) del plantel CBTis No. 134.
                     </div>
                     
-                    <div style="width: 40mm; border-bottom: 1px solid #333; margin: 15px auto 4px auto;"></div>
+                    <div style="width: 40mm; border-bottom: 1px solid #333; margin: 28px auto 4px auto;"></div>
                     <div style="font-size: 8px; font-weight: bold; color: #000;">${director}</div>
                     <div style="font-size: 6.5px; color: #555;">Director del Plantel CBTis No. 134</div>
                 </div>
