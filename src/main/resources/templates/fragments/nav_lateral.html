@@ -10,13 +10,17 @@
     <script>
         (function() {
             var r = (localStorage.getItem('userRole') || '').toUpperCase();
-            if (r !== 'ADMIN') {
+            if (r) {
                 var s = document.createElement('style');
                 s.id = 'style-anti-flicker-instantaneo';
-                s.innerHTML = '.requiere-permiso { display: none !important; } ' +
-                              (r ? ('.requiere-permiso[data-roles*="' + r + '"] { display: flex !important; } ' +
-                                    'p.sb-label[data-roles*="' + r + '"] { display: flex !important; } ' +
-                                    'div.requiere-permiso[data-roles*="' + r + '"] { display: block !important; }') : '');
+                if (r === 'ADMIN') {
+                    s.innerHTML = '.requiere-permiso { display: flex !important; } div.requiere-permiso { display: block !important; }';
+                } else {
+                    s.innerHTML = '.requiere-permiso { display: none !important; } ' +
+                                  '.requiere-permiso[data-roles*="' + r + '"] { display: flex !important; } ' +
+                                  'p.sb-label[data-roles*="' + r + '"] { display: flex !important; } ' +
+                                  'div.requiere-permiso[data-roles*="' + r + '"] { display: block !important; }';
+                }
                 document.head.appendChild(s);
             }
         })();

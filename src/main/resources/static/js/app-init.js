@@ -6,27 +6,13 @@ window.usuarioActual = { email: localStorage.getItem('userEmail') || '' };
 
 (function aplicarAntiParpadeoGlobal() {
     const rolGuardado = localStorage.getItem('userRole');
-    const rolMayus = (rolGuardado || '').toUpperCase();
-    
-    if (rolMayus && rolMayus !== 'ADMIN') {
-        let estilo = document.getElementById('style-anti-flicker-instantaneo');
-        if (!estilo) {
-            estilo = document.createElement('style');
-            estilo.id = 'style-anti-flicker-instantaneo';
-            document.head.appendChild(estilo);
-        }
-
-        estilo.innerHTML = `
-            .requiere-permiso { display: none !important; }
-            .requiere-permiso[data-roles*="${rolMayus}"] { display: flex !important; }
-            p.sb-label[data-roles*="${rolMayus}"] { display: flex !important; }
-            div.requiere-permiso[data-roles*="${rolMayus}"] { display: block !important; }
-        `;
+    if (rolGuardado) {
+        aplicarPermisosVisuales(rolGuardado);
     }
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
-    const rolLocal = (localStorage.getItem('userRole') || '').toUpperCase();
+    const rolLocal = localStorage.getItem('userRole');
     if (rolLocal) {
         aplicarPermisosVisuales(rolLocal);
         protegerRutasCentralizado(rolLocal);
@@ -44,7 +30,6 @@ async function sincronizarRolDesdeServidor() {
             const rolReal = (user.rol || 'ADMIN').toUpperCase();
             const nombreReal = user.nombre || user.correo;
 
-            const rolPrevio = localStorage.getItem('userRole');
             localStorage.setItem('userRole', rolReal);
             localStorage.setItem('userName', nombreReal);
             localStorage.setItem('userEmail', user.correo || '');
@@ -60,7 +45,7 @@ async function sincronizarRolDesdeServidor() {
         console.error("Error al sincronizar sesión de usuario:", e);
     }
 
-    const rolFallback = (localStorage.getItem('userRole') || '').toUpperCase();
+    const rolFallback = localStorage.getItem('userRole');
     if (rolFallback) {
         aplicarPermisosVisuales(rolFallback);
         protegerRutasCentralizado(rolFallback);
@@ -127,26 +112,26 @@ function protegerRutasCentralizado(rol) {
 
 function aplicarPermisosVisuales(rolActual) {
     if (!rolActual) return;
-    const rolMayuscula = rolActual.toUpperCase();
-    const elementosProtegidos = document.querySelectorAll('.requiere-permiso');
+    const rolMayus = rolActual.toUpperCase();
 
-    elementosProtegidos.forEach(elemento => {
-        const rolesString = elemento.getAttribute('data-roles');
-        if (!rolesString) {
-            if (rolMayuscula !== 'ADMIN') {
-                elemento.style.setProperty('display', 'none', 'important');
-            } else {
-                elemento.style.removeProperty('display');
-            }
-            return;
-        }
+    let estilo = document.getElementById('style-anti-flicker-instantaneo');
+    if (!estilo) {
+        estilo = document.createElement('style');
+        estilo.id = 'style-anti-flicker-instantaneo';
+        document.head.appendChild(estilo);
+    }
 
-        const rolesPermitidos = rolesString.split(',').map(r => r.trim().toUpperCase());
-
-        if (!rolesPermitidos.includes(rolMayuscula)) {
-            elemento.style.setProperty('display', 'none', 'important');
-        } else {
-            elemento.style.removeProperty('display');
-        }
-    });
+    if (rolMayus === 'ADMIN') {
+        estilo.innerHTML = `
+            .requiere-permiso { display: flex !important; }
+            div.requiere-permiso { display: block !important; }
+        `;
+    } else {
+        estilo.innerHTML = `
+            .requiere-permiso { display: none !important; }
+            .requiere-permiso[data-roles*="${rolMayus}"] { display: flex !important; }
+            p.sb-label[data-roles*="${rolMayus}"] { display: flex !important; }
+            div.requiere-permiso[data-roles*="${rolMayus}"] { display: block !important; }
+        `;
+    }
 }
