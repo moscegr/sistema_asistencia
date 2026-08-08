@@ -6,7 +6,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -111,12 +113,23 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/admin/dashboard", true)
+                .successHandler((request, response, authentication) -> {
+                    boolean isGuardia = authentication.getAuthorities().stream()
+                            .anyMatch(a -> a.getAuthority().contains("GUARDIA"));
+                    if (isGuardia) {
+                        response.sendRedirect("/admin/escaneo");
+                    } else {
+                        response.sendRedirect("/admin/dashboard");
+                    }
+                })
                 .permitAll()
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID", "AuthToken", "remember-me")
                 .permitAll()
             )
             .exceptionHandling(ex -> ex
@@ -124,7 +137,12 @@ public class SecurityConfig {
                     response.sendRedirect("/login");
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
-                    response.sendRedirect("/admin/dashboard");
+                    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                    if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("GUARDIA"))) {
+                        response.sendRedirect("/admin/escaneo");
+                    } else {
+                        response.sendRedirect("/admin/dashboard");
+                    }
                 })
             );
             

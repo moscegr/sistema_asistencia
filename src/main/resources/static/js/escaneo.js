@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderizarListaFiltrada(e.target.value);
         });
     }
+
+    // Ping Keep-Alive cada 4 minutos para mantener la sesión del vigilante siempre activa
+    setInterval(async () => {
+        try { await fetch('/api/usuarios/me'); } catch (e) {}
+    }, 240000);
 });
 
 async function cargarConfiguracionInicial() {
