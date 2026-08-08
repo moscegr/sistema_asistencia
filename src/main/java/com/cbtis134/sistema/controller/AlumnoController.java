@@ -43,6 +43,10 @@ public class AlumnoController {
 
     @PostMapping
     public Alumno guardar(@RequestBody Alumno alumno) {
+        if (alumno.getId() == null && alumno.getNcontrol() != null) {
+            alumnoRepository.findFirstByNcontrol(alumno.getNcontrol())
+                    .ifPresent(existente -> alumno.setId(existente.getId()));
+        }
         return alumnoRepository.save(alumno);
     }
 

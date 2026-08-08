@@ -6,7 +6,7 @@ let adminUID = "ADMIN_DEFAULT";
 
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarEspecialidadesForm();
-    await cargarModelosIA();
+    cargarModelosIABackground();
     verificarEdicion();
 });
 
@@ -64,8 +64,10 @@ async function verificarEdicion() {
             if (document.getElementById('ocupaciontutor')) document.getElementById('ocupaciontutor').value = d.ocupaciontutor || '';
             
             if (d.descriptor_facial) descriptorFacialGlobal = d.descriptor_facial;
-            if (d.fotoUrl || d.foto_url || d.foto) {
-                fotoPerfilGlobal = d.fotoUrl || d.foto_url || d.foto;
+            
+            const fotoExistente = d.fotoUrl || d.foto_url || d.foto;
+            if (fotoExistente) {
+                fotoPerfilGlobal = fotoExistente;
                 mostrarFotoPreview(fotoPerfilGlobal);
             }
             
@@ -75,12 +77,13 @@ async function verificarEdicion() {
     } catch (e) { console.error("Error al cargar datos para edición:", e); }
 }
 
-async function cargarModelosIA() {
+async function cargarModelosIABackground() {
     try {
         const msg = document.getElementById('msgBiometria');
         if (msg) {
             msg.style.display = 'block';
-            msg.innerText = "Descargando modelos de IA...";
+            msg.className = "x-small text-muted mt-2 mb-0";
+            msg.innerText = "Cargando motor biométrico en segundo plano...";
         }
         
         await Promise.all([
@@ -92,19 +95,17 @@ async function cargarModelosIA() {
         iaCargada = true;
         if (msg) msg.style.display = 'none';
     } catch (e) {
-        console.error("Error cargando IA:", e);
+        console.warn("Módulo de IA adicional no disponible, modo cámara activa listo:", e);
         const msg = document.getElementById('msgBiometria');
-        if (msg) msg.innerText = "Error al cargar módulo facial.";
+        if (msg) msg.style.display = 'none';
     }
 }
 
 async function iniciarCamaraRegistro() {
-    if (!iaCargada) return Swal.fire("Aviso", "La Inteligencia Artificial aún se está cargando. Espere unos segundos.", "info");
-    
     const video = document.getElementById('videoRegistro');
     
     try {
-        streamCamara = await navigator.mediaDevices.getUserMedia({ video: {} });
+        streamCamara = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
         video.srcObject = streamCamara;
         
         if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
@@ -114,27 +115,36 @@ async function iniciarCamaraRegistro() {
         if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'block';
         
     } catch (e) {
-        Swal.fire("Error", "No se detectó cámara o denegaste los permisos.", "error");
+        Swal.fire("Error", "No se detectó cámara o denegaste los permisos de acceso.", "error");
     }
 }
 
 async function capturarFirmaFacial() {
     const video = document.getElementById('videoRegistro');
-    Swal.fire({ title: 'Analizando rostro y capturando fotografía...', html: 'Mire directamente a la cámara...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Capturando fotografía...', text: 'Guardando foto de perfil', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
     try {
-        const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-        
-        // Snapshot photo frame from video stream
+        // Redimensionar y comprimir la captura a 300x400 JPEG para máxima eficiencia (pesa ~20KB)
         const canvasSnap = document.createElement('canvas');
-        canvasSnap.width = video.videoWidth || 320;
-        canvasSnap.height = video.videoHeight || 240;
+        canvasSnap.width = 300;
+        canvasSnap.height = 400;
         const ctxSnap = canvasSnap.getContext('2d');
-        ctxSnap.drawImage(video, 0, 0, canvasSnap.width, canvasSnap.height);
-        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
 
-        if (deteccion) {
-            descriptorFacialGlobal = Array.from(deteccion.descriptor);
+        // Draw crop centered
+        const vW = video.videoWidth || 640;
+        const vH = video.videoHeight || 480;
+        ctxSnap.drawImage(video, 0, 0, vW, vH, 0, 0, 300, 400);
+        
+        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.82);
+
+        // Extraer descriptor de IA si el modelo terminó de cargar
+        if (iaCargada) {
+            try {
+                const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+                if (deteccion) {
+                    descriptorFacialGlobal = Array.from(deteccion.descriptor);
+                }
+            } catch(e) { console.warn("Extracción vectorial omitida:", e); }
         }
 
         if (streamCamara) streamCamara.getTracks().forEach(track => track.stop());
@@ -146,14 +156,14 @@ async function capturarFirmaFacial() {
 
         if (document.getElementById('btnActivarCamara')) {
             document.getElementById('btnActivarCamara').style.display = 'inline-block';
-            document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Volver a Tomar Foto';
+            document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Tomar otra Foto';
         }
         
-        Swal.fire("¡Foto y Biometría Registradas!", "Fotografía de perfil y patrón facial guardados.", "success");
+        Swal.fire("¡Foto Capturada!", "La fotografía de perfil se ha asignado correctamente al estudiante.", "success");
 
     } catch (err) {
         console.error(err);
-        Swal.fire("Error", "No se pudo capturar la imagen.", "error");
+        Swal.fire("Error", "No se pudo capturar la imagen de la cámara.", "error");
     }
 }
 
@@ -163,8 +173,17 @@ function cargarFotoDesdeArchivo(event) {
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        fotoPerfilGlobal = e.target.result;
-        mostrarFotoPreview(fotoPerfilGlobal);
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+            const canvasSnap = document.createElement('canvas');
+            canvasSnap.width = 300;
+            canvasSnap.height = 400;
+            const ctxSnap = canvasSnap.getContext('2d');
+            ctxSnap.drawImage(img, 0, 0, 300, 400);
+            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.82);
+            mostrarFotoPreview(fotoPerfilGlobal);
+        };
     };
     reader.readAsDataURL(file);
 }
@@ -200,7 +219,7 @@ function eliminarFotoEstudiante() {
         document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-camera-video me-1"></i> Activar Cámara';
     }
 
-    Swal.fire({ icon: 'info', title: 'Fotografía removida', text: 'Se eliminará la foto de perfil del estudiante.', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
+    Swal.fire({ icon: 'info', title: 'Fotografía removida', text: 'Se eliminará la foto de perfil del estudiante al guardar.', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
 }
 
 const formAlumno = document.getElementById('formAlumno');
@@ -269,7 +288,7 @@ if (formAlumno) {
 
             if (!res.ok) throw new Error("Error al guardar alumno en servidor.");
 
-            Swal.fire("Éxito", "Estudiante gestionado correctamente.", "success")
+            Swal.fire("Éxito", "Estudiante guardado correctamente con su foto de perfil.", "success")
                 .then(() => window.location.href = "/admin/alumnos");
 
         } catch (error) {

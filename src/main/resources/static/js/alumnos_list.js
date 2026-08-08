@@ -160,8 +160,9 @@ async function verExpedienteQuick(matricula) {
         }
 
         const contenedorQR = document.getElementById('imgQR');
-        const qrText = (alumnoSeleccionado.qrCode || alumnoSeleccionado.qr_texto || `${matricula}|${alumnoSeleccionado.nombre}`).substring(0, 100);
-        if (contenedorQR && qrText) {
+        // Usar formato ultra seguro y recortado para evitar cualquier overflow de la librería QRCode
+        const qrText = `${matricula}|${alumnoSeleccionado.nombre || ''}`.substring(0, 60);
+        if (contenedorQR) {
             contenedorQR.innerHTML = "";
             
             new QRCode(contenedorQR, {
