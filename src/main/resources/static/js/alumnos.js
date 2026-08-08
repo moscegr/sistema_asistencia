@@ -23,9 +23,13 @@ async function cargarEspecialidadesForm() {
         const res = await fetch('/api/configuracion/escolar');
         if (res.ok) {
             const data = await res.json();
-            selectEsp.innerHTML = '<option value="">-- Seleccionar Carrera --</option>';
-            (data.especialidades || []).forEach(esp => {
-                selectEsp.innerHTML += `<option value="${esp.nombre}">${esp.nombre}</option>`;
+            const especialidades = data.especialidades || [];
+            selectEsp.innerHTML = '<option value="" disabled selected>-- Seleccionar Carrera --</option>';
+            especialidades.forEach(esp => {
+                const opt = document.createElement('option');
+                opt.value = esp.nombre;
+                opt.textContent = esp.nombre;
+                selectEsp.appendChild(opt);
             });
         }
     } catch (e) { console.error("Error cargando especialidades:", e); }
@@ -47,7 +51,7 @@ async function verificarEdicion() {
         if (res.ok) {
             const d = await res.json();
             
-            alumnoEdicionId = d.id; // ¡ALMACENAR ID MONGODB OBLIGATORIO PARA EDICIÓN!
+            alumnoEdicionId = d.id;
 
             if (document.getElementById('matricula')) {
                 document.getElementById('matricula').value = d.ncontrol || d.matricula;
@@ -61,7 +65,19 @@ async function verificarEdicion() {
             if (document.getElementById('email')) document.getElementById('email').value = d.email || '';
             if (document.getElementById('celular')) document.getElementById('celular').value = d.celular || '';
             if (document.getElementById('direccion')) document.getElementById('direccion').value = d.direccion || '';
-            if (document.getElementById('especialidad')) document.getElementById('especialidad').value = d.especialidad || '';
+            
+            if (document.getElementById('especialidad') && d.especialidad) {
+                const selectEsp = document.getElementById('especialidad');
+                let exists = Array.from(selectEsp.options).some(opt => opt.value === d.especialidad);
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = d.especialidad;
+                    opt.textContent = d.especialidad;
+                    selectEsp.appendChild(opt);
+                }
+                selectEsp.value = d.especialidad;
+            }
+
             if (document.getElementById('grado')) document.getElementById('grado').value = d.grado || '';
             if (document.getElementById('grupo')) document.getElementById('grupo').value = d.grupo || '';
             if (document.getElementById('turno')) document.getElementById('turno').value = d.turno || 'Matutino';

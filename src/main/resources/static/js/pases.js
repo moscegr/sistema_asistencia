@@ -106,8 +106,9 @@ async function cargarTableroGrupal() {
                             </div>
                         </div>
                     </div>
-                </div>`;
         });
+        escucharCambiosGrupos();
+    } catch (e) {
         console.error("Error en cargarTableroGrupal:", e);
     }
 }
@@ -120,8 +121,9 @@ async function escucharCambiosGrupos() {
             const pases = await res.json();
             pases.forEach(p => {
                 if (p.es_grupal && p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO')) {
-                    const id = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
-                    const el = document.getElementById(id);
+                    const id1 = `chk-${p.grado}${p.grupo}-${normalizarTexto(p.especialidad)}`;
+                    const id2 = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
+                    const el = document.getElementById(id1) || document.getElementById(id2);
                     if (el) el.checked = true;
                 }
             });
