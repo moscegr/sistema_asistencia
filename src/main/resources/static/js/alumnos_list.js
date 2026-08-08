@@ -17,15 +17,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function cargarFiltrosDinamicos() {
     const select = document.getElementById('filtroEspecialidad');
     if (!select) return;
-    const especialidadesCache = [
-        "PROGRAMACIÓN",
-        "OFIMÁTICA",
-        "SOPORTE Y MANTENIMIENTO",
-        "CONTABILIDAD",
-        "CONSTRUCCIÓN"
-    ];
+
+    let listaEsp = [];
+
+    try {
+        const resConfig = await fetch('/api/configuracion/escolar');
+        if (resConfig.ok) {
+            const dataConfig = await resConfig.json();
+            if (dataConfig.especialidades && dataConfig.especialidades.length > 0) {
+                listaEsp = dataConfig.especialidades.map(e => e.nombre);
+            }
+        }
+    } catch(e) {}
+
+    try {
+        const resAlumnos = await fetch('/api/alumnos');
+        if (resAlumnos.ok) {
+            const alumnos = await resAlumnos.json();
+            alumnos.forEach(a => {
+                if (a.especialidad && !listaEsp.includes(a.especialidad)) {
+                    listaEsp.push(a.especialidad);
+                }
+            });
+        }
+    } catch(e) {}
+
+    if (listaEsp.length === 0) {
+        listaEsp = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
+    }
+
+    listaEsp.sort();
+
     select.innerHTML = '<option value="">Todas las Especialidades</option>';
-    especialidadesCache.forEach(esp => {
+    listaEsp.forEach(esp => {
         const opt = document.createElement('option');
         opt.value = esp;
         opt.textContent = esp;
@@ -149,40 +173,6 @@ function renderizarFila(contenedor, al, docId) {
     `;
 }
 
-async function obtenerDataURLQR(texto, size = 400) {
-    return new Promise((resolve) => {
-        const divTemp = document.createElement('div');
-        new QRCode(divTemp, {
-            text: texto,
-            width: size,
-            height: size,
-            correctLevel: QRCode.CorrectLevel.M
-        });
-
-        setTimeout(() => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = size;
-            canvas.height = size;
-
-            const imgQR = divTemp.querySelector('img');
-            const imgTigre = new Image();
-            imgTigre.src = '/img/tigres.png';
-
-            imgTigre.onload = () => {
-                ctx.drawImage(imgQR, 0, 0, size, size);
-                const logoSize = size * 0.22;
-                const pos = (size - logoSize) / 2;
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(pos - 5, pos - 5, logoSize + 10, logoSize + 10);
-                ctx.drawImage(imgTigre, pos, pos, logoSize, logoSize);
-                resolve(canvas.toDataURL("image/png"));
-            };
-            imgTigre.onerror = () => resolve(imgQR ? imgQR.src : "");
-        }, 150);
-    });
-}
-
 let alumnoSeleccionado = null;
 
 async function verQR(matricula) {
@@ -195,7 +185,7 @@ async function verQR(matricula) {
             if (matTxt) matTxt.innerText = matricula;
 
             const contenedorQR = document.getElementById('imgQR');
-            const qrText = alumnoSeleccionado.qrCode || alumnoSeleccionado.qr_texto || `${matricula}|${alumnoSeleccionado.nombre}`;
+            const qrText = (alumnoSeleccionado.qrCode || alumnoSeleccionado.qr_texto || `${matricula}|${alumnoSeleccionado.nombre}`).substring(0, 100);
             if (contenedorQR && qrText) {
                 contenedorQR.innerHTML = "";
                 
@@ -205,7 +195,7 @@ async function verQR(matricula) {
                     height: 200,
                     colorDark : "#000000",
                     colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M 
+                    correctLevel : QRCode.CorrectLevel.L 
                 });
             }
 

@@ -34,18 +34,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function cargarEspecialidadesConfig() {
     const select = document.getElementById('especialidad');
     if (!select) return;
-    especialidadesCache = [
-        { nombre: "PROGRAMACIÓN", turno: "Matutino" },
-        { nombre: "OFIMÁTICA", turno: "Matutino" },
-        { nombre: "SOPORTE Y MANTENIMIENTO", turno: "Vespertino" },
-        { nombre: "CONTABILIDAD", turno: "Matutino" },
-        { nombre: "CONSTRUCCIÓN", turno: "Vespertino" }
-    ];
+
+    let listaEsp = [];
+
+    try {
+        const resConfig = await fetch('/api/configuracion/escolar');
+        if (resConfig.ok) {
+            const dataConfig = await resConfig.json();
+            if (dataConfig.especialidades && dataConfig.especialidades.length > 0) {
+                especialidadesCache = dataConfig.especialidades;
+                listaEsp = dataConfig.especialidades.map(e => e.nombre);
+            }
+        }
+    } catch(e) {}
+
+    try {
+        const resAlumnos = await fetch('/api/alumnos');
+        if (resAlumnos.ok) {
+            const alumnos = await resAlumnos.json();
+            alumnos.forEach(a => {
+                if (a.especialidad && !listaEsp.includes(a.especialidad)) {
+                    listaEsp.push(a.especialidad);
+                }
+            });
+        }
+    } catch(e) {}
+
+    if (listaEsp.length === 0) {
+        listaEsp = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
+    }
+
+    listaEsp.sort();
+
     select.innerHTML = '<option value="">Seleccionar carrera...</option>';
-    especialidadesCache.forEach(esp => {
+    listaEsp.forEach(esp => {
         const opt = document.createElement('option');
-        opt.value = esp.nombre;
-        opt.textContent = esp.nombre;
+        opt.value = esp;
+        opt.textContent = esp;
         select.appendChild(opt);
     });
 }
@@ -53,7 +78,7 @@ async function cargarEspecialidadesConfig() {
 function ajustarTurnos(nombreCarrera) {
     const turnoSelect = document.getElementById('turno');
     const config = especialidadesCache.find(e => e.nombre === nombreCarrera);
-    if (config && config.turno) {
+    if (config && config.turno && turnoSelect) {
         turnoSelect.value = config.turno;
     }
 }
