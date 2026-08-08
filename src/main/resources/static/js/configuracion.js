@@ -70,7 +70,35 @@ async function cargarEspecialidades() {
         const res = await fetch('/api/configuracion/escolar');
         if (!res.ok) return;
         const data = await res.json();
-        const lista = data.especialidades || [];
+        let lista = data.especialidades || [];
+
+        // Descubrir y sincronizar especialidades existentes en alumnos que falten en la lista
+        try {
+            const resAlumnos = await fetch('/api/alumnos');
+            if (resAlumnos.ok) {
+                const alumnos = await resAlumnos.json();
+                let actualizados = false;
+                alumnos.forEach(al => {
+                    if (al.especialidad && !lista.some(esp => esp.nombre === al.especialidad)) {
+                        lista.push({
+                            nombre: al.especialidad,
+                            alias: al.especialidad.substring(0, 5).toUpperCase(),
+                            color: "#0088cc",
+                            turno: al.turno || "Matutino"
+                        });
+                        actualizados = true;
+                    }
+                });
+                if (actualizados) {
+                    await fetch('/api/configuracion/escolar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ especialidades: lista })
+                    });
+                }
+            }
+        } catch(e) {}
+
         const tbody = document.getElementById('tablaEspecialidades');
         if (!tbody) return;
         tbody.innerHTML = "";
@@ -80,8 +108,8 @@ async function cargarEspecialidades() {
                 <tr>
                     <td><span class="badge p-2" style="background-color: ${esp.color || '#7b1b37'}">&nbsp;&nbsp;</span></td>
                     <td class="fw-bold">${esp.nombre}</td>
-                    <td><code>${esp.alias}</code></td>
-                    <td>${esp.turno}</td>
+                    <td><code>${esp.alias || esp.nombre.substring(0, 5)}</code></td>
+                    <td>${esp.turno || 'Matutino'}</td>
                     <td>
                         <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarEspecialidad(${idx})">
                             <i class="bi bi-trash3-fill"></i>
