@@ -140,7 +140,7 @@ async function abrirModalMiPerfil() {
 }
 
 async function guardarDatosMiPerfil() {
-    const nombre = document.getElementById('miPerfilNombre').value.trim();
+    const nombre = document.getElementById('miPerfilNombre').value.trim().toUpperCase();
     const correo = document.getElementById('miPerfilCorreo').value.trim().toLowerCase();
     const password = document.getElementById('miPerfilPassword').value;
 

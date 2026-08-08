@@ -104,7 +104,7 @@ async function listarUsuarios() {
 
 // 2. CREAR (CREATE): POST /api/usuarios
 async function crearUsuario() {
-    const nombre = document.getElementById('regNombre').value.trim();
+    const nombre = document.getElementById('regNombre').value.trim().toUpperCase();
     const correo = document.getElementById('regCorreo').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
     const rol = document.getElementById('regRol').value;

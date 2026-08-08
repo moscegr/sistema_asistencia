@@ -261,16 +261,16 @@ if (formAlumno) {
         Swal.fire({ title: 'Guardando estudiante...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         try {
-            const nombre = document.getElementById('nombre').value.trim();
-            const apepat = document.getElementById('apepat').value.trim();
-            const apemat = document.getElementById('apemat').value.trim();
+            const nombre = document.getElementById('nombre').value.trim().toUpperCase();
+            const apepat = document.getElementById('apepat').value.trim().toUpperCase();
+            const apemat = document.getElementById('apemat').value.trim().toUpperCase();
             
-            const nombreCompleto = `${nombre} ${apepat} ${apemat}`.trim().toUpperCase();
+            const nombreCompleto = `${nombre} ${apepat} ${apemat}`.trim();
             const textoUnicoQR = `${matricula}|${nombreCompleto}`;
 
             const teltutor = document.getElementById('teltutor').value.trim();
             const alumnoObj = {
-                id: alumnoEdicionId || null, // ¡ID MONGODB PARA OVERWRITE GARANTIZADO!
+                id: alumnoEdicionId || null,
                 ncontrol: matricula,
                 matricula: matricula,
                 curp: curp,
@@ -286,18 +286,18 @@ if (formAlumno) {
                 foto: fotoPerfilGlobal || null,
                 email: document.getElementById('email').value.trim(),
                 celular: document.getElementById('celular').value.trim(),
-                direccion: document.getElementById('direccion').value.trim(),
-                especialidad: document.getElementById('especialidad').value,
+                direccion: document.getElementById('direccion').value.trim().toUpperCase(),
+                especialidad: document.getElementById('especialidad').value.toUpperCase(),
                 grado: document.getElementById('grado').value,
                 grupo: document.getElementById('grupo').value.toUpperCase(),
                 turno: document.getElementById('turno').value,
                 estatus: document.getElementById('estatus_escolar').value,
                 estatus_escolar: document.getElementById('estatus_escolar').value,
                 color_semaforo: document.getElementById('color_semaforo').value,
-                aula_especifica: document.getElementById('aula_especifica') ? document.getElementById('aula_especifica').value || "N/A" : "N/A",
-                nombretutor: document.getElementById('nombretutor').value.trim(),
+                aula_especifica: document.getElementById('aula_especifica') ? (document.getElementById('aula_especifica').value || "N/A").trim().toUpperCase() : "N/A",
+                nombretutor: document.getElementById('nombretutor').value.trim().toUpperCase(),
                 teltutor: teltutor,
-                ocupaciontutor: document.getElementById('ocupaciontutor').value.trim(),
+                ocupaciontutor: document.getElementById('ocupaciontutor').value.trim().toUpperCase(),
                 qrCode: textoUnicoQR,
                 qr_texto: textoUnicoQR, 
                 perfil_completo: !!teltutor,

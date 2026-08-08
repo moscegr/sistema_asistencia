@@ -10,6 +10,17 @@ body {
     overflow-x: hidden;
 }
 
+/* CONVERSIÓN GLOBAL A MAYÚSCULAS PARA TODOS LOS FORMULARIOS */
+input[type="text"], input[type="search"], textarea, select {
+    text-transform: uppercase;
+}
+input[type="email"] {
+    text-transform: none;
+}
+input[type="text"]::placeholder, input[type="search"]::placeholder, textarea::placeholder {
+    text-transform: none;
+}
+
 #wrapper {
     display: flex;
     width: 100%;
