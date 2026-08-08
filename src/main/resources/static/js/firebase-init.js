@@ -182,7 +182,7 @@ window.firebase.firestore.FieldValue = {
 
 (function aplicarAntiParpadeoGlobal() {
     const rolGuardado = localStorage.getItem('userRole');
-    if (rolGuardado) {
+    if (rolGuardado && rolGuardado.toUpperCase() !== 'ADMIN') {
         const rolMayus = rolGuardado.toUpperCase();
         const estilo = document.createElement('style');
 
@@ -195,11 +195,47 @@ window.firebase.firestore.FieldValue = {
     }
 })();
 
-document.addEventListener("DOMContentLoaded", () => {
-    const rol = (localStorage.getItem('userRole') || 'admin').toUpperCase();
-    aplicarPermisosVisuales(rol);
-    protegerRutasCentralizado(rol);
+document.addEventListener("DOMContentLoaded", async () => {
+    await sincronizarRolDesdeServidor();
 });
+
+async function sincronizarRolDesdeServidor() {
+    try {
+        const res = await fetch('/api/usuarios/me');
+        if (res.ok) {
+            const user = await res.json();
+            const rolReal = (user.rol || 'ORIENTACION').toUpperCase();
+            const nombreReal = user.nombre || user.correo;
+
+            localStorage.setItem('userRole', rolReal);
+            localStorage.setItem('userName', nombreReal);
+            localStorage.setItem('userEmail', user.correo || '');
+
+            window.rolUsuarioActual = rolReal;
+
+            aplicarPermisosVisuales(rolReal);
+            protegerRutasCentralizado(rolReal);
+            actualizarEncabezadoUsuario(nombreReal, rolReal);
+            return;
+        }
+    } catch (e) {
+        console.error("Error al sincronizar rol del usuario:", e);
+    }
+
+    const rolFallback = (localStorage.getItem('userRole') || 'ORIENTACION').toUpperCase();
+    aplicarPermisosVisuales(rolFallback);
+    protegerRutasCentralizado(rolFallback);
+}
+
+function actualizarEncabezadoUsuario(nombre, rol) {
+    const elName = document.getElementById('userName');
+    const elBannerName = document.getElementById('userBannerName');
+    const elBannerRole = document.getElementById('userBannerRole');
+
+    if (elName) elName.innerText = nombre;
+    if (elBannerName) elBannerName.innerText = nombre;
+    if (elBannerRole) elBannerRole.innerText = `Rol: ${rol}`;
+}
 
 function protegerRutasCentralizado(rol) {
     const path = window.location.pathname;
@@ -216,7 +252,7 @@ function protegerRutasCentralizado(rol) {
         '/admin/alumnos/seguimiento-conductual': ['ADMIN', 'PREFECTO', 'ORIENTACION'],
         '/admin/alumnos/monitoreo-salud': ['ADMIN', 'PREFECTO', 'ORIENTACION'],
         
-        // Gestión
+        // Gestión Administrativos
         '/admin/usuarios': ['ADMIN'],
         
         // Movimientos
@@ -253,12 +289,21 @@ function aplicarPermisosVisuales(rolActual) {
 
     elementosProtegidos.forEach(elemento => {
         const rolesString = elemento.getAttribute('data-roles');
-        if (!rolesString) return;
+        if (!rolesString) {
+            if (rolMayuscula !== 'ADMIN') {
+                elemento.style.setProperty('display', 'none', 'important');
+            } else {
+                elemento.style.removeProperty('display');
+            }
+            return;
+        }
 
         const rolesPermitidos = rolesString.split(',').map(r => r.trim().toUpperCase());
 
         if (!rolesPermitidos.includes(rolMayuscula)) {
-            elemento.style.display = 'none';
+            elemento.style.setProperty('display', 'none', 'important');
+        } else {
+            elemento.style.removeProperty('display');
         }
     });
 }

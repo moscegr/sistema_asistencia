@@ -4,6 +4,7 @@ import com.cbtis134.sistema.model.Usuario;
 import com.cbtis134.sistema.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,37 @@ public class UsuarioController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @GetMapping("/me")
+    public ResponseEntity<?> obtenerUsuarioActual(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body("No autenticado");
+        }
+        String correo = authentication.getName();
+        return usuarioRepository.findByCorreo(correo)
+                .or(() -> usuarioRepository.findByCorreo(correo.toLowerCase()))
+                .map(u -> {
+                    if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    return ResponseEntity.ok((Object) u);
+                })
+                .orElseGet(() -> {
+                    Usuario u = new Usuario();
+                    u.setCorreo(correo);
+                    u.setNombre(correo.contains("@") ? correo.substring(0, correo.indexOf('@')).toUpperCase() : correo.toUpperCase());
+                    boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("ADMIN"));
+                    boolean isPrefecto = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("PREFECTO"));
+                    boolean isOrientacion = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("ORIENTACION"));
+                    boolean isGuardia = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("GUARDIA"));
+                    
+                    if (isAdmin) u.setRol("ADMIN");
+                    else if (isPrefecto) u.setRol("PREFECTO");
+                    else if (isOrientacion) u.setRol("ORIENTACION");
+                    else if (isGuardia) u.setRol("GUARDIA");
+                    else u.setRol("ORIENTACION");
+
+                    return ResponseEntity.ok(u);
+                });
+    }
 
     @GetMapping
     public List<Usuario> obtenerTodos() {

@@ -29,6 +29,7 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
         return username -> usuarioRepository.findByCorreo(username)
+                .or(() -> usuarioRepository.findByCorreo(username.toLowerCase()))
                 .map(u -> new User(
                         u.getCorreo(),
                         u.getPassword() != null ? u.getPassword() : "",
@@ -45,12 +46,13 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                 .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/qrs/**", "/models/**", "/error", "/favicon.ico", "/uploads/**").permitAll()
                 
-                // --- REGLAS SEGURIDAD API (Equivalentes a Firestore Security Rules) ---
+                // Endpoint para consultar datos y rol de la sesión activa
+                .requestMatchers("/api/usuarios/me").authenticated()
 
-                // match /usuarios/{userId}
+                // --- REGLAS SEGURIDAD API ---
                 .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMIN")
 
                 // match /alumnos/{matricula}
@@ -98,12 +100,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/calendario/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/calendario/**").hasRole("ADMIN")
 
-                // Rutas Vistas HTML
-                .requestMatchers("/admin/configuracion", "/admin/usuarios").hasRole("ADMIN")
-                .requestMatchers("/admin/escaneo").hasAnyRole("ADMIN", "GUARDIA")
-                .requestMatchers("/admin/justificantes").hasAnyRole("ADMIN", "ORIENTACION")
+                // --- RUTAS VISTAS HTML POR ROL ---
+                .requestMatchers("/admin/configuracion", "/admin/usuarios", "/admin/alumnos", "/admin/alumnos/nuevo", "/admin/alumnos/gestion-archivos", "/admin/alumnos/credenciales").hasRole("ADMIN")
+                .requestMatchers("/admin/dashboard", "/admin/alumnos/expediente", "/admin/alumnos/seguimiento-conductual", "/admin/alumnos/monitoreo-salud", "/admin/pases").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
+                .requestMatchers("/admin/justificantes", "/admin/incidencias/orientacion").hasAnyRole("ADMIN", "ORIENTACION")
                 .requestMatchers("/admin/incidencias/prefectura").hasAnyRole("ADMIN", "PREFECTO")
-                .requestMatchers("/admin/incidencias/orientacion").hasAnyRole("ADMIN", "ORIENTACION")
+                .requestMatchers("/admin/escaneo").hasAnyRole("ADMIN", "GUARDIA")
                 .requestMatchers("/admin/**").authenticated()
                 .anyRequest().permitAll()
             )
@@ -120,6 +122,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.sendRedirect("/login");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.sendRedirect("/admin/dashboard");
                 })
             );
             

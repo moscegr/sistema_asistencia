@@ -22,7 +22,7 @@ if (loginForm) {
             setTimeout(() => { loader.classList.add('active'); }, 10);
         }
 
-        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('userEmail', emailVal);
         localStorage.setItem('userName', emailVal);
     });
 }
