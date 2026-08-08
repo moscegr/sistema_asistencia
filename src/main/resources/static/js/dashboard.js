@@ -87,10 +87,14 @@ function inicializarSwitchSalida() {
 async function inicializarVistaCiclo() {
     try {
         const res = await fetch('/api/configuracion/ciclo_escolar');
-        if (res.ok) {
+        const contentType = res.headers.get('content-type');
+        if (res.ok && contentType && contentType.includes('application/json')) {
             const data = await res.json();
             const displayHeader = document.getElementById('displayCicloActual');
             if (displayHeader) displayHeader.innerText = data.actual || "AGO-DIC 2026";
+        } else {
+            const displayHeader = document.getElementById('displayCicloActual');
+            if (displayHeader) displayHeader.innerText = "AGO-DIC 2026";
         }
     } catch (e) {
         const displayHeader = document.getElementById('displayCicloActual');
@@ -102,49 +106,41 @@ function verificarIntegridadSistema() {
     console.log("Sistema CBTis 134 inicializado con MongoDB.");
 }
 
+async function safeFetchJson(url) {
+    try {
+        const res = await fetch(url);
+        const contentType = res.headers.get('content-type');
+        if (res.ok && contentType && contentType.includes('application/json')) {
+            return await res.json();
+        }
+    } catch(e){}
+    return null;
+}
+
 async function cargarEstadisticas() {
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
     const hoy = new Date().toLocaleDateString('en-CA');
 
-    try {
-        const r1 = await fetch('/api/alumnos');
-        if (r1.ok) {
-            const list = await r1.json();
-            setVal('totalAlumnos', list.length);
-        }
-    } catch(e){}
+    const listAlumnos = await safeFetchJson('/api/alumnos');
+    if (listAlumnos) setVal('totalAlumnos', listAlumnos.length);
 
-    try {
-        const r2 = await fetch('/api/pases');
-        if (r2.ok) {
-            const list = await r2.json();
-            const pasesActivos = list.filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO'));
-            setVal('totalPases', pasesActivos.length);
-        }
-    } catch(e){}
+    const listPases = await safeFetchJson('/api/pases');
+    if (listPases) {
+        const pasesActivos = listPases.filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO'));
+        setVal('totalPases', pasesActivos.length);
+    }
 
-    try {
-        const r3 = await fetch('/api/justificantes');
-        if (r3.ok) {
-            const list = await r3.json();
-            setVal('totalJustificantes', list.length);
-        }
-    } catch(e){}
+    const listJustificantes = await safeFetchJson('/api/justificantes');
+    if (listJustificantes) setVal('totalJustificantes', listJustificantes.length);
 
-    try {
-        const r4 = await fetch('/api/incidencias');
-        if (r4.ok) {
-            const list = await r4.json();
-            setVal('totalIncidencias', list.length);
-        }
-    } catch(e){}
+    const listIncidencias = await safeFetchJson('/api/incidencias');
+    if (listIncidencias) setVal('totalIncidencias', listIncidencias.length);
 }
 
 async function cargarDashboardCompleto() {
     try {
-        const res = await fetch('/api/alumnos');
-        if (!res.ok) return;
-        const alumnos = await res.json();
+        const alumnos = await safeFetchJson('/api/alumnos');
+        if (!alumnos || !Array.isArray(alumnos)) return;
 
         const totalRegistrados = alumnos.length;
         let totalDentro = 0;
@@ -194,15 +190,10 @@ async function cargarEspecialidadesPromocion() {
 
     let especialidadesCache = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
 
-    try {
-        const res = await fetch('/api/configuracion/escolar');
-        if (res.ok) {
-            const data = await res.json();
-            if (data.especialidades && data.especialidades.length > 0) {
-                especialidadesCache = data.especialidades.map(e => e.nombre);
-            }
-        }
-    } catch(e){}
+    const data = await safeFetchJson('/api/configuracion/escolar');
+    if (data && data.especialidades && data.especialidades.length > 0) {
+        especialidadesCache = data.especialidades.map(e => e.nombre);
+    }
 
     if (selectCiclo) {
         selectCiclo.innerHTML = '<option value="">-- Seleccionar Carrera --</option>';
@@ -303,17 +294,15 @@ window.cambiarScope = cambiarScope;
 async function actualizarGruposPromocion(esp) {
     const selectGpo = document.getElementById('selectCicloGpo');
     if (!selectGpo || !esp) return;
-    try {
-        const res = await fetch('/api/alumnos');
-        if (res.ok) {
-            const alumnos = await res.json();
-            const grupos = [...new Set(alumnos.filter(a => a.especialidad === esp).map(a => `${a.grado}° "${a.grupo}"`))].sort();
-            selectGpo.innerHTML = '<option value="">-- Seleccionar --</option>';
-            grupos.forEach(g => {
-                selectGpo.innerHTML += `<option value="${g}">${g}</option>`;
-            });
-        }
-    } catch(e){}
+
+    const alumnos = await safeFetchJson('/api/alumnos');
+    if (alumnos) {
+        const grupos = [...new Set(alumnos.filter(a => a.especialidad === esp).map(a => `${a.grado}° "${a.grupo}"`))].sort();
+        selectGpo.innerHTML = '<option value="">-- Seleccionar --</option>';
+        grupos.forEach(g => {
+            selectGpo.innerHTML += `<option value="${g}">${g}</option>`;
+        });
+    }
 }
 window.actualizarGruposPromocion = actualizarGruposPromocion;
 
@@ -341,9 +330,8 @@ async function confirmarCambioCiclo() {
     if (isConfirmed) {
         Swal.fire({ title: 'Procesando...', didOpen: () => Swal.showLoading() });
         try {
-            const res = await fetch('/api/alumnos');
-            if (res.ok) {
-                const alumnos = await res.json();
+            const alumnos = await safeFetchJson('/api/alumnos');
+            if (alumnos) {
                 for (const al of alumnos) {
                     const est = al.estatus_escolar || al.estatus || 'Activo';
                     if (est === 'Activo') {
@@ -373,8 +361,7 @@ async function generarExcelAsistencias() {
     const mes = document.getElementById('mesReporteAsistencia')?.value;
     Swal.fire({ title: 'Generando reporte...', didOpen: () => Swal.showLoading() });
     try {
-        const res = await fetch('/api/registros-diarios');
-        const data = res.ok ? await res.json() : [];
+        const data = await safeFetchJson('/api/registros-diarios') || [];
         if (data.length === 0) return Swal.fire("Info", "Sin registros de asistencia.", "info");
 
         const ws = XLSX.utils.json_to_sheet(data);
@@ -393,8 +380,7 @@ async function calcularRiesgoDesercion() {
 
     Swal.fire({ title: 'Analizando riesgo...', didOpen: () => Swal.showLoading() });
     try {
-        const res = await fetch('/api/alumnos');
-        const alumnos = res.ok ? await res.json() : [];
+        const alumnos = await safeFetchJson('/api/alumnos') || [];
         const inactivos = alumnos.filter(a => (a.estatus_escolar || a.estatus || 'Activo') === 'Activo').slice(0, 5);
 
         ulEl.innerHTML = "";
@@ -419,8 +405,7 @@ async function actualizarGraficaGrupos() {
     if (!ctx || typeof Chart === 'undefined') return;
 
     try {
-        const res = await fetch('/api/incidencias');
-        const incidencias = res.ok ? await res.json() : [];
+        const incidencias = await safeFetchJson('/api/incidencias') || [];
         const totalEsp = incidencias.filter(i => i.especialidad === esp).length;
 
         const elTotal = document.getElementById('totalEvidenciasModulo');
@@ -447,8 +432,7 @@ async function generarExcelModulos() {
     const esp = document.getElementById('selectFiltroModulo')?.value || 'General';
     Swal.fire({ title: 'Generando evidencias...', didOpen: () => Swal.showLoading() });
     try {
-        const res = await fetch('/api/incidencias');
-        const data = res.ok ? await res.json() : [];
+        const data = await safeFetchJson('/api/incidencias') || [];
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Evidencias");
