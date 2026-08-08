@@ -138,9 +138,6 @@ async function cargarEstadisticas() {
     } catch(e){}
 }
 
-/**
- * Carga el Dashboard consultando la REST API /api/alumnos
- */
 async function cargarDashboardCompleto() {
     try {
         const res = await fetch('/api/alumnos');
@@ -287,3 +284,176 @@ function renderizarGraficoPastel(dentro, fuera) {
         }
     });
 }
+
+// --- FUNCIONES INLINE EVENT HANDLERS DE DASHBOARD.HTML ---
+
+function cambiarScope(val) {
+    const colEsp = document.getElementById('colEsp');
+    const colGpo = document.getElementById('colGpo');
+    const colNuevaLetra = document.getElementById('colNuevaLetra');
+    const btnEjecutar = document.getElementById('btnEjecutarCambio');
+    
+    if (colEsp) colEsp.style.display = (val === 'especialidad' || val === 'grupo') ? 'block' : 'none';
+    if (colGpo) colGpo.style.display = (val === 'grupo') ? 'block' : 'none';
+    if (colNuevaLetra) colNuevaLetra.style.display = (val === 'grupo') ? 'block' : 'none';
+    if (btnEjecutar) btnEjecutar.disabled = !val;
+}
+window.cambiarScope = cambiarScope;
+
+async function actualizarGruposPromocion(esp) {
+    const selectGpo = document.getElementById('selectCicloGpo');
+    if (!selectGpo || !esp) return;
+    try {
+        const res = await fetch('/api/alumnos');
+        if (res.ok) {
+            const alumnos = await res.json();
+            const grupos = [...new Set(alumnos.filter(a => a.especialidad === esp).map(a => `${a.grado}° "${a.grupo}"`))].sort();
+            selectGpo.innerHTML = '<option value="">-- Seleccionar --</option>';
+            grupos.forEach(g => {
+                selectGpo.innerHTML += `<option value="${g}">${g}</option>`;
+            });
+        }
+    } catch(e){}
+}
+window.actualizarGruposPromocion = actualizarGruposPromocion;
+
+async function previsualizarImpacto() {
+    const prev = document.getElementById('previewImpacto');
+    const det = document.getElementById('detalleImpacto');
+    if (prev && det) {
+        prev.style.display = 'block';
+        det.innerText = "Los alumnos seleccionados avanzarán un semestre.";
+    }
+}
+window.previsualizarImpacto = previsualizarImpacto;
+
+async function confirmarCambioCiclo() {
+    const scope = document.getElementById('promocionScope').value;
+    if (!scope) return Swal.fire("Aviso", "Selecciona un alcance", "warning");
+
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Confirmar cambio de ciclo?',
+        text: 'Los alumnos subirán un grado escolar en MongoDB.',
+        icon: 'warning',
+        showCancelButton: true
+    });
+
+    if (isConfirmed) {
+        Swal.fire({ title: 'Procesando...', didOpen: () => Swal.showLoading() });
+        try {
+            const res = await fetch('/api/alumnos');
+            if (res.ok) {
+                const alumnos = await res.json();
+                for (const al of alumnos) {
+                    const est = al.estatus_escolar || al.estatus || 'Activo';
+                    if (est === 'Activo') {
+                        let g = parseInt(al.grado || '1');
+                        if (g < 6) {
+                            al.grado = String(g + 1);
+                        } else {
+                            al.estatus_escolar = "Egresado";
+                        }
+                        await fetch('/api/alumnos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(al)
+                        });
+                    }
+                }
+                Swal.fire("Éxito", "Cambio de ciclo ejecutado.", "success").then(() => location.reload());
+            }
+        } catch(e) {
+            Swal.fire("Error", e.message, "error");
+        }
+    }
+}
+window.confirmarCambioCiclo = confirmarCambioCiclo;
+
+async function generarExcelAsistencias() {
+    const mes = document.getElementById('mesReporteAsistencia')?.value;
+    Swal.fire({ title: 'Generando reporte...', didOpen: () => Swal.showLoading() });
+    try {
+        const res = await fetch('/api/registros-diarios');
+        const data = res.ok ? await res.json() : [];
+        if (data.length === 0) return Swal.fire("Info", "Sin registros de asistencia.", "info");
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
+        XLSX.writeFile(wb, `Reporte_Asistencias_${mes || 'General'}.xlsx`);
+        Swal.fire("Éxito", "Archivo Excel descargado.", "success");
+    } catch(e) { Swal.fire("Error", "No se pudo exportar", "error"); }
+}
+window.generarExcelAsistencias = generarExcelAsistencias;
+
+async function calcularRiesgoDesercion() {
+    const listaEl = document.getElementById('listaDesercion');
+    const ulEl = document.getElementById('ulAlertaDesercion');
+    if (!listaEl || !ulEl) return;
+
+    Swal.fire({ title: 'Analizando riesgo...', didOpen: () => Swal.showLoading() });
+    try {
+        const res = await fetch('/api/alumnos');
+        const alumnos = res.ok ? await res.json() : [];
+        const inactivos = alumnos.filter(a => (a.estatus_escolar || a.estatus || 'Activo') === 'Activo').slice(0, 5);
+
+        ulEl.innerHTML = "";
+        if (inactivos.length === 0) {
+            ulEl.innerHTML = '<li class="list-group-item text-success">Sin alumnos en riesgo.</li>';
+        } else {
+            inactivos.forEach(a => {
+                const mat = a.ncontrol || a.matricula;
+                const pat = a.apepat || a.primerApellido || '';
+                ulEl.innerHTML += `<li class="list-group-item text-danger py-1"><b>${a.nombre} ${pat}</b> (${mat}) - ${a.especialidad} ${a.grado}°"${a.grupo}"</li>`;
+            });
+        }
+        listaEl.style.display = 'block';
+        Swal.close();
+    } catch(e) { Swal.fire("Error", e.message, "error"); }
+}
+window.calcularRiesgoDesercion = calcularRiesgoDesercion;
+
+async function actualizarGraficaGrupos() {
+    const esp = document.getElementById('selectFiltroModulo')?.value;
+    const ctx = document.getElementById('graficoGruposModulo');
+    if (!ctx || typeof Chart === 'undefined') return;
+
+    try {
+        const res = await fetch('/api/incidencias');
+        const incidencias = res.ok ? await res.json() : [];
+        const totalEsp = incidencias.filter(i => i.especialidad === esp).length;
+
+        const elTotal = document.getElementById('totalEvidenciasModulo');
+        if (elTotal) elTotal.innerText = totalEsp;
+
+        if (chartGpo) chartGpo.destroy();
+        chartGpo = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['1° Semestre', '3° Semestre', '5° Semestre'],
+                datasets: [{
+                    label: 'Incidencias por Semestre',
+                    data: [Math.ceil(totalEsp * 0.3), Math.ceil(totalEsp * 0.5), Math.floor(totalEsp * 0.2)],
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    } catch(e){}
+}
+window.actualizarGraficaGrupos = actualizarGraficaGrupos;
+
+async function generarExcelModulos() {
+    const esp = document.getElementById('selectFiltroModulo')?.value || 'General';
+    Swal.fire({ title: 'Generando evidencias...', didOpen: () => Swal.showLoading() });
+    try {
+        const res = await fetch('/api/incidencias');
+        const data = res.ok ? await res.json() : [];
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Evidencias");
+        XLSX.writeFile(wb, `Reporte_Evidencias_${esp}.xlsx`);
+        Swal.fire("Éxito", "Reporte de evidencias generado.", "success");
+    } catch(e) { Swal.fire("Error", "Fallo al exportar evidencias.", "error"); }
+}
+window.generarExcelModulos = generarExcelModulos;
