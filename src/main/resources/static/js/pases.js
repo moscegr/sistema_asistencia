@@ -82,30 +82,26 @@ async function cargarTableroGrupal() {
             const color = matchConfig?.color || '#7b1b37';
             const espNombre = espObj.nombre;
 
+            let btnsHtml = "";
+            grupos.forEach(g => {
+                const grado = g.slice(0, -1);
+                const grupo = g.slice(-1);
+                const cleanId = 'chk-' + g + '-' + normalizarTexto(espNombre);
+                btnsHtml += '<input type="checkbox" class="btn-check" id="' + cleanId + '" ' + (!esAdminUOrientacion ? 'disabled' : '') + ' onchange="alternarPaseGrupal(\'' + grado + '\',\'' + grupo + '\',\'' + espNombre + '\', this.checked)">';
+                btnsHtml += '<label class="btn btn-sm btn-outline-dark px-3 rounded-pill me-1 mb-1" for="' + cleanId + '" style="' + (!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : '') + '">' + g + '</label>';
+            });
+
             tablero.innerHTML += `
                 <div class="col-md-4 mb-3">
                     <div class="card h-100 border-0 bg-light shadow-sm" style="border-left: 5px solid ${color} !important;">
                         <div class="card-body">
                             <h6 class="fw-bold mb-3" style="color: ${color}">${espNombre}</h6>
                             <div class="d-flex flex-wrap gap-2">
-                                ${grupos.map(g => {
-                                    const grado = g.slice(0, -1);
-                                    const grupo = g.slice(-1);
-                                    const cleanId = `chk-${g}-${normalizarTexto(espNombre)}`;
-                                    return `
-                                    <input type="checkbox" class="btn-check" 
-                                           id="${cleanId}" 
-                                           ${!esAdminUOrientacion ? 'disabled' : ''} 
-                                           onchange="alternarPaseGrupal('${grado}','${grupo}','${espNombre}', this.checked)">
-                                    <label class="btn btn-sm btn-outline-dark px-3 rounded-pill" 
-                                           for="${cleanId}"
-                                           style="${!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
-                                        ${g}
-                                    </label>`;
-                                }).join('')}
+                                ${btnsHtml}
                             </div>
                         </div>
                     </div>
+                </div>`;
         });
         escucharCambiosGrupos();
     } catch (e) {
