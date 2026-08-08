@@ -58,7 +58,16 @@ async function verificarEdicion() {
                 document.getElementById('matricula').readOnly = true;
             }
             if (document.getElementById('curp')) document.getElementById('curp').value = d.curp || '';
-            if (document.getElementById('genero')) document.getElementById('genero').value = d.genero || '';
+            if (document.getElementById('genero')) {
+                const g = (d.genero || '').toUpperCase();
+                if (g.startsWith('H') || g.includes('HOMB') || g.includes('MASC')) {
+                    document.getElementById('genero').value = 'H';
+                } else if (g.startsWith('M') || g.includes('MUJ') || g.includes('FEM')) {
+                    document.getElementById('genero').value = 'M';
+                } else {
+                    document.getElementById('genero').value = d.genero || '';
+                }
+            }
             if (document.getElementById('nombre')) document.getElementById('nombre').value = d.nombre || '';
             if (document.getElementById('apepat')) document.getElementById('apepat').value = d.apepat || d.primerApellido || '';
             if (document.getElementById('apemat')) document.getElementById('apemat').value = d.apemat || d.segundoApellido || '';

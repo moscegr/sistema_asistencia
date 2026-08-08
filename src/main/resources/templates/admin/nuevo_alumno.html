@@ -46,9 +46,10 @@
                                     <div class="invalid-feedback">Debe contener exactamente 14 dígitos numéricos.</div>
                                 </div>
                                 <div class="col-md-5">
-							        <label class="form-label small fw-bold">CURP</label>
-							        <input type="text" id="curp" class="form-control text-uppercase" pattern="^[A-Z]{4}[0-9]{6}[H,M][A-Z]{5}[A-Z0-9][0-9]$" required>
-							    </div>
+                                    <label class="form-label small fw-bold">CURP (18 caracteres)</label>
+                                    <input type="text" id="curp" class="form-control text-uppercase" minlength="18" maxlength="18" pattern="^[A-Za-z0-9]{18}$" required>
+                                    <div class="invalid-feedback">Debe contener exactamente 18 caracteres alfanuméricos.</div>
+                                </div>
 							    
 							    <div class="col-md-3">
 							        <label class="form-label small fw-bold">Género</label>
