@@ -36,6 +36,10 @@ async function cargarConfiguracionPases() {
     } catch (e) { console.error("Error cargando especialidades:", e); }
 }
 
+const normalizarTexto = (texto) => {
+    return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
+};
+
 async function cargarTableroGrupal() {
     try {
         const res = await fetch('/api/alumnos');
@@ -48,11 +52,10 @@ async function cargarTableroGrupal() {
 
         alumnos.forEach(al => {
             const estatus = al.estatus_escolar || al.estatus || 'Activo';
-            if (estatus === 'Activo' && al.especialidad) {
-                if (!estructura[al.especialidad]) estructura[al.especialidad] = new Set();
-                if (al.grado && al.grupo) {
-                    estructura[al.especialidad].add(`${al.grado}${al.grupo}`);
-                }
+            if (estatus === 'Activo' && al.especialidad && al.grado && al.grupo) {
+                const normEsp = normalizarTexto(al.especialidad);
+                if (!estructura[normEsp]) estructura[normEsp] = new Set();
+                estructura[normEsp].add(`${al.grado}${al.grupo}`);
             }
         });
 
@@ -61,9 +64,11 @@ async function cargarTableroGrupal() {
         tablero.innerHTML = "";
 
         especialidadesConfig.forEach(esp => {
-            if (!estructura[esp.nombre]) return;
+            const normEspConfig = normalizarTexto(esp.nombre);
+            const setGrupos = estructura[normEspConfig];
+            if (!setGrupos || setGrupos.size === 0) return;
             
-            const grupos = Array.from(estructura[esp.nombre]).sort();
+            const grupos = Array.from(setGrupos).sort();
             
             tablero.innerHTML += `
                 <div class="col-md-4 mb-3">

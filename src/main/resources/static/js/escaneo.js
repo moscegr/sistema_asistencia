@@ -240,8 +240,13 @@ function generarTableroDinamico() {
     contenedor.innerHTML = "";
 
     especialidadesConfig.forEach(esp => {
+        const normEspConfig = normalizarTexto(esp.nombre);
+
         const gruposReales = [...new Set(alumnosCache
-            .filter(al => al.especialidad === esp.nombre)
+            .filter(al => {
+                const estatus = al.estatus_escolar || al.estatus || 'Activo';
+                return estatus === 'Activo' && normalizarTexto(al.especialidad) === normEspConfig && al.grado && al.grupo;
+            })
             .map(al => `${al.grado}${al.grupo}`)
         )].sort();
 
@@ -253,7 +258,10 @@ function generarTableroDinamico() {
                             <h6 class="fw-bold mb-3" style="color: ${esp.color}">${esp.nombre}</h6>
                             <div class="d-flex flex-wrap gap-2">
                                 ${gruposReales.map(g => {
-                                    const isAuth = gruposAutorizadosHoy.includes(`${g}-${esp.nombre}`);
+                                    const isAuth = gruposAutorizadosHoy.some(key => {
+                                        const keyNorm = normalizarTexto(key);
+                                        return keyNorm.startsWith(normalizarTexto(g)) && keyNorm.includes(normEspConfig);
+                                    });
                                     const claseBadge = isAuth ? 'bg-success text-white' : 'bg-light text-muted border';
                                     const icono = isAuth ? '<i class="bi bi-check-lg ms-1"></i>' : '';
 

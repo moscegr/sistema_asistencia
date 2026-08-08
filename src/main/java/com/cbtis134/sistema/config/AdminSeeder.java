@@ -33,18 +33,14 @@ public class AdminSeeder implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        System.out.println("=== [SEEDER MAESTRO] Iniciando verificación e inyección de datos completos en MongoDB... ===");
+        System.out.println("=== [SEEDER MAESTRO] Iniciando verificación e inyección de datos de producción en MongoDB... ===");
 
         try {
             seederUsuarios();
             seederAlumnos();
             seederCalendario();
             seederConfiguracion();
-            seederIncidencias();
-            seederIncidenciasPersonal();
-            seederJustificantes();
-            seederPasesSalida();
-            seederRegistrosDiarios();
+            // Pases, justificantes e incidencias de prueba deshabilitados para producción
 
             System.out.println("=== [SEEDER MAESTRO] ¡Proceso de siembra finalizado exitosamente! ===");
 
