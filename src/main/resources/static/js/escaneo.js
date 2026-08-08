@@ -44,12 +44,12 @@ async function cargarConfiguracionInicial() {
         const hoy = obtenerFechaLocal();
 
         pasesIndividualesHoy = resPases
-            .filter(p => p.fecha === hoy && p.estatus === 'AUTORIZADO' && p.matricula)
-            .map(p => p.matricula);
+            .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.matricula || p.id_alumno))
+            .map(p => p.matricula || p.id_alumno);
 
         gruposAutorizadosHoy = resPases
-            .filter(p => p.fecha === hoy && p.estatus === 'AUTORIZADO' && p.grupo_especialidad)
-            .map(p => p.grupo_especialidad);
+            .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.grupo_especialidad || (p.grado && p.grupo && p.especialidad)))
+            .map(p => p.grupo_especialidad || `${p.grado}${p.grupo}-${p.especialidad}`);
 
         generarTableroDinamico();
         renderizarListaFiltrada("");
@@ -545,7 +545,6 @@ async function procesarFotogramasFaciales() {
             
             const box = resizedDeteccion.detection.box;
             
-            // Invertir coordenada X para alinear con el video en modo espejo
             const xEspejo = displaySize.width - box.x - box.width;
 
             ctx.strokeStyle = (bestMatch.label !== 'unknown') ? '#198754' : '#dc3545';

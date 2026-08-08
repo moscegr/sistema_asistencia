@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(fNombre) fNombre.addEventListener('input', filtrarTablaGlobal);
 });
 
-// --- SECCIÓN 1: CONFIGURACIÓN DINÁMICA ---
 async function cargarConfiguracionPases() {
     try {
         const res = await fetch('/api/configuracion/escolar');
@@ -37,7 +36,6 @@ async function cargarConfiguracionPases() {
     } catch (e) { console.error("Error cargando especialidades:", e); }
 }
 
-// --- SECCIÓN 2: SLIDE GRUPAL (TABLERO DE ORIENTACIÓN) ---
 async function cargarTableroGrupal() {
     try {
         const res = await fetch('/api/alumnos');
@@ -100,10 +98,10 @@ async function escucharCambiosGrupos() {
         if (res.ok) {
             const pases = await res.json();
             pases.forEach(p => {
-                if (p.es_grupal && p.fecha === hoy) {
+                if (p.es_grupal && p.fecha === hoy && p.estatus_vigencia) {
                     const id = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
                     const el = document.getElementById(id);
-                    if (el) el.checked = p.estatus_vigencia;
+                    if (el) el.checked = true;
                 }
             });
         }
@@ -119,6 +117,7 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
 		
 	const hoy = obtenerFechaLocal();
 	const folio = `GRP-${grado}${grupo}-${especialidad.substring(0,3)}-${hoy}`;
+    const grupoEspecialidad = `${grado}${grupo}-${especialidad}`;
 
 	try {
         if (estado) {
@@ -131,12 +130,25 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
                     grado: Number(grado),
                     grupo: grupo,
                     especialidad: especialidad,
+                    grupo_especialidad: grupoEspecialidad,
                     fecha: hoy,
                     estatus_vigencia: true,
+                    estatus: 'AUTORIZADO',
                     hora_salida: new Date().toLocaleTimeString(),
                     autorizado_por: rol
                 })
             });
+            Swal.fire({ icon: 'success', title: 'Salida Grupal Autorizada', text: `Grupo ${grado}° "${grupo}" de ${especialidad}`, toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
+        } else {
+            const rPases = await fetch('/api/pases');
+            if (rPases.ok) {
+                const list = await rPases.json();
+                const match = list.find(p => p.folio_pase === folio || (p.es_grupal && p.grado == grado && p.grupo == grupo && p.especialidad === especialidad && p.fecha === hoy));
+                if (match && match.id) {
+                    await fetch(`/api/pases/${match.id}`, { method: 'DELETE' });
+                }
+            }
+            Swal.fire({ icon: 'info', title: 'Pase Grupal Removido', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
         }
 	} catch (e) {
 		console.error("Error al alternar pase grupal:", e);
@@ -144,7 +156,6 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
 	}
 }
 
-// --- SECCIÓN 3: SLIDE INDIVIDUAL (BÚSQUEDA Y PDF) ---
 async function guardarPaseIndividual() {
 	const rol = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
     if (rol !== "ADMIN" && rol !== "ORIENTACION") {
@@ -160,9 +171,15 @@ async function guardarPaseIndividual() {
         return Swal.fire("Campos Incompletos", "El motivo y la hora son obligatorios.", "warning"); 
     }
 
+    const mat = alumnoPase.ncontrol || alumnoPase.matricula;
+    const pat = alumnoPase.apepat || alumnoPase.primerApellido || '';
+    const matApe = alumnoPase.apemat || alumnoPase.segundoApellido || '';
+
     const datosPase = {
         folio_pase: folio,
-        matricula: alumnoPase.ncontrol || alumnoPase.matricula,
+        matricula: mat,
+        id_alumno: mat,
+        nombreFull: `${alumnoPase.nombre} ${pat} ${matApe}`.trim(),
         es_grupal: false,
         grado: Number(alumnoPase.grado),
         grupo: alumnoPase.grupo,
@@ -170,6 +187,7 @@ async function guardarPaseIndividual() {
         hora_salida: hora,
         motivo: mot,
         estatus_vigencia: true,
+        estatus: 'AUTORIZADO',
         fecha: obtenerFechaLocal()
     };
 
@@ -186,7 +204,7 @@ async function guardarPaseIndividual() {
 
         const opciones = {
             margin: [80, 80, 80, 80], 
-            filename: `Pase_${folio}_${alumnoPase.matricula || alumnoPase.ncontrol}.pdf`,
+            filename: `Pase_${folio}_${mat}.pdf`,
             image: { type: 'jpeg', quality: 1 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'px', format: [954, 719], orientation: 'landscape' }
@@ -197,6 +215,7 @@ async function guardarPaseIndividual() {
         }
         await Swal.fire({ icon: 'success', title: '¡Pase Autorizado!', confirmButtonColor: '#7b1b37' });
         limpiarFormularioPase();
+        escucharPasesGlobales();
 
     } catch (err) {
         console.error(err);
@@ -367,7 +386,7 @@ function filtrarTablaGlobal() {
 		        <td><span class="badge ${bClase}">${bTexto}</span></td>
 		        <td class="text-center">
 		            <div class="btn-group">
-		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p.folio_pase}')" title="Eliminar Pase">
+		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p.id || p.folio_pase}')" title="Eliminar Pase">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
 		            </div>
@@ -387,15 +406,25 @@ function filtrarTablaGlobal() {
     }
 }
 
-async function confirmarEliminarPase(folio) {
+async function confirmarEliminarPase(idPase) {
     const { isConfirmed } = await Swal.fire({
         title: '¿Eliminar Pase de Salida?',
-        text: `Se borrará el folio ${folio}. Esto afectará el historial de salidas del alumno.`,
+        text: `Se borrará el registro de salida. Esto afectará el historial de salidas del alumno.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         confirmButtonText: 'Sí, borrar registro'
     });
+
+    if (isConfirmed) {
+        try {
+            await fetch(`/api/pases/${idPase}`, { method: 'DELETE' });
+            Swal.fire('Eliminado', 'El pase de salida ha sido removido.', 'success');
+            escucharPasesGlobales();
+        } catch (e) {
+            Swal.fire('Error', 'No se pudo eliminar el pase.', 'error');
+        }
+    }
 }
 
 function inicializarPaseIndividual() {

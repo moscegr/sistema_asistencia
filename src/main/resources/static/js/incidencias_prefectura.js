@@ -1,3 +1,5 @@
+// static/js/incidencias_prefectura.js (REST API Spring Boot Backend)
+
 const obtenerHoy = () => new Date().toLocaleDateString('en-CA');
 let historialPrefecturaCache = [];
 let limiteHistorialPref = 10;
@@ -7,7 +9,9 @@ const normalizar = (texto) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('fechaIncidenciaPref').value = obtenerHoy();
+    if (document.getElementById('fechaIncidenciaPref')) {
+        document.getElementById('fechaIncidenciaPref').value = obtenerHoy();
+    }
     generarFilasModulos();
     escucharHistorialPersonal();
 
@@ -22,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function generarFilasModulos() {
     const tbody = document.getElementById('tablaModulosIncidencias');
+    if (!tbody) return;
     tbody.innerHTML = "";
     for (let i = 1; i <= 8; i++) {
         tbody.innerHTML += `
@@ -55,18 +60,23 @@ async function guardarReportePrefectura() {
     const claveBD = fecha.replace(/-/g, '') + "_" + Math.floor(Date.now() / 1000).toString().slice(-4);
     
     try {
-        await db.collection("incidencias_personal").doc(claveBD).set({
-            clave_reporte: claveBD,
-            interesado: interesado.toUpperCase(),
-            jefe_personal: jefe.toUpperCase(),
-            turno: turno,
-            fecha: fecha,
-            datos_modulos: incidencias,
-            elaborado_por: "MANUAL"
+        await fetch('/api/incidencias/personal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clave_reporte: claveBD,
+                interesado: interesado.toUpperCase(),
+                jefe_personal: jefe.toUpperCase(),
+                turno: turno,
+                fecha: fecha,
+                datos_modulos: incidencias,
+                elaborado_por: "MANUAL"
+            })
         });
 
         generarPDFPrefectura(interesado.toUpperCase(), fecha, turno, jefe.toUpperCase(), incidencias);
         Swal.fire("Éxito", "Reporte guardado con clave: " + claveBD, "success");
+        escucharHistorialPersonal();
     } catch (e) {
         Swal.fire("Error", e.message, "error");
     }
@@ -114,19 +124,24 @@ function generarPDFPrefectura(nombre, fechaStr, turno, jefe, datos) {
             </tr>`;
     }
 
-    html2pdf().set({
-        margin: 0,
-        filename: `Reporte_Prefectura_${nombre}.pdf`,
-        html2canvas: { scale: 3 },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-    }).from(elements.formato).save();
+    if (typeof html2pdf !== 'undefined') {
+        html2pdf().set({
+            margin: 0,
+            filename: `Reporte_Prefectura_${nombre}.pdf`,
+            html2canvas: { scale: 3 },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+        }).from(elements.formato).save();
+    }
 }
 
-function escucharHistorialPersonal() {
-    db.collection("incidencias_personal").orderBy("fecha", "desc").onSnapshot(snap => {
-        historialPrefecturaCache = snap.docs.map(doc => doc.data());
-        renderizarTablaHistorial();
-    });
+async function escucharHistorialPersonal() {
+    try {
+        const res = await fetch('/api/incidencias/personal');
+        if (res.ok) {
+            historialPrefecturaCache = await res.json();
+            renderizarTablaHistorial();
+        }
+    } catch(e) { console.error(e); }
 }
 
 function renderizarTablaHistorial() {
@@ -150,18 +165,19 @@ function renderizarTablaHistorial() {
     }
 
     filtrados.slice(0, limiteHistorialPref).forEach(d => {
+        const clave = d.clave_reporte || d.id || 'N/A';
         tbody.innerHTML += `
             <tr>
-                <td class="fw-bold text-guinda">${d.clave_reporte}</td>
+                <td class="fw-bold text-guinda">${clave}</td>
                 <td>${d.interesado}</td>
                 <td>${d.fecha}</td>
                 <td><span class="badge bg-info text-dark">${d.turno}</span></td>
                 <td class="text-center">
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-danger" onclick="reimprimirReportePersonal('${d.clave_reporte}')">
+                        <button class="btn btn-sm btn-outline-danger" onclick="reimprimirReportePersonal('${clave}')">
                             <i class="bi bi-file-pdf"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-dark border-0 text-danger" onclick="confirmarEliminarReportePersonal('${d.clave_reporte}')">
+                        <button class="btn btn-sm btn-outline-dark border-0 text-danger" onclick="confirmarEliminarReportePersonal('${d.id || clave}')">
                             <i class="bi bi-trash-fill"></i>
                         </button>
                     </div>
@@ -182,7 +198,7 @@ function filtrarHistorialPrefectura() {
 async function confirmarEliminarReportePersonal(id) {
     const { isConfirmed } = await Swal.fire({
         title: '¿Borrar reporte?',
-        text: `El folio ${id} se eliminará permanentemente.`,
+        text: `El reporte se eliminará permanentemente.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Eliminar'
@@ -190,8 +206,9 @@ async function confirmarEliminarReportePersonal(id) {
 
     if (isConfirmed) {
         try {
-            await db.collection("incidencias_personal").doc(id).delete();
+            await fetch(`/api/incidencias/personal/${id}`, { method: 'DELETE' });
             Swal.fire("Éxito", "Reporte eliminado.", "success");
+            escucharHistorialPersonal();
         } catch (e) {
             Swal.fire("Error", e.message, "error");
         }
@@ -199,10 +216,10 @@ async function confirmarEliminarReportePersonal(id) {
 }
 
 function reimprimirReportePersonal(clave) {
-    const r = historialPrefecturaCache.find(item => item.clave_reporte === clave);
+    const r = historialPrefecturaCache.find(item => item.clave_reporte === clave || item.id === clave);
     if (r) {
         Swal.fire({ title: 'Generando PDF...', didOpen: () => Swal.showLoading() });
-        generarPDFPrefectura(r.interesado, r.fecha, r.turno, r.jefe_personal, r.datos_modulos);
+        generarPDFPrefectura(r.interesado, r.fecha, r.turno, r.jefe_personal, r.datos_modulos || []);
         Swal.close();
     }
 }

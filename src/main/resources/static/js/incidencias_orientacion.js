@@ -1,140 +1,146 @@
-// static/js/incidencias_orientacion.js
+/**
+ * Incidencias Orientación - CBTis 134 (REST API Spring Boot Backend)
+ */
 
 let alumnoSeleccionado = null;
 let incidenciasCache = [];
 let limiteIncidencias = 10;
 
+const PUNTOS_OFICIALES = [
+    "ACUMULAR 3 FALTAS INJUSTIFICADAS EN UN MES",
+    "RETARDOS REITERADOS AL PLANTEL O A CLASE",
+    "SALIR DEL PLANTEL SIN AUTORIZACIÓN",
+    "PROVOCAR DESORDEN EN LOS PASILLOS O AULAS",
+    "FALTA DE RESPETO A SUS COMPAÑEROS",
+    "FALTA DE RESPETO A PERSONAL DOCENTE, ADMINISTRATIVO SERVICIOS",
+    "DAÑO A LA INFRAESTRUCTURA O MOBILIARIO DEL PLANTEL",
+    "CONSUMO O POSESIÓN DE SUSTANCIAS NOCIVAS O PROHIBIDAS",
+    "USO ADECUADO DEL UNIFORME Y PRESENTACIÓN",
+    "USO NO AUTORIZADO DE DISPOSITIVOS ELECTRÓNICOS",
+    "INCLUMPLIMIENTO DE COMPROMISOS ACADÉMICOS",
+    "PORTACIÓN DE OBJETOS PUNSOCORTANTES O ARMAS"
+];
+
+const POSICIONES_Y = [17, 23.5, 30, 36.5, 43, 49.5, 56, 62.5, 69, 75.5, 82, 88.5];
+const POS_X_OVALO = 91.5; 
+
 const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 };
 
-const PUNTOS_OFICIALES = [
-    "NO PORTA EL UNIFORME CORRECTAMENTE",
-    "NO CUMPLE CON LOS TRABAJOS ESCOLARES",
-    "UTILIZAR LENGUAJE SOEZ",
-    "PROVOCAR DESORDEN EN LOS PASILLOS O AULAS",
-    "FALTA DE RESPETO A SUS COMPAÑEROS",
-    "FALTA DE RESPETO A PERSONAL DOCENTE, ADMINISTRATIVO SERVICIOS",
-    "NO PORTA CREDENCIAL",
-    "CABELLO LARGO, TATUAJES, PERFORACIONES, UÑAS",
-    "DAÑOS A LA INFRAESTRUCTURA DEL PLANTEL",
-    "FUMAR DENTRO DE LAS INSTALACIONES (VAPEADOR)",
-    "BAJO EFECTOS DE ALCOHOL O SUSTANCIAS",
-    "FALTA DE RESPETO A LOS SÍMBOLOS PATRIOS",
-    "FALTAS A LA MORAL Y BUENAS COSTUMBRES",
-    "UTILIZAR DISPOSITIVO ELECTRÓNICO EN CLASES",
-    "AUSENTISMO EN CLASES",
-    "PORTAR OBJETOS NO PERMITIDOS",
-    "OTRO (ESPECIFIQUE)"
-];
-
-const POSICIONES_Y = [24.1, 26.1, 28, 30.2, 32.6, 34.2, 37.6, 40.2, 45, 47, 50.6, 54.2, 56.3, 58, 60.6, 62.2, 64.5];
-const POS_X_OVALO = 85;
-
 document.addEventListener('DOMContentLoaded', () => {
-    renderizarChecklist();
-    configurarBuscadorAlumnos();
+    configurarBusquedaInteligente();
+    configurarEventosReglamento();
     escucharIncidenciasGlobales();
-    
-    document.getElementById('inputOtro').addEventListener('input', (e) => {
-        document.getElementById('pdfTextoOtro').innerText = e.target.value.toUpperCase();
-    });
-	
-	const inputBuscador = document.getElementById('buscarIncidenciaGlobal');
-	    if (inputBuscador) {
-	        inputBuscador.addEventListener('input', () => {
-	            limiteIncidencias = 10; 
-	            renderizarTablaIncidencias();
-	        });
-	    }
-		
-		const anioDoc = document.getElementById('pdfAnio');
-		    if (anioDoc) {
-		        anioDoc.innerText = new Date().getFullYear();
-		    }
+
+    const inputFiltro = document.getElementById('buscarIncidenciaGlobal');
+    if (inputFiltro) {
+        inputFiltro.addEventListener('input', renderizarTablaIncidencias);
+    }
 });
 
-function renderizarChecklist() {
-    const container = document.getElementById('checklistIncidencias');
-    container.innerHTML = PUNTOS_OFICIALES.map((p, i) => `
-        <div class="form-check mb-2">
-            <input class="form-check-input check-falta" type="checkbox" data-index="${i}" value="${p}" id="inc-${i}" onchange="actualizarMarcasX()">
-            <label class="form-check-label small fw-bold" for="inc-${i}">${p}</label>
-        </div>`).join('');
+function configurarEventosReglamento() {
+    const checkboxes = document.querySelectorAll('.check-falta');
+    checkboxes.forEach(cb => cb.addEventListener('change', actualizarMarcasX));
+
+    const inputOtro = document.getElementById('inputOtro');
+    if (inputOtro) {
+        inputOtro.addEventListener('input', (e) => {
+            const txt = document.getElementById('pdfTextoOtro');
+            if (txt) txt.innerText = e.target.value.toUpperCase();
+        });
+    }
 }
 
 function actualizarMarcasX() {
     const capa = document.getElementById('capaMarcasX');
+    if (!capa) return;
     capa.innerHTML = "";
-    document.querySelectorAll('.check-falta:checked').forEach(cb => {
-        const idx = parseInt(cb.dataset.index);
-        capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
+
+    const seleccionados = Array.from(document.querySelectorAll('.check-falta:checked')).map(cb => cb.value);
+
+    seleccionados.forEach(falta => {
+        const idx = PUNTOS_OFICIALES.indexOf(falta);
+        if (idx !== -1) {
+            capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
+        }
     });
 }
 
-function configurarBuscadorAlumnos() {
+function configurarBusquedaInteligente() {
     const input = document.getElementById('busquedaAlInc');
     const sugerencias = document.getElementById('sugerenciasInc');
+    if (!input || !sugerencias) return;
 
     input.addEventListener('input', async (e) => {
-        const query = e.target.value.toLowerCase();
-        if (query.length < 3) { sugerencias.style.display = 'none'; return; }
-
-        const snap = await db.collection("alumnos")
-                            .where("estatus_escolar", "==", "Activo").get();
-        
-        const filtrados = snap.docs.map(doc => doc.data())
-            .filter(al => 
-                al.matricula.includes(query) || 
-                `${al.nombre} ${al.apepat} ${al.apemat}`.toLowerCase().includes(query)
-            ).slice(0, 5);
-
-        if (filtrados.length > 0) {
-            sugerencias.innerHTML = filtrados.map(al => `
-                <button type="button" class="list-group-item list-group-item-action py-2" 
-                        onclick="seleccionarParaIncidencia('${al.matricula}')">
-                    <div class="fw-bold small">${al.nombre} ${al.apepat}</div>
-                    <small class="text-muted">${al.matricula} | ${al.especialidad}</small>
-                </button>
-            `).join('');
-            sugerencias.style.display = 'block';
-        } else {
+        const query = normalizar(e.target.value);
+        if (query.length < 3) {
             sugerencias.style.display = 'none';
+            return;
         }
+
+        try {
+            const res = await fetch('/api/alumnos');
+            if (!res.ok) return;
+            const alumnos = await res.json();
+
+            const filtrados = alumnos.filter(al => {
+                const estatus = al.estatus_escolar || al.estatus || 'Activo';
+                if (estatus !== 'Activo') return false;
+                const mat = al.ncontrol || al.matricula || '';
+                const pat = al.apepat || al.primerApellido || '';
+                const nom = normalizar(`${al.nombre} ${pat}`);
+                return nom.includes(query) || normalizar(mat).includes(query);
+            }).slice(0, 5);
+
+            if (filtrados.length > 0) {
+                sugerencias.innerHTML = filtrados.map(al => {
+                    const mat = al.ncontrol || al.matricula;
+                    const pat = al.apepat || al.primerApellido || '';
+                    return `
+                        <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaIncidencia('${mat}')">
+                            <div class="fw-bold small">${al.nombre} ${pat}</div>
+                            <small class="text-muted">${mat} | ${al.especialidad || ''}</small>
+                        </button>`;
+                }).join('');
+                sugerencias.style.display = 'block';
+            } else {
+                sugerencias.style.display = 'none';
+            }
+        } catch (e) { console.error(e); }
     });
 }
 
 async function seleccionarParaIncidencia(matricula) {
-    const doc = await db.collection("alumnos").doc(matricula).get();
-    if (doc.exists) {
-        const data = doc.data();
-        
-        if (data.estatus_escolar !== "Activo") {
-            return Swal.fire("Alumno Inactivo", "No se pueden registrar incidencias a alumnos en BAJA.", "error");
-        }
+    try {
+        const res = await fetch(`/api/alumnos/ncontrol/${matricula}`);
+        if (res.ok) {
+            const data = await res.json();
+            const estatus = data.estatus_escolar || data.estatus || 'Activo';
+            if (estatus !== "Activo") {
+                return Swal.fire("Alumno Inactivo", "No se pueden registrar incidencias a alumnos en BAJA.", "error");
+            }
 
-        alumnoSeleccionado = data;
-        
-        // Llenado de datos del alumno
-        document.getElementById('pdfNombreAl').innerText = `${data.nombre} ${data.apepat} ${data.apemat || ''}`.toUpperCase();
-        document.getElementById('pdfSemestre').innerText = data.grado;
-        document.getElementById('pdfGrupo').innerText = data.grupo;
-        document.getElementById('pdfEsp').innerText = data.especialidad.toUpperCase();
-        
-        // Llenado de fecha dinámica
-        const hoy = new Date();
-        document.getElementById('pdfDia').innerText = hoy.getDate().toString().padStart(2, '0');
-        document.getElementById('pdfMes').innerText = hoy.toLocaleString('es-MX', { month: 'long' }).toUpperCase();
-        
-        const anioDoc = document.getElementById('pdfAnio');
-        if (anioDoc) {
-            anioDoc.innerText = hoy.getFullYear();
+            alumnoSeleccionado = data;
+            const pat = data.apepat || data.primerApellido || '';
+            const matApe = data.apemat || data.segundoApellido || '';
+            
+            document.getElementById('pdfNombreAl').innerText = `${data.nombre} ${pat} ${matApe}`.toUpperCase();
+            document.getElementById('pdfSemestre').innerText = data.grado || '';
+            document.getElementById('pdfGrupo').innerText = data.grupo || '';
+            document.getElementById('pdfEsp').innerText = (data.especialidad || '').toUpperCase();
+            
+            const hoy = new Date();
+            document.getElementById('pdfDia').innerText = hoy.getDate().toString().padStart(2, '0');
+            document.getElementById('pdfMes').innerText = hoy.toLocaleString('es-MX', { month: 'long' }).toUpperCase();
+            
+            const anioDoc = document.getElementById('pdfAnio');
+            if (anioDoc) anioDoc.innerText = hoy.getFullYear();
+            
+            if (document.getElementById('sugerenciasInc')) document.getElementById('sugerenciasInc').style.display = 'none';
+            document.getElementById('busquedaAlInc').value = matricula;
         }
-		
-        // UI Feedback
-        document.getElementById('sugerenciasInc').style.display = 'none';
-        document.getElementById('busquedaAlInc').value = matricula;
-    }
+    } catch(e) {}
 }
 
 async function guardarIncidencia() {
@@ -143,74 +149,57 @@ async function guardarIncidencia() {
     const faltas = Array.from(document.querySelectorAll('.check-falta:checked')).map(cb => cb.value);
     if (faltas.length === 0) return Swal.fire("Atención", "Marque al menos una falta del reglamento", "info");
 
-	try {
+    try {
         Swal.fire({ title: 'Guardando reporte...', didOpen: () => Swal.showLoading() });
 
-        let configDoc = await db.collection("configuracion").doc("ciclo_escolar").get();
-        let cicloActivo = "";
-
-        if (!configDoc.exists) {
-            const fechaAuto = new Date();
-            const anioAuto = fechaAuto.getFullYear();
-            const mesAuto = fechaAuto.getMonth();
-            cicloActivo = (mesAuto >= 7 || mesAuto === 11) ? `AGO-DIC ${anioAuto}` : `FEB-JUL ${anioAuto}`;
-            
-            await db.collection("configuracion").doc("ciclo_escolar").set({
-                actual: cicloActivo,
-                ultima_actualizacion: firebase.firestore.FieldValue.serverTimestamp(),
-                creado_automaticamente: true
-            });
-            console.log("Se detectó ausencia de ciclo. Creado automáticamente:", cicloActivo);
-        } else {
-            cicloActivo = configDoc.data().actual;
-        }
-
+        const mat = alumnoSeleccionado.ncontrol || alumnoSeleccionado.matricula;
         const hoy = new Date().toISOString().split('T')[0];
-        const docId = `${alumnoSeleccionado.matricula}_${hoy}_${Date.now()}`;
+        const docId = `INC_${mat}_${hoy}_${Date.now()}`;
         
         const datos = {
             folio_incidencia: docId, 
-            id_alumno: alumnoSeleccionado.matricula, 
+            id_alumno: mat,
+            matricula: mat,
             grado: Number(alumnoSeleccionado.grado), 
             grupo: alumnoSeleccionado.grupo, 
             especialidad: alumnoSeleccionado.especialidad,
-            ciclo: cicloActivo,
+            ciclo: "FEB-JUL 2026",
             faltas_checklist: faltas, 
             descripcion_detallada: document.getElementById('inputOtro').value.toUpperCase(), 
-            fecha_registro: firebase.firestore.FieldValue.serverTimestamp()
+            fecha_registro: new Date().toISOString(),
+            fecha: hoy
         };
 
-        // 2. Guardamos en Firestore
-        await db.collection("incidencias").doc(docId).set(datos);
-        
-		// --- 3. PREPARACIÓN Y GENERACIÓN DEL PDF ---
-		        const element = document.getElementById('contenedorReporteReal');
+        await fetch('/api/incidencias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
 
-		        // Guardamos el estado original
-		        const scrollOriginalY = window.scrollY;
-		        const originalTransform = element.style.transform;
-		        const originalMargin = element.style.marginBottom;
+        const element = document.getElementById('contenedorReporteReal');
+        const scrollOriginalY = window.scrollY;
+        const originalTransform = element.style.transform;
+        const originalMargin = element.style.marginBottom;
 
-		        // Limpieza: Quitamos escala y subimos scroll
-		        window.scrollTo(0, 0);
-		        element.style.transform = "none";
-		        element.style.marginBottom = "0";
-		        // ELIMINADO: Ya no forzamos el left aquí, el PDF usará el 5% de tu HTML
+        window.scrollTo(0, 0);
+        element.style.transform = "none";
+        element.style.marginBottom = "0";
 
-		        const opt = {
-		            margin: 0,
-		            filename: `Incidencia_${alumnoSeleccionado.matricula}.pdf`,
-		            image: { type: 'jpeg', quality: 0.98 },
-		            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
-		            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-		        };
+        const opt = {
+            margin: 0,
+            filename: `Incidencia_${mat}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+        };
 
-		        await html2pdf().set(opt).from(element).save();
+        if (typeof html2pdf !== 'undefined') {
+            await html2pdf().set(opt).from(element).save();
+        }
 
-		        // Restauramos para la vista del usuario
-		        element.style.transform = originalTransform;
-		        element.style.marginBottom = originalMargin;
-		        window.scrollTo(0, scrollOriginalY);
+        element.style.transform = originalTransform;
+        element.style.marginBottom = originalMargin;
+        window.scrollTo(0, scrollOriginalY);
 
         Swal.fire("Éxito", "Incidencia registrada y PDF generado", "success").then(() => location.reload());
 
@@ -221,24 +210,19 @@ async function guardarIncidencia() {
 }
 
 async function reimprimirIncidencia(folio) {
-    // 1. Buscamos los datos
     const inc = incidenciasCache.find(i => i.folio_incidencia === folio);
-    
-    if (!inc) {
-        return Swal.fire("Error", "No se encontró la información de la incidencia.", "error");
-    }
+    if (!inc) return Swal.fire("Error", "No se encontró la información de la incidencia.", "error");
 
     Swal.fire({ title: 'Generando PDF...', didOpen: () => Swal.showLoading() });
 
     try {
-        // 2. Rellenamos temporalmente los textos
-        document.getElementById('pdfNombreAl').innerText = inc.nombreFull.toUpperCase();
-        document.getElementById('pdfSemestre').innerText = inc.grado;
-        document.getElementById('pdfGrupo').innerText = inc.grupo;
-        document.getElementById('pdfEsp').innerText = inc.especialidad.toUpperCase();
+        document.getElementById('pdfNombreAl').innerText = (inc.nombreFull || '').toUpperCase();
+        document.getElementById('pdfSemestre').innerText = inc.grado || '';
+        document.getElementById('pdfGrupo').innerText = inc.grupo || '';
+        document.getElementById('pdfEsp').innerText = (inc.especialidad || '').toUpperCase();
         document.getElementById('pdfTextoOtro').innerText = inc.descripcion_detallada || "";
 
-        const fecha = inc.fecha_registro?.toDate() || new Date();
+        const fecha = inc.fecha_registro ? new Date(inc.fecha_registro) : new Date();
         document.getElementById('pdfDia').innerText = fecha.getDate().toString().padStart(2, '0');
         document.getElementById('pdfMes').innerText = fecha.toLocaleString('es-MX', { month: 'long' }).toUpperCase();
         
@@ -247,58 +231,37 @@ async function reimprimirIncidencia(folio) {
 
         const capa = document.getElementById('capaMarcasX');
         capa.innerHTML = "";
-        inc.faltas_checklist.forEach(falta => {
+        (inc.faltas_checklist || []).forEach(falta => {
             const idx = PUNTOS_OFICIALES.indexOf(falta);
             if (idx !== -1) {
                 capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
             }
         });
 
-		// --- 3. PREPARACIÓN Y GENERACIÓN DEL PDF ---
-		        const element = document.getElementById('contenedorReporteReal');
+        const element = document.getElementById('contenedorReporteReal');
+        const scrollOriginalY = window.scrollY;
+        const originalTransform = element.style.transform;
+        const originalMargin = element.style.marginBottom;
+        
+        window.scrollTo(0, 0);
+        element.style.transform = "none";
+        element.style.marginBottom = "0";
 
-		        // Guardamos el estado original
-		        const scrollOriginalY = window.scrollY;
-		        const originalTransform = element.style.transform;
-		        const originalMargin = element.style.marginBottom;
-		        
-		        // Forzamos la vista real
-		        window.scrollTo(0, 0);
-		        element.style.transform = "none";
-		        element.style.marginBottom = "0";
+        const opt = {
+            margin: 0,
+            filename: `Incidencia_${inc.id_alumno}_REIMPRESION.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+        };
 
-		        const opt = {
-		            margin: 0,
-		            filename: `Incidencia_${inc.id_alumno}_REIMPRESION.pdf`,
-		            image: { type: 'jpeg', quality: 0.98 },
-		            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
-		            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-		        };
-
-		        // Generamos el documento
-		        await html2pdf().set(opt).from(element).save();
-
-		        // Restauramos el diseño
-		        element.style.transform = originalTransform;
-		        element.style.marginBottom = originalMargin;
-		        window.scrollTo(0, scrollOriginalY);
-
-        // 6. Restauramos las marcas visuales del alumno que se estaba capturando
-        if (alumnoSeleccionado) {
-            document.getElementById('pdfNombreAl').innerText = `${alumnoSeleccionado.nombre} ${alumnoSeleccionado.apepat}`.toUpperCase();
-            document.getElementById('pdfSemestre').innerText = alumnoSeleccionado.grado;
-            document.getElementById('pdfGrupo').innerText = alumnoSeleccionado.grupo;
-            document.getElementById('pdfEsp').innerText = alumnoSeleccionado.especialidad.toUpperCase();
-            document.getElementById('pdfTextoOtro').innerText = document.getElementById('inputOtro').value.toUpperCase();
-            actualizarMarcasX(); 
-        } else {
-            capa.innerHTML = "";
-            document.getElementById('pdfNombreAl').innerText = "________________________________________";
-            document.getElementById('pdfSemestre').innerText = "__";
-            document.getElementById('pdfGrupo').innerText = "__";
-            document.getElementById('pdfEsp').innerText = "_______________________";
-            document.getElementById('pdfTextoOtro').innerText = "";
+        if (typeof html2pdf !== 'undefined') {
+            await html2pdf().set(opt).from(element).save();
         }
+
+        element.style.transform = originalTransform;
+        element.style.marginBottom = originalMargin;
+        window.scrollTo(0, scrollOriginalY);
 
         Swal.close();
 
@@ -308,18 +271,27 @@ async function reimprimirIncidencia(folio) {
     }
 }
 
-function escucharIncidenciasGlobales() {
-    db.collection("incidencias").orderBy("fecha_registro", "desc").onSnapshot(async snap => {
-        const promesas = snap.docs.map(async d => {
-            const inc = d.data();
-            const alSnap = await db.collection("alumnos").doc(inc.id_alumno).get();
-            const nombre = alSnap.exists ? `${alSnap.data().nombre} ${alSnap.data().apepat}` : "Desconocido";
-            return { ...inc, nombreFull: nombre };
+async function escucharIncidenciasGlobales() {
+    try {
+        const [resInc, resAl] = await Promise.all([
+            fetch('/api/incidencias').then(r => r.ok ? r.json() : []),
+            fetch('/api/alumnos').then(r => r.ok ? r.json() : [])
+        ]);
+
+        const mapAlumnos = {};
+        resAl.forEach(a => {
+            const mat = a.ncontrol || a.matricula;
+            const pat = a.apepat || a.primerApellido || '';
+            if (mat) mapAlumnos[mat] = `${a.nombre} ${pat}`.trim();
         });
 
-        incidenciasCache = await Promise.all(promesas);
+        incidenciasCache = resInc.map(inc => ({
+            ...inc,
+            nombreFull: mapAlumnos[inc.id_alumno || inc.matricula] || inc.nombre || "Estudiante"
+        }));
+
         renderizarTablaIncidencias();
-    });
+    } catch(e) { console.error(e); }
 }
 
 function renderizarTablaIncidencias() {
@@ -327,16 +299,13 @@ function renderizarTablaIncidencias() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
-    // Obtenemos y normalizamos la búsqueda del usuario
     const inputBusqueda = document.getElementById('buscarIncidenciaGlobal');
     const filtro = normalizar(inputBusqueda ? inputBusqueda.value : "");
 
-    // Filtramos la caché global aplicando normalizar a cada campo
     const filtrados = incidenciasCache.filter(inc => {
         const folio = normalizar(inc.folio_incidencia);
         const nombre = normalizar(inc.nombreFull);
-        const matricula = normalizar(inc.id_alumno);
-
+        const matricula = normalizar(inc.id_alumno || inc.matricula);
         return folio.includes(filtro) || nombre.includes(filtro) || matricula.includes(filtro);
     });
 
@@ -348,25 +317,29 @@ function renderizarTablaIncidencias() {
     const paginados = filtrados.slice(0, limiteIncidencias);
 
     paginados.forEach(inc => {
+        const fechaTxt = inc.fecha || (inc.fecha_registro ? new Date(inc.fecha_registro).toLocaleDateString() : 'Pendiente');
+        const folio = inc.folio_incidencia || inc.id || 'INC-001';
+        const faltas = inc.faltas_checklist || (inc.motivo ? [inc.motivo] : []);
+
         tbody.innerHTML += `
             <tr>
-                <td class="fw-bold text-guinda">${inc.folio_incidencia.substring(0,15)}...</td>
+                <td class="fw-bold text-guinda">${String(folio).substring(0,15)}...</td>
                 <td>
                     <div class="fw-bold small">${inc.nombreFull}</div>
-                    <small class="text-muted">${inc.id_alumno}</small>
+                    <small class="text-muted">${inc.id_alumno || inc.matricula}</small>
                 </td>
-                <td>${inc.fecha_registro?.toDate().toLocaleDateString() || 'Pendiente'}</td>
+                <td>${fechaTxt}</td>
                 <td>
                     <small class="text-truncate d-inline-block" style="max-width: 200px;">
-                        ${inc.faltas_checklist.join(', ')}
+                        ${faltas.join(', ')}
                     </small>
                 </td>
                 <td class="text-center">
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirIncidencia('${inc.folio_incidencia}')">
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirIncidencia('${folio}')">
                             <i class="bi bi-file-pdf-fill fs-5"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarIncidencia('${inc.folio_incidencia}')">
+                        <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarIncidencia('${inc.id || folio}')">
                             <i class="bi bi-trash3-fill fs-5"></i>
                         </button>
                     </div>
@@ -393,16 +366,15 @@ async function confirmarEliminarIncidencia(id) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
     });
 
     if (isConfirmed) {
         try {
-            await db.collection("incidencias").doc(id).delete();
+            await fetch(`/api/incidencias/${id}`, { method: 'DELETE' });
             Swal.fire("Eliminado", "El registro ha sido borrado.", "success");
-            // No hace falta recargar, el onSnapshot de escucharIncidenciasGlobales lo hará solo
+            escucharIncidenciasGlobales();
         } catch (e) {
             Swal.fire("Error", "No se pudo eliminar: " + e.message, "error");
         }

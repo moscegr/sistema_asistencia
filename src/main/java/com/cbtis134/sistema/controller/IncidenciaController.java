@@ -3,6 +3,8 @@ package com.cbtis134.sistema.controller;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,5 +46,19 @@ public class IncidenciaController {
         }
         mongoTemplate.save(doc, "incidencias_personal");
         return ResponseEntity.ok(doc);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable String id) {
+        mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "incidencias");
+        mongoTemplate.remove(new Query(Criteria.where("folio_incidencia").is(id)), "incidencias");
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/personal/{id}")
+    public ResponseEntity<Void> eliminarPersonal(@PathVariable String id) {
+        mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "incidencias_personal");
+        mongoTemplate.remove(new Query(Criteria.where("clave_reporte").is(id)), "incidencias_personal");
+        return ResponseEntity.noContent().build();
     }
 }

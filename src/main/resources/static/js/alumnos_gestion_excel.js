@@ -1,35 +1,38 @@
 /**
- * Motor de Gestión de Excel Dinámico - CBTis 134
+ * Motor de Gestión de Excel Dinámico - CBTis 134 (REST API Spring Boot Backend)
  */
 
 let especialidadesCache = [];
 let datosPendientesCarga = null;
+let jsonDatosPendientes = null;
+let estructuraEscolar = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarConfiguracionInicial();
     await cargarEstructuraReal();
 });
 
-// 1. Cargar las especialidades desde Firestore (Panel de Configuración)
 async function cargarConfiguracionInicial() {
     try {
-        const doc = await db.collection("configuracion").doc("escolar").get();
-        if (doc.exists && doc.data().especialidades) {
-            especialidadesCache = doc.data().especialidades;
+        const res = await fetch('/api/configuracion/escolar');
+        if (res.ok) {
+            const data = await res.json();
+            especialidadesCache = data.especialidades || [];
             
             const selectEsp = document.getElementById('exportEsp');
-            selectEsp.innerHTML = '<option value="">-- Seleccione Especialidad --</option>';
-            especialidadesCache.forEach(esp => {
-                const opt = document.createElement('option');
-                opt.value = esp.nombre;
-                opt.textContent = esp.nombre;
-                selectEsp.appendChild(opt);
-            });
+            if (selectEsp) {
+                selectEsp.innerHTML = '<option value="">-- Seleccione Especialidad --</option>';
+                especialidadesCache.forEach(esp => {
+                    const opt = document.createElement('option');
+                    opt.value = esp.nombre;
+                    opt.textContent = esp.nombre;
+                    selectEsp.appendChild(opt);
+                });
+            }
         }
     } catch (e) { console.error("Error al cargar config:", e); }
 }
 
-// 2. Normalizador Inteligente
 function normalizarDatosCBTis(valorExcel) {
     if (!valorExcel) return { grado: "", grupo: "", especialidad: "POR ASIGNAR", color: "#6c757d", turno: "Matutino" };
     
@@ -54,7 +57,6 @@ function normalizarDatosCBTis(valorExcel) {
     return { grado: "", grupo: "", especialidad: valorExcel, color: "#6c757d", turno: "Matutino" }; 
 }
 
-// 3. PROCESO DE CARGA MASIVA
 async function procesarCargaMasiva() {
     const input = document.getElementById('excelInput');
     const file = input.files[0];
@@ -63,7 +65,6 @@ async function procesarCargaMasiva() {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
-
             Swal.fire({ title: 'Analizando archivo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             const data = new Uint8Array(e.target.result);
@@ -104,8 +105,7 @@ async function procesarCargaMasiva() {
                 confirmButtonColor: '#7b1b37',
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: '<i class="bi bi-cloud-arrow-up"></i> Sí, iniciar carga',
-                cancelButtonText: 'Cancelar',
-                didOpen: () => { Swal.hideLoading(); } 
+                cancelButtonText: 'Cancelar'
             });
 
             if (result.isConfirmed) {
@@ -121,18 +121,21 @@ async function procesarCargaMasiva() {
 }
 
 async function ejecutarCargaReal() {
-    const user = firebase.auth().currentUser;
-    const adminUID = user.uid;
     const json = jsonDatosPendientes;
+    if (!json) return;
 
-    document.getElementById('statusCarga').classList.remove('d-none');
-    document.getElementById('btnIniciarCarga').disabled = true;
-    document.getElementById('excelInput').disabled = true;
+    if (document.getElementById('statusCarga')) document.getElementById('statusCarga').classList.remove('d-none');
+    if (document.getElementById('btnIniciarCarga')) document.getElementById('btnIniciarCarga').disabled = true;
+    if (document.getElementById('excelInput')) document.getElementById('excelInput').disabled = true;
     
     Swal.fire({ title: 'Procesando lista...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     let exitosos = 0, fallos = 0, duplicados = 0;
     const regexMatricula = /^\d{14}$/;
+
+    const resAlumnos = await fetch('/api/alumnos');
+    const alumnosExistentes = resAlumnos.ok ? await resAlumnos.json() : [];
+    const setMatriculas = new Set(alumnosExistentes.map(a => a.ncontrol || a.matricula));
 
     for (let row of json) {
         const r = Object.keys(row).reduce((acc, key) => { 
@@ -160,14 +163,11 @@ async function ejecutarCargaReal() {
         if (!regexMatricula.test(matricula)) { fallos++; continue; }
 
         try {
-            const docRef = db.collection("alumnos").doc(matricula);
-            const docSnap = await docRef.get();
-            if (docSnap.exists) { 
+            if (setMatriculas.has(matricula)) { 
                 duplicados++; 
-
                 const totalProcesados = exitosos + fallos + duplicados;
                 const pct = Math.round((totalProcesados / json.length) * 100);
-                document.getElementById('barraProgreso').style.width = pct + "%";
+                if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
                 continue; 
             }
 
@@ -200,6 +200,7 @@ async function ejecutarCargaReal() {
             }
 
             const alumno = {
+                ncontrol: matricula,
                 matricula: matricula,
                 curp: String(r.curp || "").toUpperCase(),
                 nombre: nombre.toUpperCase(),
@@ -216,34 +217,36 @@ async function ejecutarCargaReal() {
                 turno: turnoFinal,
                 
                 estatus_escolar: "Activo",
+                estatus: "Activo",
                 color_semaforo: "Verde",
                 
-                perfil_completo: !!teltutor,
                 nombretutor: r.tutor || r.nombre_del_tutor || r.nombre_tutor || "PENDIENTE",
                 teltutor: teltutor,
                 ocupaciontutor: r.ocupacion || r.ocupacion_del_tutor || "N/A",
                 
                 qr_texto: textoUnicoQR,
-                registradoPor: adminUID,
-                fecharegistro: firebase.firestore.FieldValue.serverTimestamp()
+                fecharegistro: new Date().toISOString()
             };
 
-            await docRef.set(alumno);
+            await fetch('/api/alumnos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(alumno)
+            });
+
+            setMatriculas.add(matricula);
             exitosos++;
 
             const totalProcesados = exitosos + fallos + duplicados;
             const pct = Math.round((totalProcesados / json.length) * 100);
-            document.getElementById('barraProgreso').style.width = pct + "%";
-            if(document.getElementById('textoProgreso')) {
-                document.getElementById('textoProgreso').innerText = `Procesando registros... ${pct}%`;
-            }
+            if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
+            if (document.getElementById('textoProgreso')) document.getElementById('textoProgreso').innerText = `Procesando registros... ${pct}%`;
 
         } catch (err) { 
             fallos++; 
-
             const totalProcesados = exitosos + fallos + duplicados;
             const pct = Math.round((totalProcesados / json.length) * 100);
-            document.getElementById('barraProgreso').style.width = pct + "%";
+            if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
         }
     }
 
@@ -255,7 +258,6 @@ async function ejecutarCargaReal() {
     }).then(() => location.reload());
 }
 
-// 4. PLANTILLAS
 function descargarPlantillaManual() {
     const headers = [
         ["Matricula", "CURP", "Nombre", "ApePat", "ApeMat", "Genero", "Email", "Celular", "Direccion", "Especialidad", "Grado", "Grupo", "Tutor", "TelTutor", "Ocupacion"]
@@ -280,55 +282,55 @@ function descargarPlantillaInstitucional() {
     XLSX.writeFile(wb, "Layout_REDIS_CBTis134.xlsx");
 }
 
-/**
- * 5. EXPORTACIÓN FILTRADA
- */
 async function descargarExcelFiltrado() {
     const esp = document.getElementById('exportEsp').value;
     const gg = document.getElementById('exportGradoGpo').value;
 
     Swal.fire({ 
         title: 'Generando Reporte...', 
-        text: 'Sincronizando con Firestore',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading() 
     });
 
     try {
-        let q = db.collection("alumnos");
+        const res = await fetch('/api/alumnos');
+        if (!res.ok) throw new Error("No se pudo conectar al servidor.");
+        const alumnos = await res.json();
         
-        if (esp) q = q.where("especialidad", "==", esp);
-        if (gg) {
-            q = q.where("grado", "==", gg[0]).where("grupo", "==", gg.substring(1));
-        }
+        let filtrados = alumnos.filter(al => {
+            const mat = al.ncontrol || al.matricula;
+            if (!mat) return false;
+            let okEsp = !esp || al.especialidad === esp;
+            let okGpo = !gg || (`${al.grado}${al.grupo}` === gg);
+            return okEsp && okGpo;
+        });
 
-        const snap = await q.get();
-        if (snap.empty) throw new Error("No hay registros que coincidan.");
+        if (filtrados.length === 0) throw new Error("No hay registros que coincidan con la búsqueda.");
 
-        const data = snap.docs.map(doc => {
-            const d = doc.data();
-            
+        const data = filtrados.map(d => {
+            const mat = d.ncontrol || d.matricula;
+            const pat = d.apepat || d.primerApellido || '';
+            const matApe = d.apemat || d.segundoApellido || '';
+
             return {
-                "Matrícula": d.matricula,
-                "CURP": d.curp,
+                "Matrícula": mat,
+                "CURP": d.curp || "",
                 "Género": d.genero || "",
                 "Nombre": d.nombre,
-                "Ape. Paterno": d.apepat,
-                "Ape. Materno": d.apemat || "",
-                "Correo": d.email,
-                "Celular": d.celular,
-                "Dirección": d.direccion,
-                "Especialidad": d.especialidad,
-                "Grado": d.grado,
-                "Grupo": d.grupo,
-                "Turno": d.turno,
-                "Estatus": d.estatus_escolar,
-                "Semáforo": d.color_semaforo,
-                "Aula Específica": d.aula_especifica || "N/A",
-                "Tutor": d.nombretutor,
-                "Tel. Tutor": d.teltutor,
-                "Ocupación Tutor": d.ocupaciontutor || "N/A",
-                "Fecha Registro": d.fecharegistro ? d.fecharegistro.toDate().toLocaleDateString() : ""
+                "Ape. Paterno": pat,
+                "Ape. Materno": matApe,
+                "Correo": d.email || "",
+                "Celular": d.celular || "",
+                "Dirección": d.direccion || "",
+                "Especialidad": d.especialidad || "",
+                "Grado": d.grado || "",
+                "Grupo": d.grupo || "",
+                "Turno": d.turno || "",
+                "Estatus": d.estatus_escolar || d.estatus || "Activo",
+                "Semáforo": d.color_semaforo || "Verde",
+                "Tutor": d.nombretutor || "",
+                "Tel. Tutor": d.teltutor || "",
+                "Ocupación Tutor": d.ocupaciontutor || "N/A"
             };
         });
 
@@ -345,37 +347,35 @@ async function descargarExcelFiltrado() {
     }
 }
 
-/**
- * MANTENIMIENTO DE FILTROS DINÁMICOS
- */
 async function cargarEstructuraReal() {
     try {
-        const snap = await db.collection("alumnos").where("estatus_escolar", "==", "Activo").get();
+        const res = await fetch('/api/alumnos');
+        if (!res.ok) return;
+        const alumnos = await res.json();
+        
         estructuraEscolar = {};
 
-        snap.forEach(doc => {
-            const al = doc.data();
-            if (!al.especialidad) return;
-            
-            if (!estructuraEscolar[al.especialidad]) {
-                estructuraEscolar[al.especialidad] = new Set();
-            }
-            
-            if (al.grado && al.grupo) {
-                estructuraEscolar[al.especialidad].add(`${al.grado}${al.grupo}`);
+        alumnos.forEach(al => {
+            const estatus = al.estatus_escolar || al.estatus || 'Activo';
+            if (estatus === 'Activo' && al.especialidad) {
+                if (!estructuraEscolar[al.especialidad]) {
+                    estructuraEscolar[al.especialidad] = new Set();
+                }
+                if (al.grado && al.grupo) {
+                    estructuraEscolar[al.especialidad].add(`${al.grado}${al.grupo}`);
+                }
             }
         });
-        console.log("Estructura escolar actualizada desde BD.");
     } catch (e) { 
         console.error("Error al mapear estructura:", e); 
     }
 }
 
-// Actualiza el segundo SELECT basándose en la especialidad elegida
 function actualizarFiltrosDinamicos() {
     const esp = document.getElementById('exportEsp').value;
     const selectGpo = document.getElementById('exportGradoGpo');
     
+    if (!selectGpo) return;
     selectGpo.innerHTML = '<option value="">-- Todos los Grupos --</option>';
     
     if (esp && estructuraEscolar[esp]) {

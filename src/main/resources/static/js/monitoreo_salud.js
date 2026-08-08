@@ -1,4 +1,4 @@
-// static/js/monitoreo_salud.js
+// static/js/monitoreo_salud.js (REST API Spring Boot Backend)
 
 let alumnosSaludCache = [];
 let limiteSalud = 12; 
@@ -23,16 +23,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnGuardar = document.getElementById('btnGuardarSalud');
 
 	if (collapseEl && btnGuardar) {
-	        collapseEl.addEventListener('show.bs.collapse', () => {
-	            btnGuardar.style.display = 'block';
-	            setTimeout(() => {
-	                collapseEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
-	            }, 300);
-	        });
-	        
-	        collapseEl.addEventListener('hide.bs.collapse', () => {
-	            btnGuardar.style.display = 'none';
-	        });
+        collapseEl.addEventListener('show.bs.collapse', () => {
+            btnGuardar.style.display = 'block';
+            setTimeout(() => {
+                collapseEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 300);
+        });
+        
+        collapseEl.addEventListener('hide.bs.collapse', () => {
+            btnGuardar.style.display = 'none';
+        });
     }
 });
 
@@ -47,21 +47,27 @@ async function cargarDatosSalud() {
         </div>`;
 
     try {
-        const snapAlumnos = await db.collection("alumnos").where("estatus_escolar", "==", "Activo").get();
+        const [resAlumnos, resJustificantes] = await Promise.all([
+            fetch('/api/alumnos').then(r => r.ok ? r.json() : []),
+            fetch('/api/justificantes').then(r => r.ok ? r.json() : [])
+        ]);
+
         let alumnosMap = {};
         
-        snapAlumnos.forEach(doc => {
-            const al = doc.data();
-            alumnosMap[al.matricula] = { 
-                ...al, 
-                totalFaltasSalud: 0 
-            };
+        resAlumnos.forEach(al => {
+            const mat = al.ncontrol || al.matricula;
+            const estatus = al.estatus_escolar || al.estatus || 'Activo';
+            if (estatus === 'Activo' && mat) {
+                alumnosMap[mat] = { 
+                    ...al, 
+                    matricula: mat,
+                    totalFaltasSalud: 0 
+                };
+            }
         });
 
-        const snapJustificantes = await db.collection("justificantes").get();
-        snapJustificantes.forEach(doc => {
-            const just = doc.data();
-            const mat = just.id_alumno;
+        resJustificantes.forEach(just => {
+            const mat = just.id_alumno || just.matricula;
             const motivo = (just.motivo_detalle || "").toLowerCase();
             
             if (alumnosMap[mat] && (motivo.includes("enferm") || motivo.includes("salud") || motivo.includes("medic") || motivo.includes("cita"))) {
@@ -106,6 +112,9 @@ function renderizarTarjetas(listaRenderizar) {
     const paginados = listaRenderizar.slice(0, limiteSalud);
 
     paginados.forEach(al => {
+        const mat = al.ncontrol || al.matricula;
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
         const colorHex = obtenerColorHex(al.color_semaforo);
         const alertaAusentismo = al.totalFaltasSalud >= 3 
             ? `<span class="badge bg-dark mt-2 w-100"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> ${al.totalFaltasSalud} Inasistencias médicas</span>` 
@@ -119,19 +128,19 @@ function renderizarTarjetas(listaRenderizar) {
         contenedor.innerHTML += `
             <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
                 <div class="card h-100 shadow-sm border-0" style="border-top: 5px solid ${colorHex} !important; cursor: pointer; transition: transform 0.2s;" 
-                     onclick="abrirModalPadecimiento('${al.matricula}')"
+                     onclick="abrirModalPadecimiento('${mat}')"
                      onmouseover="this.style.transform='scale(1.02)'" 
                      onmouseout="this.style.transform='scale(1)'">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge bg-light text-dark border">${al.matricula}</span>
+                            <span class="badge bg-light text-dark border">${mat}</span>
                             <span class="badge rounded-pill" style="background-color: ${colorHex}; color: ${al.color_semaforo === 'Amarillo' ? '#000' : '#fff'}">${al.color_semaforo || 'Verde'}</span>
                         </div>
                         <h6 class="card-title fw-bold text-uppercase mb-1" style="color: #7b1b37; line-height: 1.2;">
-                            ${al.nombre} ${al.apepat} ${al.apemat || ''}
+                            ${al.nombre} ${pat} ${matApe}
                         </h6>
                         <p class="card-text small text-muted mb-2">
-                            ${al.especialidad}<br>${al.grado}° "${al.grupo}"
+                            ${al.especialidad || ''}<br>${al.grado || ''}° "${al.grupo || ''}"
                         </p>
                         ${textoPadecimientos}
                         ${alertaAusentismo}
@@ -159,8 +168,11 @@ function filtrarTarjetasSalud() {
     }
 
     const filtrados = alumnosSaludCache.filter(al => {
-        const nombreStr = normalizar(`${al.nombre} ${al.apepat} ${al.apemat}`);
-        return nombreStr.includes(q) || normalizar(al.matricula).includes(q) || normalizar(al.especialidad).includes(q);
+        const mat = al.ncontrol || al.matricula || '';
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreStr = normalizar(`${al.nombre} ${pat} ${matApe}`);
+        return nombreStr.includes(q) || normalizar(mat).includes(q) || normalizar(al.especialidad || '').includes(q);
     });
 
     const limiteTemp = limiteSalud; 
@@ -169,23 +181,27 @@ function filtrarTarjetasSalud() {
     limiteSalud = limiteTemp; 
 }
 
-// --- LÓGICA DE GUARDADO, VISUALIZACIÓN Y ELIMINACIÓN ---
 function abrirModalPadecimiento(matricula) {
-    const al = alumnosSaludCache.find(a => a.matricula === matricula);
+    const al = alumnosSaludCache.find(a => (a.ncontrol || a.matricula) === matricula);
     if (!al) return;
     
-    const rol = rolUsuarioActual ? rolUsuarioActual.toUpperCase() : "";
+    const rolUsuarioActual = localStorage.getItem('userRole') || 'ADMIN';
+    const rol = rolUsuarioActual.toUpperCase();
     const puedeEditar = (rol === 'ADMIN' || rol === 'ORIENTACION');
 
     const collapseEl = document.getElementById('collapseNuevoRegistro');
     if (collapseEl) {
         const bsCollapse = bootstrap.Collapse.getInstance(collapseEl);
         if (bsCollapse) bsCollapse.hide();
-        else document.getElementById('btnGuardarSalud').style.display = 'none';
+        else if (document.getElementById('btnGuardarSalud')) document.getElementById('btnGuardarSalud').style.display = 'none';
     }
 
-    document.getElementById('saludMatricula').value = al.matricula;
-    document.getElementById('saludNombreAlumno').innerText = `${al.nombre} ${al.apepat} ${al.apemat}`.toUpperCase();
+    const mat = al.ncontrol || al.matricula;
+    const pat = al.apepat || al.primerApellido || '';
+    const matApe = al.apemat || al.segundoApellido || '';
+
+    document.getElementById('saludMatricula').value = mat;
+    document.getElementById('saludNombreAlumno').innerText = `${al.nombre} ${pat} ${matApe}`.toUpperCase();
 
     document.getElementById('saludTipo').value = "";
     document.getElementById('saludGravedad').value = "Verde";
@@ -215,7 +231,7 @@ function abrirModalPadecimiento(matricula) {
                                 <p class="mb-0 text-muted" style="font-size: 0.75rem; line-height: 1.2;">${p.detalles || 'Sin detalles'}</p>
                             </div>
                             ${puedeEditar ? `
-                                <button class="btn btn-sm text-danger p-0 ms-2" onclick="eliminarPadecimiento('${matricula}', ${idx})">
+                                <button class="btn btn-sm text-danger p-0 ms-2" onclick="eliminarPadecimiento('${mat}', ${idx})">
                                     <i class="bi bi-trash-fill" style="font-size: 0.9rem;"></i>
                                 </button>
                             ` : ''}
@@ -235,7 +251,6 @@ function abrirModalPadecimiento(matricula) {
     if(modalPadecimiento) modalPadecimiento.show();
 }
 
-// Función auxiliar para saber el color global basado en el array de padecimientos
 function recalcularSemaforoGlobal(padecimientosArray) {
     if (!padecimientosArray || padecimientosArray.length === 0) return 'Verde';
     if (padecimientosArray.some(p => p.gravedad === 'Rojo')) return 'Rojo';
@@ -245,7 +260,6 @@ function recalcularSemaforoGlobal(padecimientosArray) {
 
 async function guardarPadecimiento() {
     const modalEl = document.getElementById('modalPadecimiento');
-
     const matricula = document.getElementById('saludMatricula').value;
     const tipo = document.getElementById('saludTipo').value.trim();
     const gravedad = document.getElementById('saludGravedad').value;
@@ -254,7 +268,7 @@ async function guardarPadecimiento() {
     if (!tipo || tipo.length < 3) {
         return Swal.fire({
             icon: "warning",
-            title: "Dato/s incompleto",
+            title: "Dato incompleto",
             text: "Por favor, escribe el padecimiento (mín. 3 letras).",
             target: modalEl
         });
@@ -276,6 +290,9 @@ async function guardarPadecimiento() {
     });
 
     try {
+        const al = alumnosSaludCache.find(a => (a.ncontrol || a.matricula) === matricula);
+        if (!al) return;
+
         const nuevoPadecimiento = {
             tipo: tipo,
             gravedad: gravedad,
@@ -283,19 +300,20 @@ async function guardarPadecimiento() {
             fecha_registro: new Date().toISOString()
         };
 
-        const al = alumnosSaludCache.find(a => a.matricula === matricula);
         let arrayActual = al.padecimientos_registrados ? [...al.padecimientos_registrados] : [];
         arrayActual.push(nuevoPadecimiento);
         
         let colorFinal = recalcularSemaforoGlobal(arrayActual);
 
-        await db.collection("alumnos").doc(matricula).update({
-            color_semaforo: colorFinal, 
-            padecimientos_registrados: firebase.firestore.FieldValue.arrayUnion(nuevoPadecimiento)
-        });
-
         al.color_semaforo = colorFinal;
         al.padecimientos_registrados = arrayActual;
+
+        await fetch('/api/alumnos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(al)
+        });
+
         al.prioridadSemaforo = (colorFinal === 'Rojo') ? 3 : (colorFinal === 'Amarillo' ? 2 : 1);
         alumnosSaludCache.sort((a, b) => b.prioridadSemaforo - a.prioridadSemaforo);
 
@@ -324,8 +342,7 @@ async function guardarPadecimiento() {
 
 async function eliminarPadecimiento(matricula, index) {
     const modalEl = document.getElementById('modalPadecimiento');
-    
-    const al = alumnosSaludCache.find(a => a.matricula === matricula);
+    const al = alumnosSaludCache.find(a => (a.ncontrol || a.matricula) === matricula);
     if (!al) return;
 
     const { isConfirmed } = await Swal.fire({
@@ -346,19 +363,19 @@ async function eliminarPadecimiento(matricula, index) {
         });
 
         try {
-            const padecimientoAEliminar = al.padecimientos_registrados[index];
-            
             let nuevoArray = [...al.padecimientos_registrados];
             nuevoArray.splice(index, 1);
             let colorFinal = recalcularSemaforoGlobal(nuevoArray);
 
-            await db.collection("alumnos").doc(matricula).update({
-                color_semaforo: colorFinal,
-                padecimientos_registrados: firebase.firestore.FieldValue.arrayRemove(padecimientoAEliminar)
-            });
-
             al.color_semaforo = colorFinal;
             al.padecimientos_registrados = nuevoArray;
+
+            await fetch('/api/alumnos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(al)
+            });
+
             al.prioridadSemaforo = (colorFinal === 'Rojo') ? 3 : (colorFinal === 'Amarillo' ? 2 : 1);
             alumnosSaludCache.sort((a, b) => b.prioridadSemaforo - a.prioridadSemaforo);
 
