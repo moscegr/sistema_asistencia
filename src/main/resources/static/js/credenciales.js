@@ -510,11 +510,12 @@ async function generarCanvasCredencialFrente(alumno) {
         const mat = alumno.ncontrol || alumno.matricula || '';
         const fotoSrc = fotoTemporalAlumno || alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/logo-256.png';
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
+        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo_aniversario.jpg';
 
         container.innerHTML = `
             <div id="cardFrenteTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left; box-sizing: border-box;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 6px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
                     <div style="text-align: center; flex: 1;">
                         <div style="font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
                         <div style="font-size: 5.5px; background: rgba(255,255,255,0.15); padding: 1px 4px; border-radius: 10px; display: inline-block; color: #ffe699;">CREDENCIAL DE ESTUDIANTE</div>
@@ -539,7 +540,7 @@ async function generarCanvasCredencialFrente(alumno) {
 
         const targetEl = container.firstElementChild;
         const canvas = await html2canvas(targetEl, {
-            scale: 4,
+            scale: 6,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff'
@@ -565,11 +566,12 @@ async function generarCanvasCredencialReverso(alumno) {
         const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 60);
         const qrImgData = await generarQRConTigre(textoQR);
         const director = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
+        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo_aniversario.jpg';
 
         container.innerHTML = `
             <div id="cardReversoTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 6px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="/img/logo_aniversario.jpg" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
                     <div style="font-size: 7.5px; font-weight: bold; letter-spacing: 0.5px; flex: 1;">CONTROL Y ACCESO VIGILANTE</div>
                     <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
                 </div>
@@ -591,7 +593,7 @@ async function generarCanvasCredencialReverso(alumno) {
 
         const targetEl = container.firstElementChild;
         const canvas = await html2canvas(targetEl, {
-            scale: 4,
+            scale: 6,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff'

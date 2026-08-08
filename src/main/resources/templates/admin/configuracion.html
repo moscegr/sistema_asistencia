@@ -79,7 +79,7 @@
 				        </div>
 				        
 				        <div id="colapsoInstitucion" class="collapse show mt-3">
-				            <p class="text-muted small">Esta información aparecerá automáticamente en las credenciales y justificantes impresos.</p>
+				            <p class="text-muted small">Esta información y logotipo aparecerán automáticamente en la plataforma, credenciales y gafetes impresos.</p>
 				            
 				            <form id="formInstitucional">
 				                <div class="row g-3">
@@ -103,10 +103,23 @@
 				                        <label class="form-label small fw-bold">Vigencia por Defecto (Credenciales)</label>
 				                        <input type="text" id="confVigencia" class="form-control" placeholder="EJ: Agosto 2026">
 				                    </div>
+				                    
+				                    <div class="col-md-12 mt-3">
+				                        <div class="p-3 bg-light rounded border shadow-sm">
+				                            <label class="form-label small fw-bold text-guinda mb-2"><i class="bi bi-image-fill me-2"></i>Logotipo del Plantel (Persistente en BD y Sistema)</label>
+				                            <div class="d-flex align-items-center gap-3">
+				                                <img id="imgPreviewLogoPlantel" src="/img/logo_aniversario.jpg" class="rounded-circle border shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+				                                <div class="flex-grow-1">
+				                                    <input type="file" id="inputLogoPlantelConfig" class="form-control form-control-sm" accept="image/png, image/jpeg" onchange="previewLogoPlantel(event)">
+				                                    <small class="text-muted x-small">Se actualizará dinámicamente en credenciales, gafetes y toda la interfaz.</small>
+				                                </div>
+				                            </div>
+				                        </div>
+				                    </div>
 				                </div>
 				                <div class="text-end mt-4">
 				                    <button type="submit" class="btn btn-guinda w-100 mt-2 rounded-pill px-4">
-				                        <i class="bi bi-save me-2"></i>Guardar Cambios
+				                        <i class="bi bi-save me-2"></i>Guardar Cambios Institucionales
 				                    </button>
 				                </div>
 				            </form>
@@ -191,6 +204,18 @@
 				        </div>
 				
 				        <div id="colapsoWhatsApp" class="collapse mt-4">
+				            
+				            <!-- Interruptor para Habilitar/Deshabilitar WhatsApp en Punto de Control -->
+				            <div class="form-check form-switch mb-4 p-3 bg-light rounded border d-flex align-items-center justify-content-between shadow-sm">
+				                <div>
+				                    <label class="form-check-label fw-bold text-dark mb-0" for="switchNotifWhatsapp">
+				                        <i class="bi bi-bell-fill text-success me-2"></i>Enviar Notificaciones por WhatsApp en Punto de Control
+				                    </label>
+				                    <p class="text-muted x-small mb-0">Si se desactiva, las entradas y salidas se seguirán registrando en el sistema y MongoDB, pero no se enviarán mensajes por WhatsApp.</p>
+				                </div>
+				                <input class="form-check-input ms-3" type="checkbox" id="switchNotifWhatsapp" style="width: 3.2em; height: 1.6em; cursor: pointer;" checked>
+				            </div>
+
 				            <div class="row g-3 mb-3">
 				                <div class="col-md-4">
 				                    <label class="form-label small fw-bold">Proveedor de API</label>

@@ -50,6 +50,19 @@ async function guardarCicloEscolarConfig() {
 }
 window.guardarCicloEscolarConfig = guardarCicloEscolarConfig;
 
+function previewLogoPlantel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imgPrev = document.getElementById('imgPreviewLogoPlantel');
+        if (imgPrev) imgPrev.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+window.previewLogoPlantel = previewLogoPlantel;
+
 async function cargarDatosInstitucionales() {
     try {
         const res = await fetch('/api/configuracion/sistema');
@@ -60,6 +73,10 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "12DCT0001L";
             if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "747 47 2 34 64";
             if (document.getElementById('confVigencia')) document.getElementById('confVigencia').value = data.vigencia_actual || "Agosto 2026";
+            if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
+            if (document.getElementById('imgPreviewLogoPlantel') && data.logo_plantel_url) {
+                document.getElementById('imgPreviewLogoPlantel').src = data.logo_plantel_url;
+            }
         }
     } catch (e) { console.error("Error al cargar datos institucionales:", e); }
 }
@@ -68,15 +85,21 @@ const formInst = document.getElementById('formInstitucional');
 if (formInst) {
     formInst.addEventListener('submit', async (e) => {
         e.preventDefault();
-        Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Guardando configuración...', didOpen: () => Swal.showLoading() });
 
         const actualizaciones = {
             nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),
             responsable_orientacion: document.getElementById('confOrientacion').value.trim().toUpperCase(),
             cct_escuela: document.getElementById('confCCT').value.trim().toUpperCase(),
             telefono_escuela: document.getElementById('confTelefono').value.trim(),
-            vigencia_actual: document.getElementById('confVigencia').value.trim()
+            vigencia_actual: document.getElementById('confVigencia').value.trim(),
+            notificaciones_whatsapp_activas: document.getElementById('switchNotifWhatsapp') ? document.getElementById('switchNotifWhatsapp').checked : true
         };
+
+        const imgPreview = document.getElementById('imgPreviewLogoPlantel');
+        if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
+            actualizaciones.logo_plantel_url = imgPreview.src;
+        }
 
         try {
             await fetch('/api/configuracion/sistema', {
@@ -84,7 +107,13 @@ if (formInst) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualizaciones)
             });
-            Swal.fire("Éxito", "Datos de la institución actualizados correctamente en MongoDB.", "success");
+            Swal.fire("Éxito", "Datos institucionales y logotipo guardados correctamente en MongoDB.", "success");
+            
+            if (actualizaciones.logo_plantel_url) {
+                document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo').forEach(img => {
+                    if (img.tagName === 'IMG') img.src = actualizaciones.logo_plantel_url;
+                });
+            }
         } catch (error) {
             Swal.fire("Error", "No se pudieron guardar los datos.", "error");
         }

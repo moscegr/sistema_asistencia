@@ -3,6 +3,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     sincronizarRolDesdeServidor();
+    sincronizarLogoPlantelGlobal();
 });
 
 async function sincronizarRolDesdeServidor() {
@@ -22,6 +23,24 @@ async function sincronizarRolDesdeServidor() {
         }
     } catch (e) {
         console.error("Error al sincronizar sesión de usuario:", e);
+    }
+}
+
+async function sincronizarLogoPlantelGlobal() {
+    try {
+        const res = await fetch('/api/configuracion/sistema');
+        if (res.ok) {
+            const data = await res.json();
+            window.cfgSistemaGlobal = data;
+            if (data.logo_plantel_url) {
+                const logoSrc = data.logo_plantel_url;
+                document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, img[src*="logo_aniversario"]').forEach(img => {
+                    if (img.tagName === 'IMG') img.src = logoSrc;
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Error al sincronizar logo del plantel:", e);
     }
 }
 
