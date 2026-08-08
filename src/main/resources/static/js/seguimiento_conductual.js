@@ -4,7 +4,6 @@ let historialConductualCache = [];
 let limiteConductual = 15;
 let modalDetallesConductual = null;
 
-// Función para ignorar acentos y mayúsculas
 const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 };
@@ -21,6 +20,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function parsearFechaSegura(val) {
+    if (!val) return null;
+    if (typeof val === 'number') return new Date(val);
+    if (typeof val === 'string') {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return d;
+    }
+    return null;
+}
+
+function formatearFechaTexto(val) {
+    const d = parsearFechaSegura(val);
+    if (d) return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (typeof val === 'string' && val.trim().length > 0) return val;
+    return 'S/F';
+}
+
 async function cargarAlertasConductuales() {
     const contenedor = document.getElementById('listaConductual');
     if (!contenedor) return;
@@ -34,31 +50,39 @@ async function cargarAlertasConductuales() {
         </tr>`;
 
     try {
-        const snapAlumnos = await db.collection("alumnos").where("estatus_escolar", "==", "Activo").get();
+        const [resAlumnos, resIncidencias] = await Promise.all([
+            fetch('/api/alumnos').then(r => r.ok ? r.json() : []),
+            fetch('/api/incidencias').then(r => r.ok ? r.json() : [])
+        ]);
+
         let alumnosMap = {};
         
-        snapAlumnos.forEach(doc => {
-            const al = doc.data();
-            alumnosMap[al.matricula] = { 
-                ...al, 
-                totalIncidencias: 0, 
-                listaIncidencias: [] 
-            };
+        resAlumnos.forEach(al => {
+            const mat = al.ncontrol || al.matricula;
+            if (mat && (al.estatus_escolar === 'Activo' || al.estatus === 'Activo' || !al.estatus)) {
+                alumnosMap[mat] = { 
+                    ...al,
+                    matricula: mat,
+                    totalIncidencias: 0, 
+                    listaIncidencias: [] 
+                };
+            }
         });
 
-        const snapIncidencias = await db.collection("incidencias").get();
-        
-        snapIncidencias.forEach(doc => {
-            const inc = doc.data();
-            const mat = inc.id_alumno;
+        resIncidencias.forEach(inc => {
+            const mat = inc.id_alumno || inc.matricula;
             
             if (alumnosMap[mat]) {
+                const fechaObj = parsearFechaSegura(inc.fecha || inc.fecha_registro || inc.fecharegistro);
+                const fechaRaw = inc.fecha || inc.fecha_registro || inc.fecharegistro;
+                
                 alumnosMap[mat].totalIncidencias += 1;
                 alumnosMap[mat].listaIncidencias.push({
-                    folio: inc.folio_incidencia,
-                    fecha: inc.fecha_registro?.toDate() || new Date(inc.fecha_registro) || null,
-                    motivos: inc.faltas_checklist || [],
-                    descripcion: inc.descripcion_detallada || ""
+                    folio: inc.folio_incidencia || inc.id || 'N/A',
+                    fechaObj: fechaObj,
+                    fechaStr: formatearFechaTexto(fechaRaw),
+                    motivos: inc.faltas_checklist || (inc.motivo ? [inc.motivo] : []),
+                    descripcion: inc.descripcion_detallada || inc.descripcion || ""
                 });
             }
         });
@@ -88,20 +112,22 @@ function renderizarTablaConductual(listaRenderizar) {
 
     paginados.forEach(al => {
         const nivelAlerta = al.totalIncidencias >= 3 ? 'danger' : (al.totalIncidencias === 2 ? 'warning' : 'secondary');
-        
-        al.listaIncidencias.sort((a, b) => (b.fecha ? b.fecha.getTime() : 0) - (a.fecha ? a.fecha.getTime() : 0));
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+
+        al.listaIncidencias.sort((a, b) => (b.fechaObj ? b.fechaObj.getTime() : 0) - (a.fechaObj ? a.fechaObj.getTime() : 0));
         const ultimaIncidencia = al.listaIncidencias[0];
-        const fechaTxt = ultimaIncidencia && ultimaIncidencia.fecha ? ultimaIncidencia.fecha.toLocaleDateString('es-MX') : 'S/F';
+        const fechaTxt = ultimaIncidencia ? ultimaIncidencia.fechaStr : 'S/F';
 
         tbody.innerHTML += `
             <tr class="align-middle">
                 <td>
-                    <div class="fw-bold" style="color: #7b1b37;">${al.nombre} ${al.apepat} ${al.apemat || ''}</div>
+                    <div class="fw-bold" style="color: #7b1b37;">${al.nombre} ${pat} ${matApe}</div>
                     <small class="text-muted"><i class="bi bi-person-vcard me-1"></i>${al.matricula}</small>
                 </td>
                 <td class="text-center">
-                    <span class="badge bg-light text-dark border">${al.especialidad}</span><br>
-                    <small class="text-muted">${al.grado}° "${al.grupo}"</small>
+                    <span class="badge bg-light text-dark border">${al.especialidad || 'N/A'}</span><br>
+                    <small class="text-muted">${al.grado || ''}° "${al.grupo || ''}"</small>
                 </td>
                 <td class="text-center">
                     <span class="badge bg-${nivelAlerta} rounded-pill fs-6">${al.totalIncidencias}</span>
@@ -128,8 +154,7 @@ function renderizarTablaConductual(listaRenderizar) {
 }
 
 function filtrarTablaConductual() {
-    // 1. Normalizamos lo que el usuario escribió (ej: "García" -> "garcia")
-    const q = normalizar(document.getElementById('buscarAlumnoConductual').value);
+    const q = normalizar(document.getElementById('buscarAlumnoConductual')?.value || '');
     
     if (q === "") {
         renderizarTablaConductual(historialConductualCache);
@@ -137,8 +162,9 @@ function filtrarTablaConductual() {
     }
 
     const filtrados = historialConductualCache.filter(al => {
-        // 2. Normalizamos el nombre del alumno para comparar peras con peras
-        const nombreStr = normalizar(`${al.nombre} ${al.apepat} ${al.apemat}`);
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreStr = normalizar(`${al.nombre} ${pat} ${matApe}`);
         return nombreStr.includes(q) || normalizar(al.matricula).includes(q) || normalizar(al.especialidad).includes(q);
     });
 
@@ -148,24 +174,30 @@ function filtrarTablaConductual() {
     limiteConductual = limiteTemp; 
 }
 
-// --- LÓGICA DEL MODAL DE DETALLES ---
 function abrirModalDetalles(matricula) {
     const alumno = historialConductualCache.find(a => a.matricula === matricula);
     if (!alumno) return;
 
-    // Obtenemos los elementos del DOM
     const elNombre = document.getElementById('mdlNombre');
     const elMatricula = document.getElementById('mdlMatricula');
     const elInfo = document.getElementById('mdlInfoExtra');
     const elTotal = document.getElementById('mdlTotal');
     const elTutor = document.getElementById('mdlTutor');
+    const elFoto = document.getElementById('mdlFotoPerfil');
     const contenedor = document.getElementById('mdlListaIncidencias');
 
     if (elNombre && elMatricula && elInfo && elTotal && contenedor) {
-        elNombre.innerText = `${alumno.nombre} ${alumno.apepat} ${alumno.apemat}`.toUpperCase();
+        const pat = alumno.apepat || alumno.primerApellido || '';
+        const matApe = alumno.apemat || alumno.segundoApellido || '';
+
+        elNombre.innerText = `${alumno.nombre} ${pat} ${matApe}`.toUpperCase();
         elMatricula.innerText = alumno.matricula;
-        elInfo.innerText = `${alumno.grado}° "${alumno.grupo}" - ${alumno.especialidad}`;
+        elInfo.innerText = `${alumno.grado || ''}° "${alumno.grupo || ''}" - ${alumno.especialidad || 'N/A'}`;
         elTotal.innerText = alumno.totalIncidencias;
+
+        if (elFoto) {
+            elFoto.src = alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/logo-256.png';
+        }
 
         if (elTutor) {
             const nomTutor = alumno.nombretutor || 'No registrado';
@@ -178,19 +210,17 @@ function abrirModalDetalles(matricula) {
 
         contenedor.innerHTML = "";
 
-        alumno.listaIncidencias.sort((a, b) => (b.fecha ? b.fecha.getTime() : 0) - (a.fecha ? a.fecha.getTime() : 0));
+        alumno.listaIncidencias.sort((a, b) => (b.fechaObj ? b.fechaObj.getTime() : 0) - (a.fechaObj ? a.fechaObj.getTime() : 0));
         
         alumno.listaIncidencias.forEach((inc, index) => {
-            const fechaStr = inc.fecha ? inc.fecha.toLocaleString('es-MX', {day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : 'Fecha no disponible';
-            
             let motivosTxt = inc.motivos.length > 0 ? inc.motivos.join('</li><li>') : '';
             if (inc.descripcion) motivosTxt += `</li><li class="mt-1"><i>Nota: ${inc.descripcion}</i>`;
 
             contenedor.innerHTML += `
                 <div class="list-group-item py-3 ${index === 0 ? 'bg-light border-start border-4 border-danger' : ''}">
                     <div class="d-flex justify-content-between w-100 mb-1">
-                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-calendar-event me-2"></i>${fechaStr}</h6>
-                        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">Folio: ${inc.folio.split('_').pop()}</small>
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-calendar-event me-2"></i>${inc.fechaStr}</h6>
+                        <small class="text-muted text-uppercase" style="font-size: 0.7rem;">Folio: ${String(inc.folio).split('_').pop()}</small>
                     </div>
                     <ul class="mb-0 mt-2 small text-muted ps-3">
                         <li>${motivosTxt || 'Sin motivo especificado'}</li>

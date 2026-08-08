@@ -25,7 +25,6 @@ async function cargarEspecialidades() {
     } catch (e) { console.error("Error cargando especialidades:", e); }
 }
 
-// Para el QR (con nivel L y truncamiento seguro a 100 caracteres para evitar overflow)
 async function obtenerDataURLQR(texto, size = 400) {
     return new Promise((resolve) => {
         const divTemp = document.createElement('div');
@@ -61,7 +60,6 @@ async function obtenerDataURLQR(texto, size = 400) {
     });
 }
 
-// 3. BUSCADOR EN TIEMPO REAL CON REST API
 let todosLosAlumnos = [];
 
 async function cargarAlumnosBusqueda() {
@@ -128,13 +126,11 @@ function filtrarYMostrarAlumnos() {
     }
 }
 
-// Event listeners para filtros de búsqueda
 document.getElementById('busquedaGeneral')?.addEventListener('input', filtrarYMostrarAlumnos);
 document.getElementById('filtroEspecialidad')?.addEventListener('change', filtrarYMostrarAlumnos);
 document.getElementById('filtroGrado')?.addEventListener('input', filtrarYMostrarAlumnos);
 document.getElementById('filtroGrupo')?.addEventListener('input', filtrarYMostrarAlumnos);
 
-// 4. DETALLE DEL EXPEDIENTE
 async function verExpedienteDetalle(matricula) {
     Swal.fire({ title: 'Sincronizando Historial...', didOpen: () => Swal.showLoading() });
 
@@ -164,7 +160,10 @@ async function verExpedienteDetalle(matricula) {
         document.getElementById('expTutor').innerText = al.nombretutor || 'No registrado';
         document.getElementById('expTelTutor').innerText = al.teltutor || 'N/A';
         
-        // Generación de QR seguro (evitando overflow)
+        const fotoReal = al.fotoUrl || al.foto_url || al.foto || '/img/logo-256.png';
+        const imgFoto = document.getElementById('expFotoPerfil');
+        if (imgFoto) imgFoto.src = fotoReal;
+
         const qrTexto = al.qr_texto || al.qrCode || `${mat}|${al.nombre}`;
         const qrDataUrl = await obtenerDataURLQR(qrTexto, 200);
         document.getElementById('expQR').src = qrDataUrl;
@@ -222,8 +221,9 @@ async function verExpedienteDetalle(matricula) {
              <small class="text-muted d-block mt-1"><i class="bi bi-arrow-return-right me-1"></i>Motivo: ${j.motivo_detalle}</small>`);
             
         llenarLista(document.getElementById('listaHistorialInc'), incAlumno, i => {
+            const fechaTxt = i.fecha || i.fecha_registro || i.fecharegistro || 'S/F';
             return `<div class="d-flex justify-content-between">
-                <span><i class="bi bi-exclamation-triangle me-2 text-danger"></i><b>${i.fecha || 'S/F'}</b></span>
+                <span><i class="bi bi-exclamation-triangle me-2 text-danger"></i><b>${fechaTxt}</b></span>
                 <span class="text-truncate" style="max-width: 200px;">${i.faltas_checklist ? i.faltas_checklist.join(', ') : 'Sin detalle'}</span>
             </div>`;
         });
