@@ -50,7 +50,9 @@ async function cargarTableroGrupal() {
             const estatus = al.estatus_escolar || al.estatus || 'Activo';
             if (estatus === 'Activo' && al.especialidad) {
                 if (!estructura[al.especialidad]) estructura[al.especialidad] = new Set();
-                estructura[al.especialidad].add(`${al.grado}${al.grupo}`);
+                if (al.grado && al.grupo) {
+                    estructura[al.especialidad].add(`${al.grado}${al.grupo}`);
+                }
             }
         });
 
@@ -69,17 +71,20 @@ async function cargarTableroGrupal() {
                         <div class="card-body">
                             <h6 class="fw-bold mb-3" style="color: ${esp.color || '#7b1b37'}">${esp.nombre}</h6>
                             <div class="d-flex flex-wrap gap-2">
-                                ${grupos.map(g => `
+                                ${grupos.map(g => {
+                                    const grado = g.slice(0, -1);
+                                    const grupo = g.slice(-1);
+                                    return `
                                     <input type="checkbox" class="btn-check" 
                                            id="chk-${g}-${esp.nombre.replace(/ /g,'_')}" 
                                            ${!esAdminUOrientacion ? 'disabled' : ''} 
-                                           onchange="alternarPaseGrupal('${g[0]}','${g[1]}','${esp.nombre}', this.checked)">
+                                           onchange="alternarPaseGrupal('${grado}','${grupo}','${esp.nombre}', this.checked)">
                                     <label class="btn btn-sm btn-outline-dark px-3 rounded-pill" 
                                            for="chk-${g}-${esp.nombre.replace(/ /g,'_')}"
                                            style="${!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
                                         ${g}
-                                    </label>
-                                `).join('')}
+                                    </label>`;
+                                }).join('')}
                             </div>
                             ${!esAdminUOrientacion ? '<div class="mt-2 text-muted" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Vista de solo lectura</div>' : ''}
                         </div>
@@ -98,7 +103,7 @@ async function escucharCambiosGrupos() {
         if (res.ok) {
             const pases = await res.json();
             pases.forEach(p => {
-                if (p.es_grupal && p.fecha === hoy && p.estatus_vigencia) {
+                if (p.es_grupal && p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO')) {
                     const id = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
                     const el = document.getElementById(id);
                     if (el) el.checked = true;
@@ -116,7 +121,7 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
 	}
 		
 	const hoy = obtenerFechaLocal();
-	const folio = `GRP-${grado}${grupo}-${especialidad.substring(0,3)}-${hoy}`;
+	const folio = `GRP-${grado}${grupo}-${especialidad.replace(/ /g,'_')}-${hoy}`;
     const grupoEspecialidad = `${grado}${grupo}-${especialidad}`;
 
 	try {
@@ -125,6 +130,7 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    _id: folio,
                     folio_pase: folio,
                     es_grupal: true,
                     grado: Number(grado),
@@ -140,12 +146,18 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
             });
             Swal.fire({ icon: 'success', title: 'Salida Grupal Autorizada', text: `Grupo ${grado}° "${grupo}" de ${especialidad}`, toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
         } else {
+            await fetch(`/api/pases/${folio}`, { method: 'DELETE' });
+            await fetch(`/api/pases/${grupoEspecialidad}`, { method: 'DELETE' });
+            
             const rPases = await fetch('/api/pases');
             if (rPases.ok) {
                 const list = await rPases.json();
-                const match = list.find(p => p.folio_pase === folio || (p.es_grupal && p.grado == grado && p.grupo == grupo && p.especialidad === especialidad && p.fecha === hoy));
-                if (match && match.id) {
-                    await fetch(`/api/pases/${match.id}`, { method: 'DELETE' });
+                const matches = list.filter(p => p.es_grupal && p.grado == grado && p.grupo == grupo && p.especialidad === especialidad && p.fecha === hoy);
+                for (const match of matches) {
+                    const idBorrar = match._id || match.id || match.folio_pase;
+                    if (idBorrar) {
+                        await fetch(`/api/pases/${idBorrar}`, { method: 'DELETE' });
+                    }
                 }
             }
             Swal.fire({ icon: 'info', title: 'Pase Grupal Removido', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
@@ -174,8 +186,10 @@ async function guardarPaseIndividual() {
     const mat = alumnoPase.ncontrol || alumnoPase.matricula;
     const pat = alumnoPase.apepat || alumnoPase.primerApellido || '';
     const matApe = alumnoPase.apemat || alumnoPase.segundoApellido || '';
+    const hoy = obtenerFechaLocal();
 
     const datosPase = {
+        _id: `IND-${folio}-${mat}-${hoy}`,
         folio_pase: folio,
         matricula: mat,
         id_alumno: mat,
@@ -188,7 +202,7 @@ async function guardarPaseIndividual() {
         motivo: mot,
         estatus_vigencia: true,
         estatus: 'AUTORIZADO',
-        fecha: obtenerFechaLocal()
+        fecha: hoy
     };
 
     try {
@@ -386,7 +400,7 @@ function filtrarTablaGlobal() {
 		        <td><span class="badge ${bClase}">${bTexto}</span></td>
 		        <td class="text-center">
 		            <div class="btn-group">
-		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p.id || p.folio_pase}')" title="Eliminar Pase">
+		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p._id || p.id || p.folio_pase}')" title="Eliminar Pase">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
 		            </div>

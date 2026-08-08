@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -42,10 +43,32 @@ public class PaseSalidaController {
         return ResponseEntity.ok(doc);
     }
 
+    @PostMapping("/sincronizar-grupales")
+    public ResponseEntity<Map<String, Object>> sincronizarGrupales(@RequestBody Map<String, Object> payload) {
+        String hoy = (String) payload.getOrDefault("fecha", LocalDate.now().toString());
+        @SuppressWarnings("unchecked")
+        List<String> foliosActivos = (List<String>) payload.getOrDefault("foliosActivos", List.of());
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("es_grupal").is(true));
+        query.addCriteria(Criteria.where("fecha").is(hoy));
+        if (!foliosActivos.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(
+                Criteria.where("_id").nin(foliosActivos),
+                Criteria.where("folio_pase").nin(foliosActivos)
+            ));
+        }
+
+        mongoTemplate.remove(query, "pases_salida");
+
+        return ResponseEntity.ok(Map.of("status", "ok", "retendidos", foliosActivos.size()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "pases_salida");
         mongoTemplate.remove(new Query(Criteria.where("folio_pase").is(id)), "pases_salida");
+        mongoTemplate.remove(new Query(Criteria.where("grupo_especialidad").is(id)), "pases_salida");
         return ResponseEntity.noContent().build();
     }
 }
