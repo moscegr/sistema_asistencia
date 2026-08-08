@@ -325,3 +325,26 @@ async function guardarConfigWhatsApp() {
         Swal.fire("Error", "No se pudo actualizar la configuración.", "error");
     }
 }
+
+async function limpiarTodosLosPases() {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Purgar TODOS los pases de salida?',
+        text: 'Esta acción eliminará permanentemente de MongoDB todos los pases de salida (grupales e individuales).',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar pases'
+    });
+
+    if (isConfirmed) {
+        try {
+            Swal.fire({ title: 'Eliminando pases...', didOpen: () => Swal.showLoading() });
+            await fetch('/api/pases/limpiar-todos', { method: 'DELETE' });
+            Swal.fire("Éxito", "Todos los pases de salida han sido borrados de la base de datos.", "success");
+        } catch (e) {
+            Swal.fire("Error", "No se pudieron borrar los pases: " + e.message, "error");
+        }
+    }
+}
+window.limpiarTodosLosPases = limpiarTodosLosPases;

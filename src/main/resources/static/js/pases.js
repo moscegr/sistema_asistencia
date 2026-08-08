@@ -451,3 +451,28 @@ function inicializarPaseIndividual() {
         });
     });
 }
+
+async function limpiarTodosLosPases() {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Purgar TODOS los pases de salida?',
+        text: 'Esta acción eliminará permanentemente de MongoDB todos los pases (grupales e individuales) y reiniciará las autorizaciones del día a cero.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, borrar todos los pases',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (isConfirmed) {
+        try {
+            Swal.fire({ title: 'Limpiando base de datos...', didOpen: () => Swal.showLoading() });
+            await fetch('/api/pases/limpiar-todos', { method: 'DELETE' });
+            await Swal.fire("Éxito", "Todos los pases de salida han sido eliminados de MongoDB.", "success");
+            location.reload();
+        } catch (e) {
+            Swal.fire("Error", "No se pudieron eliminar los pases: " + e.message, "error");
+        }
+    }
+}
+window.limpiarTodosLosPases = limpiarTodosLosPases;

@@ -64,6 +64,12 @@ public class PaseSalidaController {
         return ResponseEntity.ok(Map.of("status", "ok", "retendidos", foliosActivos.size()));
     }
 
+    @DeleteMapping("/limpiar-todos")
+    public ResponseEntity<Map<String, String>> eliminarTodos() {
+        mongoTemplate.dropCollection("pases_salida");
+        return ResponseEntity.ok(Map.of("mensaje", "Todos los pases de salida han sido eliminados correctamente."));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "pases_salida");

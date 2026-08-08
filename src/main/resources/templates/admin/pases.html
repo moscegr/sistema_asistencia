@@ -245,7 +245,12 @@
                             <div class="col-12">
                                 <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="fw-bold mb-0 text-guinda">Registro Global de Pases</h5>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <h5 class="fw-bold mb-0 text-guinda">Registro Global de Pases</h5>
+                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 requiere-permiso" data-roles="ADMIN" onclick="limpiarTodosLosPases()">
+                                                <i class="bi bi-trash3-fill me-1"></i>Limpiar Todos los Pases
+                                            </button>
+                                        </div>
                                         <div class="d-flex gap-2 w-50">
                                             <input type="text" id="buscarFolioGlobal" class="form-control form-control-sm" placeholder="Folio...">
                                             <input type="text" id="buscarNombreGlobal" class="form-control form-control-sm" placeholder="Nombre o Matrícula...">

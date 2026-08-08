@@ -276,8 +276,8 @@
 				        <p class="text-muted small">Acciones avanzadas para el mantenimiento de la base de datos. <strong>Úselas con extrema precaución.</strong></p>
 				        
 				        <div class="row g-3 mt-2">
-				            <div class="col-md-6">
-				                <div class="p-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10">
+				            <div class="col-md-4">
+				                <div class="p-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10 h-100">
 				                    <h6 class="fw-bold text-danger">Depuración de Alumnos</h6>
 				                    <p class="small mb-3">Elimina permanentemente a todos los alumnos con estatus "Baja" o "Egresado".</p>
 				                    <button class="btn btn-danger w-100" onclick="depurarAlumnosInactivos()">
@@ -286,12 +286,22 @@
 				                </div>
 				            </div>
 				            
-				            <div class="col-md-6">
-							    <div class="p-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10">
+				            <div class="col-md-4">
+							    <div class="p-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10 h-100">
 							        <h6 class="fw-bold text-dark">Restaurar Ciclo Escolar</h6>
 							        <p class="small text-dark mb-3">Revierte el ciclo global y <b>regresa a los alumnos a su grado/estatus anterior</b> (Deshace promociones y egresos).</p>
 							        <button class="btn btn-warning w-100 fw-bold" onclick="revertirCicloEscolar()">
 							            <i class="bi bi-arrow-counterclockwise me-2"></i>Deshacer Último Cambio
+							        </button>
+							    </div>
+							</div>
+
+				            <div class="col-md-4">
+							    <div class="p-3 border border-danger border-opacity-50 rounded bg-danger bg-opacity-10 h-100">
+							        <h6 class="fw-bold text-danger">Purga de Pases de Salida</h6>
+							        <p class="small text-dark mb-3">Elimina permanentemente <b>todos los pases de salida</b> (grupales e individuales) de MongoDB.</p>
+							        <button class="btn btn-outline-danger w-100 fw-bold" onclick="limpiarTodosLosPases()">
+							            <i class="bi bi-trash-fill me-2"></i>Borrar Todos los Pases
 							        </button>
 							    </div>
 							</div>
