@@ -1,5 +1,5 @@
 // static/js/app-init.js
-// Control centralizado de sesión REST MongoDB & permisos por rol en Spring Security
+// Inicialización centralizada de sesión REST/MongoDB y permisos por rol en Spring Security
 
 window.rolUsuarioActual = (localStorage.getItem('userRole') || '').toUpperCase();
 window.usuarioActual = { email: localStorage.getItem('userEmail') || '' };
@@ -8,7 +8,7 @@ window.usuarioActual = { email: localStorage.getItem('userEmail') || '' };
     const rolGuardado = localStorage.getItem('userRole');
     const rolMayus = (rolGuardado || '').toUpperCase();
     
-    if (rolMayus !== 'ADMIN') {
+    if (rolMayus && rolMayus !== 'ADMIN') {
         let estilo = document.getElementById('style-anti-flicker-instantaneo');
         if (!estilo) {
             estilo = document.createElement('style');
@@ -18,19 +18,19 @@ window.usuarioActual = { email: localStorage.getItem('userEmail') || '' };
 
         estilo.innerHTML = `
             .requiere-permiso { display: none !important; }
-            ${rolMayus ? `
-                .requiere-permiso[data-roles*="${rolMayus}"] { display: flex !important; }
-                p.sb-label[data-roles*="${rolMayus}"] { display: flex !important; }
-                div.requiere-permiso[data-roles*="${rolMayus}"] { display: block !important; }
-            ` : ''}
+            .requiere-permiso[data-roles*="${rolMayus}"] { display: flex !important; }
+            p.sb-label[data-roles*="${rolMayus}"] { display: flex !important; }
+            div.requiere-permiso[data-roles*="${rolMayus}"] { display: block !important; }
         `;
     }
 })();
 
 document.addEventListener("DOMContentLoaded", () => {
     const rolLocal = (localStorage.getItem('userRole') || '').toUpperCase();
-    aplicarPermisosVisuales(rolLocal);
-    protegerRutasCentralizado(rolLocal);
+    if (rolLocal) {
+        aplicarPermisosVisuales(rolLocal);
+        protegerRutasCentralizado(rolLocal);
+    }
     
     // Sincronizar rol real autenticado en backend Spring Security / MongoDB
     sincronizarRolDesdeServidor();
@@ -41,7 +41,7 @@ async function sincronizarRolDesdeServidor() {
         const res = await fetch('/api/usuarios/me');
         if (res.ok) {
             const user = await res.json();
-            const rolReal = (user.rol || '').toUpperCase();
+            const rolReal = (user.rol || 'ADMIN').toUpperCase();
             const nombreReal = user.nombre || user.correo;
 
             const rolPrevio = localStorage.getItem('userRole');
@@ -51,10 +51,8 @@ async function sincronizarRolDesdeServidor() {
 
             window.rolUsuarioActual = rolReal;
 
-            if (rolPrevio !== rolReal) {
-                aplicarPermisosVisuales(rolReal);
-                protegerRutasCentralizado(rolReal);
-            }
+            aplicarPermisosVisuales(rolReal);
+            protegerRutasCentralizado(rolReal);
             actualizarEncabezadoUsuario(nombreReal, rolReal);
             return;
         }
@@ -63,8 +61,10 @@ async function sincronizarRolDesdeServidor() {
     }
 
     const rolFallback = (localStorage.getItem('userRole') || '').toUpperCase();
-    aplicarPermisosVisuales(rolFallback);
-    protegerRutasCentralizado(rolFallback);
+    if (rolFallback) {
+        aplicarPermisosVisuales(rolFallback);
+        protegerRutasCentralizado(rolFallback);
+    }
 }
 
 function actualizarEncabezadoUsuario(nombre, rol) {
@@ -78,6 +78,8 @@ function actualizarEncabezadoUsuario(nombre, rol) {
 }
 
 function protegerRutasCentralizado(rol) {
+    if (!rol || rol.trim() === '') return;
+    const rolMayus = rol.toUpperCase();
     const path = window.location.pathname;
 
     const reglasDeAcceso = {
@@ -108,25 +110,24 @@ function protegerRutasCentralizado(rol) {
 
     const rolesPermitidos = reglasDeAcceso[path];
 
-    if (rolesPermitidos) {
-        if (!rolesPermitidos.includes(rol)) {
-            console.warn(`ACCESO DENEGADO: El rol '${rol}' no tiene acceso a ${path}`);
+    if (rolesPermitidos && !rolesPermitidos.includes(rolMayus)) {
+        console.warn(`ACCESO DENEGADO: El rol '${rolMayus}' no tiene acceso a ${path}`);
 
-            if (rol === 'GUARDIA') {
-                if (path !== '/admin/escaneo') {
-                    window.location.href = '/admin/escaneo';
-                }
-            } else {
-                if (path !== '/admin/dashboard') {
-                    window.location.href = '/admin/dashboard';
-                }
+        if (rolMayus === 'GUARDIA') {
+            if (path !== '/admin/escaneo') {
+                window.location.href = '/admin/escaneo';
+            }
+        } else {
+            if (path !== '/admin/dashboard') {
+                window.location.href = '/admin/dashboard';
             }
         }
     }
 }
 
 function aplicarPermisosVisuales(rolActual) {
-    const rolMayuscula = (rolActual || '').toUpperCase();
+    if (!rolActual) return;
+    const rolMayuscula = rolActual.toUpperCase();
     const elementosProtegidos = document.querySelectorAll('.requiere-permiso');
 
     elementosProtegidos.forEach(elemento => {
