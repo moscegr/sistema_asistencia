@@ -31,11 +31,13 @@ public class UsuarioController {
         return lista;
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:.+}")
     public ResponseEntity<Usuario> obtenerPorId(@PathVariable String id) {
-        return usuarioRepository.findById(id)
-                .or(() -> usuarioRepository.findByUid(id))
-                .or(() -> usuarioRepository.findByCorreo(id))
+        String idLimpio = id != null ? id.trim() : "";
+        return usuarioRepository.findById(idLimpio)
+                .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
                     return u;
@@ -46,11 +48,14 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Usuario usuario) {
-        if (usuario.getCorreo() != null && usuarioRepository.existsByCorreo(usuario.getCorreo())) {
+        if (usuario.getCorreo() != null && usuarioRepository.existsByCorreo(usuario.getCorreo().trim().toLowerCase())) {
             return ResponseEntity.badRequest().body("El correo ya está registrado.");
         }
         if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
             usuario.setUid(UUID.randomUUID().toString());
+        }
+        if (usuario.getCorreo() != null) {
+            usuario.setCorreo(usuario.getCorreo().trim().toLowerCase());
         }
         if (usuario.getNombre() != null) {
             usuario.setNombre(usuario.getNombre().toUpperCase());
@@ -65,17 +70,19 @@ public class UsuarioController {
         return ResponseEntity.ok(creado);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:.+}")
     public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Usuario usuarioActualizado) {
-        return usuarioRepository.findById(id)
-                .or(() -> usuarioRepository.findByUid(id))
-                .or(() -> usuarioRepository.findByCorreo(id))
+        String idLimpio = id != null ? id.trim() : "";
+        return usuarioRepository.findById(idLimpio)
+                .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(usuario -> {
                     if (usuarioActualizado.getNombre() != null) {
                         usuario.setNombre(usuarioActualizado.getNombre().toUpperCase());
                     }
                     if (usuarioActualizado.getCorreo() != null && !usuarioActualizado.getCorreo().trim().isEmpty()) {
-                        usuario.setCorreo(usuarioActualizado.getCorreo().trim());
+                        usuario.setCorreo(usuarioActualizado.getCorreo().trim().toLowerCase());
                     }
                     if (usuarioActualizado.getRol() != null) usuario.setRol(usuarioActualizado.getRol());
                     if (usuarioActualizado.getEstatus() != null) usuario.setEstatus(usuarioActualizado.getEstatus());
@@ -88,11 +95,13 @@ public class UsuarioController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:.+}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
-        return usuarioRepository.findById(id)
-                .or(() -> usuarioRepository.findByUid(id))
-                .or(() -> usuarioRepository.findByCorreo(id))
+        String idLimpio = id != null ? id.trim() : "";
+        return usuarioRepository.findById(idLimpio)
+                .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(usuario -> {
                     usuarioRepository.delete(usuario);
                     return ResponseEntity.ok().<Void>build();

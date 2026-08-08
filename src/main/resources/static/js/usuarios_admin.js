@@ -143,13 +143,13 @@ async function crearUsuario() {
 // 3. ACTUALIZAR (UPDATE): Preparar modal para edición
 async function prepararEdicion(id) {
     try {
-        const res = await fetch(`/api/usuarios/${id}`);
+        const res = await fetch(`/api/usuarios/${encodeURIComponent(id)}`);
         if (!res.ok) return;
 
         const u = await res.json();
-        editUserUID = u.id || u.uid;
+        editUserUID = u.id || u.uid || u.correo;
 
-        document.getElementById('regNombre').value = u.nombre || '';
+        document.getElementById('regNombre').value = (u.nombre || '').toUpperCase();
         document.getElementById('regCorreo').value = u.correo || '';
         document.getElementById('regRol').value = u.rol || '';
         document.getElementById('regPassword').value = '';
@@ -183,7 +183,7 @@ async function prepararEdicion(id) {
 
 // 3.1 ACTUALIZAR (UPDATE): PUT /api/usuarios/{id}
 async function actualizarUsuarioExistente() {
-    const nombre = document.getElementById('regNombre').value.trim();
+    const nombre = document.getElementById('regNombre').value.trim().toUpperCase();
     const correo = document.getElementById('regCorreo').value.trim().toLowerCase();
     const rol = document.getElementById('regRol').value;
     const password = document.getElementById('regPassword').value;
@@ -200,13 +200,16 @@ async function actualizarUsuarioExistente() {
             payload.password = password;
         }
 
-        const res = await fetch(`/api/usuarios/${editUserUID}`, {
+        const res = await fetch(`/api/usuarios/${encodeURIComponent(editUserUID)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error("Error al actualizar datos del usuario");
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || "Error al actualizar datos del usuario");
+        }
 
         Swal.fire("Éxito", "Datos del usuario actualizados correctamente.", "success");
         
@@ -214,7 +217,7 @@ async function actualizarUsuarioExistente() {
         if (modal) modal.hide();
         listarUsuarios();
     } catch (e) {
-        Swal.fire("Error", "No se pudo actualizar la información.", "error");
+        Swal.fire("Error", "No se pudo actualizar: " + e.message, "error");
     }
 }
 
@@ -222,7 +225,7 @@ async function actualizarUsuarioExistente() {
 async function toggleEstatusUsuario(id, activo) {
     const nuevoEstatus = activo ? "Activo" : "Inactivo";
     try {
-        await fetch(`/api/usuarios/${id}`, {
+        await fetch(`/api/usuarios/${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estatus: nuevoEstatus })
@@ -247,7 +250,7 @@ function eliminarUsuario(id) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+                const res = await fetch(`/api/usuarios/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 if (!res.ok) throw new Error("Error al eliminar");
                 Swal.fire("Eliminado", "El usuario ha sido removido del sistema.", "success");
                 listarUsuarios();
