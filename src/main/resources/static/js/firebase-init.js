@@ -1,23 +1,145 @@
 // static/js/firebase-init.js
-// Safe compatibility shim for MongoDB & Spring Security
+// Intelligent REST-backed compatibility layer for MongoDB & Spring Security
 
 window.db = window.db || {
     collection: function(colName) {
         return {
             doc: function(docId) {
                 return {
-                    get: async () => ({ exists: false, data: () => ({}) }),
-                    set: async () => {},
-                    update: async () => {},
+                    get: async () => {
+                        try {
+                            if (colName === "configuracion") {
+                                const res = await fetch(`/api/configuracion/${docId}`);
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    return { exists: true, id: docId, data: () => data };
+                                }
+                            }
+                            if (colName === "alumnos") {
+                                const res = await fetch(`/api/alumnos/ncontrol/${docId}`);
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    return { exists: true, id: docId, data: () => data };
+                                }
+                            }
+                            if (colName === "usuarios") {
+                                const res = await fetch(`/api/usuarios/${docId}`);
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    return { exists: true, id: docId, data: () => data };
+                                }
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                        return { exists: false, data: () => ({}) };
+                    },
+                    set: async (datos) => {
+                        if (colName === "configuracion") {
+                            await fetch(`/api/configuracion/${docId}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(datos)
+                            });
+                        }
+                    },
+                    update: async (datos) => {
+                        if (colName === "configuracion") {
+                            await fetch(`/api/configuracion/${docId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(datos)
+                            });
+                        }
+                    },
                     delete: async () => {},
-                    onSnapshot: (cb) => {}
+                    onSnapshot: async (cb) => {
+                        try {
+                            if (colName === "configuracion") {
+                                const res = await fetch(`/api/configuracion/${docId}`);
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    if (typeof cb === 'function') cb({ exists: true, id: docId, data: () => data });
+                                }
+                            }
+                        } catch (e) {}
+                    }
                 };
             },
             where: function() { return this; },
             orderBy: function() { return this; },
-            get: async () => ({ size: 0, empty: true, docs: [], forEach: () => {} }),
-            onSnapshot: (cb) => {},
-            add: async () => ({ id: 'mock' })
+            get: async () => {
+                try {
+                    let url = `/api/${colName}`;
+                    if (colName === 'alumnos') url = '/api/alumnos';
+                    if (colName === 'usuarios') url = '/api/usuarios';
+                    if (colName === 'pases_salida') url = '/api/pases';
+                    if (colName === 'justificantes') url = '/api/justificantes';
+                    if (colName === 'incidencias') url = '/api/incidencias';
+
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const items = await res.json();
+                        const docs = items.map(item => ({
+                            id: item.id || item._id || item.ncontrol || item.matricula || item.uid,
+                            data: () => item,
+                            ref: { update: async () => {} }
+                        }));
+                        return {
+                            size: docs.length,
+                            empty: docs.length === 0,
+                            docs: docs,
+                            forEach: (cb) => docs.forEach(cb)
+                        };
+                    }
+                } catch (e) {}
+                return { size: 0, empty: true, docs: [], forEach: () => {} };
+            },
+            onSnapshot: async (cb) => {
+                try {
+                    let url = `/api/${colName}`;
+                    if (colName === 'alumnos') url = '/api/alumnos';
+                    if (colName === 'usuarios') url = '/api/usuarios';
+                    if (colName === 'pases_salida') url = '/api/pases';
+                    if (colName === 'justificantes') url = '/api/justificantes';
+
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const items = await res.json();
+                        const docs = items.map(item => ({
+                            id: item.id || item._id || item.ncontrol || item.matricula || item.uid,
+                            data: () => item
+                        }));
+                        if (typeof cb === 'function') {
+                            cb({
+                                size: docs.length,
+                                empty: docs.length === 0,
+                                docs: docs,
+                                forEach: (fn) => docs.forEach(fn)
+                            });
+                        }
+                    }
+                } catch (e) {}
+            },
+            add: async (data) => {
+                try {
+                    let url = `/api/${colName}`;
+                    if (colName === 'pases_salida') url = '/api/pases';
+                    if (colName === 'justificantes') url = '/api/justificantes';
+                    if (colName === 'incidencias') url = '/api/incidencias';
+
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    if (res.ok) {
+                        const saved = await res.json();
+                        return { id: saved.id || saved._id || 'ok' };
+                    }
+                } catch (e) {}
+                return { id: 'ok' };
+            }
         };
     },
     batch: function() {
