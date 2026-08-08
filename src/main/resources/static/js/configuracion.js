@@ -430,7 +430,7 @@ async function probarEnvioWhatsApp() {
         title: 'Prueba de Envío de WhatsApp',
         text: 'Ingresa un número telefónico de 10 dígitos para enviar un mensaje de prueba:',
         input: 'text',
-        inputPlaceholder: 'Ej: 7471835257',
+        inputPlaceholder: 'Ej: 7470000000',
         showCancelButton: true,
         confirmButtonText: 'Enviar Mensaje de Prueba',
         confirmButtonColor: '#198754',
