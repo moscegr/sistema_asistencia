@@ -170,26 +170,23 @@
 
         <div class="col-md-7 right-panel d-flex flex-column justify-content-center">
             <div class="text-center mb-5">
-                
                 <img th:src="@{/img/tigres.png}" alt="Mascota Tigre" class="img-fluid mb-3" style="max-height: 100px;">
-                
                 <h4 class="fw-bold text-uppercase" style="color: #7b1b37;">Iniciar Sesión</h4>
                 <p class="mb-1 small text-muted fw-semibold">SISTEMA DE CONTROL DE ACCESO INTELIGENTE Y GESTIÓN COMPLEMENTARIA DEL ALUMNADO EN CBTIS NO. 134</p>
             </div>
 
-            <form id="loginForm">
-                
+            <form id="loginForm" action="/login" method="POST">
                 <div class="mb-4">
                     <div class="input-group">
                         <span class="input-group-text glass-addon"><i class="bi bi-person"></i></span>
-                        <input type="email" id="email" class="form-control glass-input" placeholder="Correo Institucional" required>
+                        <input type="email" id="email" name="username" class="form-control glass-input" placeholder="Correo Institucional" required>
                     </div>
                 </div>
                 
                 <div class="mb-4">
                     <div class="input-group">
                         <span class="input-group-text glass-addon"><i class="bi bi-lock"></i></span>
-                        <input type="password" id="password" class="form-control glass-input" placeholder="Contraseña" required>
+                        <input type="password" id="password" name="password" class="form-control glass-input" placeholder="Contraseña" required>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-institucional w-100 py-2 mb-3 fw-bold rounded-3">
@@ -203,16 +200,7 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-	<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-	
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-	
-	<script th:src="@{/js/firebase-init.js}"></script>
-	
 	<script th:src="@{/js/auth.js}"></script>
-	
-
 </body>
 </html>
