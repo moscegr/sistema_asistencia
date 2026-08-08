@@ -14,8 +14,8 @@ async function cargarCicloEscolar() {
         const res = await fetch('/api/configuracion/ciclo_escolar');
         if (res.ok) {
             const data = await res.json();
-            const select = document.getElementById('selectCicloEscolarConfig');
-            if (select && data.actual) select.value = data.actual;
+            const input = document.getElementById('inputCicloEscolarConfig') || document.getElementById('selectCicloEscolarConfig');
+            if (input && data.actual) input.value = data.actual;
         }
     } catch (e) {
         console.error(e);
@@ -23,9 +23,12 @@ async function cargarCicloEscolar() {
 }
 
 async function guardarCicloEscolarConfig() {
-    const select = document.getElementById('selectCicloEscolarConfig');
-    if (!select) return;
-    const nuevoCiclo = select.value;
+    const input = document.getElementById('inputCicloEscolarConfig') || document.getElementById('selectCicloEscolarConfig');
+    if (!input) return;
+    const nuevoCiclo = input.value.trim();
+    if (!nuevoCiclo) {
+        return Swal.fire("Atención", "Por favor ingresa un nombre para el ciclo escolar.", "warning");
+    }
 
     try {
         Swal.fire({ title: 'Guardando ciclo escolar...', didOpen: () => Swal.showLoading() });
