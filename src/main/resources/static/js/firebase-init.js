@@ -1,3 +1,60 @@
+// static/js/firebase-init.js
+// Safe compatibility shim for MongoDB & Spring Security
+
+window.db = window.db || {
+    collection: function(colName) {
+        return {
+            doc: function(docId) {
+                return {
+                    get: async () => ({ exists: false, data: () => ({}) }),
+                    set: async () => {},
+                    update: async () => {},
+                    delete: async () => {},
+                    onSnapshot: (cb) => {}
+                };
+            },
+            where: function() { return this; },
+            orderBy: function() { return this; },
+            get: async () => ({ size: 0, empty: true, docs: [], forEach: () => {} }),
+            onSnapshot: (cb) => {},
+            add: async () => ({ id: 'mock' })
+        };
+    },
+    batch: function() {
+        return {
+            update: () => {},
+            set: () => {},
+            delete: () => {},
+            commit: async () => {}
+        };
+    }
+};
+
+window.auth = window.auth || {
+    currentUser: { uid: 'admin_local', email: localStorage.getItem('userName') || 'admin@cbtis134.edu.mx' },
+    onAuthStateChanged: function(cb) {
+        const user = { uid: 'admin_local', email: localStorage.getItem('userName') || 'admin@cbtis134.edu.mx' };
+        if (typeof cb === 'function') cb(user);
+    },
+    signOut: async function() {
+        localStorage.clear();
+        window.location.href = '/logout';
+    }
+};
+
+window.firebase = window.firebase || {
+    auth: () => window.auth,
+    firestore: () => window.db,
+    apps: [1]
+};
+window.firebase.firestore = window.firebase.firestore || (() => window.db);
+window.firebase.firestore.FieldValue = {
+    serverTimestamp: () => new Date().toISOString(),
+    arrayUnion: (item) => item,
+    arrayRemove: (item) => item,
+    delete: () => null
+};
+
 (function aplicarAntiParpadeoGlobal() {
     const rolGuardado = localStorage.getItem('userRole');
     if (rolGuardado) {
