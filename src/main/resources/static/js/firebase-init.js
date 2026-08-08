@@ -184,19 +184,28 @@ window.firebase.firestore.FieldValue = {
     const rolGuardado = localStorage.getItem('userRole');
     if (rolGuardado && rolGuardado.toUpperCase() !== 'ADMIN') {
         const rolMayus = rolGuardado.toUpperCase();
-        const estilo = document.createElement('style');
-
+        let estilo = document.getElementById('style-anti-flicker-instantaneo');
+        if (!estilo) {
+            estilo = document.createElement('style');
+            estilo.id = 'style-anti-flicker-instantaneo';
+            document.head.appendChild(estilo);
+        }
         estilo.innerHTML = `
-            .requiere-permiso:not([data-roles*="${rolMayus}"]) { 
-                display: none !important; 
-            }
+            .requiere-permiso { display: none !important; }
+            .requiere-permiso[data-roles*="${rolMayus}"] { display: flex !important; }
+            p.sb-label[data-roles*="${rolMayus}"] { display: flex !important; }
+            div.requiere-permiso[data-roles*="${rolMayus}"] { display: block !important; }
         `;
-        document.documentElement.appendChild(estilo);
     }
 })();
 
-document.addEventListener("DOMContentLoaded", async () => {
-    await sincronizarRolDesdeServidor();
+document.addEventListener("DOMContentLoaded", () => {
+    const rolLocal = (localStorage.getItem('userRole') || 'ORIENTACION').toUpperCase();
+    aplicarPermisosVisuales(rolLocal);
+    protegerRutasCentralizado(rolLocal);
+    
+    // Sincronizar en segundo plano sin bloquear el renderizado ni provocar parpadeos
+    sincronizarRolDesdeServidor();
 });
 
 async function sincronizarRolDesdeServidor() {
@@ -207,24 +216,22 @@ async function sincronizarRolDesdeServidor() {
             const rolReal = (user.rol || 'ORIENTACION').toUpperCase();
             const nombreReal = user.nombre || user.correo;
 
+            const rolPrevio = localStorage.getItem('userRole');
             localStorage.setItem('userRole', rolReal);
             localStorage.setItem('userName', nombreReal);
             localStorage.setItem('userEmail', user.correo || '');
 
             window.rolUsuarioActual = rolReal;
 
-            aplicarPermisosVisuales(rolReal);
-            protegerRutasCentralizado(rolReal);
+            if (rolPrevio !== rolReal) {
+                aplicarPermisosVisuales(rolReal);
+                protegerRutasCentralizado(rolReal);
+            }
             actualizarEncabezadoUsuario(nombreReal, rolReal);
-            return;
         }
     } catch (e) {
-        console.error("Error al sincronizar rol del usuario:", e);
+        console.error("Error al sincronizar rol del usuario en segundo plano:", e);
     }
-
-    const rolFallback = (localStorage.getItem('userRole') || 'ORIENTACION').toUpperCase();
-    aplicarPermisosVisuales(rolFallback);
-    protegerRutasCentralizado(rolFallback);
 }
 
 function actualizarEncabezadoUsuario(nombre, rol) {

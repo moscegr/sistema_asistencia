@@ -7,6 +7,21 @@
 <body>
 <div th:fragment="sidebar" id="sidebar-wrapper" class="text-white shadow">
 
+    <script>
+        (function() {
+            var r = (localStorage.getItem('userRole') || '').toUpperCase();
+            if (r && r !== 'ADMIN') {
+                var s = document.createElement('style');
+                s.id = 'style-anti-flicker-instantaneo';
+                s.innerHTML = '.requiere-permiso { display: none !important; } ' +
+                              '.requiere-permiso[data-roles*="' + r + '"] { display: flex !important; } ' +
+                              'p.sb-label[data-roles*="' + r + '"] { display: flex !important; } ' +
+                              'div.requiere-permiso[data-roles*="' + r + '"] { display: block !important; }';
+                document.head.appendChild(s);
+            }
+        })();
+    </script>
+
     <style>
 
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
