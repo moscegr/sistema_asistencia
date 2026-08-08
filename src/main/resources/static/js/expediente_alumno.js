@@ -28,7 +28,10 @@ async function cargarEspecialidades() {
 async function obtenerDataURLQR(texto, size = 400) {
     return new Promise((resolve) => {
         const divTemp = document.createElement('div');
-        const textoLimpio = (texto || '').substring(0, 100);
+        let textoLimpio = (texto || '').trim();
+        if (textoLimpio.length > 60 || textoLimpio.startsWith('data:')) {
+            textoLimpio = textoLimpio.substring(0, 60);
+        }
         new QRCode(divTemp, {
             text: textoLimpio,
             width: size,

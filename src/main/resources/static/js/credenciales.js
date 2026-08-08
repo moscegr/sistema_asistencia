@@ -352,8 +352,22 @@ async function generarImagenGafete(alumno) {
             ctx.fillText(`${alumno.nombre} ${pat}`.toUpperCase(), 200, 80);
 
             const divTemporal = document.createElement('div');
-            const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 100);
-            new QRCode(divTemporal, { text: textoQR, width: 250, height: 250, correctLevel: QRCode.CorrectLevel.L });
+            let textoQR = `${mat}|${alumno.nombre || ''}`.trim();
+            if (alumno.qrCode && !alumno.qrCode.startsWith('data:') && alumno.qrCode.length <= 60) {
+                textoQR = alumno.qrCode.trim();
+            } else if (alumno.qr_texto && !alumno.qr_texto.startsWith('data:') && alumno.qr_texto.length <= 60) {
+                textoQR = alumno.qr_texto.trim();
+            }
+            textoQR = textoQR.substring(0, 60);
+
+            new QRCode(divTemporal, {
+                text: textoQR,
+                width: 250,
+                height: 250,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.L
+            });
 
             setTimeout(() => {
                 const imgQrGenerado = divTemporal.querySelector('img');
