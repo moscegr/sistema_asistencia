@@ -199,7 +199,7 @@ function cargarFotoDesdeArchivo(event) {
     reader.onload = function(e) {
         const img = new Image();
         img.src = e.target.result;
-        img.onload = () => {
+        img.onload = async () => {
             const canvasSnap = document.createElement('canvas');
             canvasSnap.width = 300;
             canvasSnap.height = 400;
@@ -207,6 +207,19 @@ function cargarFotoDesdeArchivo(event) {
             ctxSnap.drawImage(img, 0, 0, 300, 400);
             fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
             mostrarFotoPreview(fotoPerfilGlobal);
+
+            // Generar vector facial si la IA está cargada
+            if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
+                try {
+                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    if (deteccion) {
+                        descriptorFacialGlobal = Array.from(deteccion.descriptor);
+                        console.log("Descriptor facial generado desde archivo de imagen con éxito.");
+                    }
+                } catch(err) {
+                    console.warn("Extracción vectorial facial desde archivo omitida:", err);
+                }
+            }
         };
     };
     reader.readAsDataURL(file);

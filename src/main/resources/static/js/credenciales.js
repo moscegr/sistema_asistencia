@@ -310,20 +310,7 @@ async function generarQRConTigre(texto) {
 
             finalQR.onload = () => {
                 ctx.drawImage(finalQR, 0, 0, size, size);
-
-                const imgTigre = new Image();
-                imgTigre.src = '/img/tigres.png';
-                imgTigre.onload = () => {
-                    const logoSize = 40;
-                    const pos = (size - logoSize) / 2;
-
-                    ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(pos - 3, pos - 3, logoSize + 6, logoSize + 6);
-                    ctx.drawImage(imgTigre, pos, pos, logoSize, logoSize);
-                    
-                    resolve(canvas.toDataURL("image/png"));
-                };
-                imgTigre.onerror = () => resolve(canvas.toDataURL("image/png"));
+                resolve(canvas.toDataURL("image/png"));
             };
             finalQR.onerror = () => resolve(divTemporal.querySelector('canvas') ? divTemporal.querySelector('canvas').toDataURL() : '');
         }, 150); 
@@ -339,17 +326,20 @@ async function generarImagenGafete(alumno) {
         canvas.width = 400; canvas.height = 550;
 
         ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 400, 550);
-        ctx.strokeStyle = "#888888"; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
+        ctx.strokeStyle = "#7b1b37"; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
         ctx.strokeRect(2, 2, 396, 546); ctx.setLineDash([]);
 
         const imgTigre = new Image();
         imgTigre.src = '/img/tigres.png';
         
         imgTigre.onload = function() {
+            // Dibujar Logo del Tigre en la cabecera superior
+            ctx.drawImage(imgTigre, 175, 12, 50, 50);
+
             const pat = alumno.apepat || alumno.primerApellido || '';
             const mat = alumno.ncontrol || alumno.matricula || '';
-            ctx.fillStyle = "#000000"; ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
-            ctx.fillText(`${alumno.nombre} ${pat}`.toUpperCase(), 200, 80);
+            ctx.fillStyle = "#000000"; ctx.font = "bold 22px Arial"; ctx.textAlign = "center";
+            ctx.fillText(`${alumno.nombre} ${pat}`.toUpperCase(), 200, 85);
 
             const divTemporal = document.createElement('div');
             let textoQR = `${mat}|${alumno.nombre || ''}`.trim();
@@ -377,14 +367,14 @@ async function generarImagenGafete(alumno) {
                 finalQR.src = imgQrGenerado ? imgQrGenerado.src : divTemporal.querySelector('canvas').toDataURL();
                 
                 finalQR.onload = function() {
-                    ctx.drawImage(finalQR, 75, 120, 250, 250); 
-                    ctx.fillStyle = "#FFFFFF"; ctx.fillRect(177, 222, 46, 46);
-                    ctx.drawImage(imgTigre, 180, 225, 40, 40);
+                    // Dibujar código QR 100% limpio y nítido justo debajo del encabezado
+                    ctx.drawImage(finalQR, 75, 105, 250, 250);
 
-                    ctx.fillStyle = "#7b1b37"; ctx.font = "bold 32px Arial";
-                    ctx.fillText(mat, 200, 420);
-                    ctx.fillStyle = "#555555"; ctx.font = "bold 16px Arial";
-                    ctx.fillText(alumno.especialidad || "", 200, 450);
+                    ctx.fillStyle = "#7b1b37"; ctx.font = "bold 30px Arial";
+                    ctx.fillText(mat, 200, 395);
+                    ctx.fillStyle = "#555555"; ctx.font = "bold 15px Arial";
+                    ctx.fillText(alumno.especialidad || "", 200, 425);
+                    ctx.fillText(`${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}`, 200, 450);
 
                     resolve(canvas.toDataURL("image/png"));
                 };

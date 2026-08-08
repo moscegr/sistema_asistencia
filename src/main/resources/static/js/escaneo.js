@@ -431,22 +431,40 @@ async function inicializarMotorFacial() {
 
         const descriptoresEtiquetados = [];
 
-        alumnosCache.forEach(al => {
+        for (const al of alumnosCache) {
             const mat = String(al.ncontrol || al.matricula || '').trim();
-            const desc = al.descriptor_facial || al.descriptorFacial;
-            if (desc && desc.length === 128 && mat) {
-                if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') return;
-                if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') return;
+            if (!mat) continue;
 
+            if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') continue;
+            if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') continue;
+
+            let desc = al.descriptor_facial || al.descriptorFacial;
+
+            // Extracción dinámica en segundo plano si la foto existe pero el descriptor no fue guardado previamente
+            if ((!desc || desc.length !== 128) && (al.fotoUrl || al.foto_url || al.foto)) {
+                try {
+                    const src = al.fotoUrl || al.foto_url || al.foto;
+                    const img = await faceapi.fetchImage(src);
+                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    if (deteccion) {
+                        desc = Array.from(deteccion.descriptor);
+                        al.descriptor_facial = desc;
+                    }
+                } catch(e) {
+                    console.warn("No se pudo procesar la foto guardada de:", mat);
+                }
+            }
+
+            if (desc && desc.length === 128) {
                 const floatArray = new Float32Array(desc);
                 descriptoresEtiquetados.push(
                     new faceapi.LabeledFaceDescriptors(mat, [floatArray])
                 );
             }
-        });
+        }
 
         if (descriptoresEtiquetados.length > 0) {
-            faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.6);
+            faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.58);
         } else {
             faceMatcher = null;
         }
