@@ -246,42 +246,59 @@ function generarTableroDinamico() {
     if (!contenedor) return;
     contenedor.innerHTML = "";
 
-    especialidadesConfig.forEach(esp => {
-        const normEspConfig = normalizarTexto(esp.nombre);
+    const estructura = {};
 
-        const gruposReales = [...new Set(alumnosCache
-            .filter(al => {
-                const estatus = al.estatus_escolar || al.estatus || 'Activo';
-                return estatus === 'Activo' && normalizarTexto(al.especialidad) === normEspConfig && al.grado && al.grupo;
-            })
-            .map(al => `${al.grado}${al.grupo}`)
-        )].sort();
+    alumnosCache.forEach(al => {
+        const estatus = (al.estatus_escolar || al.estatus || 'Activo').toUpperCase();
+        if (estatus !== 'INACTIVO' && estatus !== 'BAJA' && estatus !== 'EGRESADO' && al.especialidad && al.grado && al.grupo) {
+            const espOriginal = al.especialidad.trim();
+            const normEsp = normalizarTexto(espOriginal);
+            if (!estructura[normEsp]) {
+                estructura[normEsp] = {
+                    nombre: espOriginal,
+                    grupos: new Set()
+                };
+            }
+            estructura[normEsp].grupos.add(`${al.grado}${al.grupo}`);
+        }
+    });
 
-        if (gruposReales.length > 0) {
-            contenedor.innerHTML += `
-                <div class="col-md-4 mb-3">
-                    <div class="card shadow-sm h-100 border-0" style="border-top: 5px solid ${esp.color}">
-                        <div class="card-body p-3">
-                            <h6 class="fw-bold mb-3" style="color: ${esp.color}">${esp.nombre}</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                ${gruposReales.map(g => {
-                                    const isAuth = gruposAutorizadosHoy.some(key => {
-                                        const keyNorm = normalizarTexto(key);
-                                        return keyNorm.startsWith(normalizarTexto(g)) && keyNorm.includes(normEspConfig);
-                                    });
-                                    const claseBadge = isAuth ? 'bg-success text-white' : 'bg-light text-muted border';
-                                    const icono = isAuth ? '<i class="bi bi-check-lg ms-1"></i>' : '';
+    const keys = Object.keys(estructura).sort();
+    if (keys.length === 0) {
+        contenedor.innerHTML = `<div class="col-12 text-center py-3 text-muted">No se encontraron grupos activos.</div>`;
+        return;
+    }
 
-                                    return `
-                                        <span class="badge ${claseBadge} p-2 shadow-sm" style="min-width: 45px; font-size: 0.85rem;">
-                                            ${g}${icono}
-                                        </span>`;
-                                }).join('')}
-                            </div>
+    keys.forEach(normKey => {
+        const espObj = estructura[normKey];
+        const gruposReales = Array.from(espObj.grupos).sort();
+        const matchConfig = especialidadesConfig.find(e => normalizarTexto(e.nombre) === normKey);
+        const color = matchConfig?.color || '#7b1b37';
+        const espNombre = espObj.nombre;
+
+        contenedor.innerHTML += `
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100 border-0" style="border-top: 5px solid ${color}">
+                    <div class="card-body p-3">
+                        <h6 class="fw-bold mb-3" style="color: ${color}">${espNombre}</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            ${gruposReales.map(g => {
+                                const isAuth = gruposAutorizadosHoy.some(key => {
+                                    const keyNorm = normalizarTexto(key);
+                                    return keyNorm.startsWith(normalizarTexto(g)) && keyNorm.includes(normKey);
+                                });
+                                const claseBadge = isAuth ? 'bg-success text-white' : 'bg-light text-muted border';
+                                const icono = isAuth ? '<i class="bi bi-check-lg ms-1"></i>' : '';
+
+                                return `
+                                    <span class="badge ${claseBadge} p-2 shadow-sm" style="min-width: 45px; font-size: 0.85rem;">
+                                        ${g}${icono}
+                                    </span>`;
+                            }).join('')}
                         </div>
                     </div>
-                </div>`;
-        }
+                </div>
+            </div>`;
     });
 }
 

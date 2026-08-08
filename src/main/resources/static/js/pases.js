@@ -51,11 +51,17 @@ async function cargarTableroGrupal() {
         const esAdminUOrientacion = (rol === "ADMIN" || rol === "ORIENTACION" || rol === "PREFECTO");
 
         alumnos.forEach(al => {
-            const estatus = al.estatus_escolar || al.estatus || 'Activo';
-            if (estatus === 'Activo' && al.especialidad && al.grado && al.grupo) {
-                const normEsp = normalizarTexto(al.especialidad);
-                if (!estructura[normEsp]) estructura[normEsp] = new Set();
-                estructura[normEsp].add(`${al.grado}${al.grupo}`);
+            const estatus = (al.estatus_escolar || al.estatus || 'Activo').toUpperCase();
+            if (estatus !== 'INACTIVO' && estatus !== 'BAJA' && estatus !== 'EGRESADO' && al.especialidad && al.grado && al.grupo) {
+                const espOriginal = al.especialidad.trim();
+                const normEsp = normalizarTexto(espOriginal);
+                if (!estructura[normEsp]) {
+                    estructura[normEsp] = {
+                        nombre: espOriginal,
+                        grupos: new Set()
+                    };
+                }
+                estructura[normEsp].grupos.add(`${al.grado}${al.grupo}`);
             }
         });
 
@@ -63,40 +69,45 @@ async function cargarTableroGrupal() {
         if (!tablero) return;
         tablero.innerHTML = "";
 
-        especialidadesConfig.forEach(esp => {
-            const normEspConfig = normalizarTexto(esp.nombre);
-            const setGrupos = estructura[normEspConfig];
-            if (!setGrupos || setGrupos.size === 0) return;
-            
-            const grupos = Array.from(setGrupos).sort();
-            
+        const keys = Object.keys(estructura).sort();
+        if (keys.length === 0) {
+            tablero.innerHTML = `<div class="col-12 text-center py-4 text-muted">No hay grupos registrados en la base de datos.</div>`;
+            return;
+        }
+
+        keys.forEach(normKey => {
+            const espObj = estructura[normKey];
+            const grupos = Array.from(espObj.grupos).sort();
+            const matchConfig = especialidadesConfig.find(e => normalizarTexto(e.nombre) === normKey);
+            const color = matchConfig?.color || '#7b1b37';
+            const espNombre = espObj.nombre;
+
             tablero.innerHTML += `
                 <div class="col-md-4 mb-3">
-                    <div class="card h-100 border-0 bg-light shadow-sm" style="border-left: 5px solid ${esp.color || '#7b1b37'} !important;">
+                    <div class="card h-100 border-0 bg-light shadow-sm" style="border-left: 5px solid ${color} !important;">
                         <div class="card-body">
-                            <h6 class="fw-bold mb-3" style="color: ${esp.color || '#7b1b37'}">${esp.nombre}</h6>
+                            <h6 class="fw-bold mb-3" style="color: ${color}">${espNombre}</h6>
                             <div class="d-flex flex-wrap gap-2">
                                 ${grupos.map(g => {
                                     const grado = g.slice(0, -1);
                                     const grupo = g.slice(-1);
+                                    const cleanId = `chk-${g}-${normalizarTexto(espNombre)}`;
                                     return `
                                     <input type="checkbox" class="btn-check" 
-                                           id="chk-${g}-${esp.nombre.replace(/ /g,'_')}" 
+                                           id="${cleanId}" 
                                            ${!esAdminUOrientacion ? 'disabled' : ''} 
-                                           onchange="alternarPaseGrupal('${grado}','${grupo}','${esp.nombre}', this.checked)">
+                                           onchange="alternarPaseGrupal('${grado}','${grupo}','${espNombre}', this.checked)">
                                     <label class="btn btn-sm btn-outline-dark px-3 rounded-pill" 
-                                           for="chk-${g}-${esp.nombre.replace(/ /g,'_')}"
+                                           for="${cleanId}"
                                            style="${!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
                                         ${g}
                                     </label>`;
                                 }).join('')}
                             </div>
-                            ${!esAdminUOrientacion ? '<div class="mt-2 text-muted" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Vista de solo lectura</div>' : ''}
                         </div>
                     </div>
                 </div>`;
         });
-    } catch(e) {
         console.error("Error en cargarTableroGrupal:", e);
     }
 }

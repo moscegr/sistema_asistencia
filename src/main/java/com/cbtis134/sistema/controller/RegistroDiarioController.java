@@ -32,6 +32,18 @@ public class RegistroDiarioController {
 
     @PostMapping
     public ResponseEntity<RegistroDiario> guardar(@RequestBody RegistroDiario registro) {
+        if ((registro.getId() == null || registro.getId().isEmpty()) && registro.getMatricula() != null && registro.getFecha() != null) {
+            List<RegistroDiario> existentes = registroDiarioRepository.findByFecha(registro.getFecha());
+            for (RegistroDiario r : existentes) {
+                if (r.getMatricula() != null && registro.getMatricula().equalsIgnoreCase(r.getMatricula())) {
+                    registro.setId(r.getId());
+                    if (registro.getHora_entrada() == null || registro.getHora_entrada().isEmpty()) {
+                        registro.setHora_entrada(r.getHora_entrada());
+                    }
+                    break;
+                }
+            }
+        }
         RegistroDiario guardado = registroDiarioRepository.save(registro);
         return ResponseEntity.ok(guardado);
     }
