@@ -152,7 +152,6 @@ async function verExpedienteQuick(matricula) {
         if (document.getElementById('modalMatricula')) document.getElementById('modalMatricula').innerText = matricula;
         if (document.getElementById('modalEspecialidad')) document.getElementById('modalEspecialidad').innerText = alumnoSeleccionado.especialidad || 'N/A';
         if (document.getElementById('modalGradoGrupo')) document.getElementById('modalGradoGrupo').innerText = `${alumnoSeleccionado.grado || ''}° "${alumnoSeleccionado.grupo || ''}" - ${alumnoSeleccionado.turno || ''}`;
-        if (document.getElementById('modalCurp')) document.getElementById('modalCurp').innerText = alumnoSeleccionado.curp || 'N/A';
 
         const fotoEl = document.getElementById('modalFoto');
         if (fotoEl) {
@@ -160,7 +159,7 @@ async function verExpedienteQuick(matricula) {
             fotoEl.src = src;
         }
 
-        const contenedorQR = document.getElementById('modalQR');
+        const contenedorQR = document.getElementById('imgQR');
         const qrText = (alumnoSeleccionado.qrCode || alumnoSeleccionado.qr_texto || `${matricula}|${alumnoSeleccionado.nombre}`).substring(0, 100);
         if (contenedorQR && qrText) {
             contenedorQR.innerHTML = "";
@@ -177,7 +176,7 @@ async function verExpedienteQuick(matricula) {
 
         const modalEl = document.getElementById('modalQR');
         if (modalEl) {
-            const modal = new bootstrap.Modal(modalEl);
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
             modal.show();
         }
     } catch (err) { console.error("Error al abrir ficha de alumno:", err); }
