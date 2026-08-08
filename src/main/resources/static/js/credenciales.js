@@ -340,9 +340,10 @@ async function generarImagenGafete(alumno) {
         ctx.fillStyle = "#d4af37";
         ctx.fillRect(0, 88, 400, 3);
 
+        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo_aniversario.jpg';
         const imgEscuela = new Image();
         const imgTigre = new Image();
-        imgEscuela.src = '/img/logo_aniversario.jpg';
+        imgEscuela.src = logoEscuelaSrc;
         imgTigre.src = '/img/tigres.png';
 
         let cargas = 0;
@@ -350,8 +351,23 @@ async function generarImagenGafete(alumno) {
             cargas++;
             if (cargas < 2) return;
 
-            // Logo Escuela a la izquierda
+            // Logo Escuela a la izquierda (Formato Circular Redondo e Impecable)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.clip();
             ctx.drawImage(imgEscuela, 18, 14, 60, 60);
+            ctx.restore();
+
+            // Borde circular blanco de realce alrededor del logo de la escuela
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
             
             // Logo Tigre a la derecha
             ctx.drawImage(imgTigre, 322, 14, 60, 60);

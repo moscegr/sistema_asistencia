@@ -45,23 +45,28 @@
 				            </div>
 				            <div class="col-md-5 text-md-end mt-3 mt-md-0">
 				                <div class="p-3 bg-light rounded border shadow-sm text-start">
-				                    <label class="form-label x-small text-uppercase text-muted fw-bold mb-1">Ciclo Escolar Activo</label>
+				                    <label class="form-label x-small text-uppercase text-muted fw-bold mb-1"><i class="bi bi-calendar2-week me-1"></i>Ciclo Escolar Activo</label>
                                     <div class="input-group input-group-sm mb-2">
-                                        <input type="text" id="inputCicloEscolarConfig" class="form-control fw-bold text-guinda" list="opcionesCiclos" placeholder="Ej. AGO-DIC 2026">
-                                        <datalist id="opcionesCiclos">
-                                            <option value="FEB-JUL 2025"></option>
-                                            <option value="AGO-DIC 2025"></option>
-                                            <option value="FEB-JUL 2026"></option>
-                                            <option value="AGO-DIC 2026"></option>
-                                            <option value="FEB-JUL 2027"></option>
-                                            <option value="AGO-DIC 2027"></option>
-                                            <option value="FEB-JUL 2028"></option>
-                                        </datalist>
+                                        <select id="inputCicloEscolarConfig" class="form-select fw-bold text-guinda border-guinda">
+                                            <option value="AGO-DIC 2026">AGO-DIC 2026 (Semestre Impar)</option>
+                                            <option value="FEB-JUL 2027">FEB-JUL 2027 (Semestre Par)</option>
+                                            <option value="AGO-DIC 2027">AGO-DIC 2027 (Semestre Impar)</option>
+                                            <option value="FEB-JUL 2028">FEB-JUL 2028 (Semestre Par)</option>
+                                            <option value="AGO-DIC 2028">AGO-DIC 2028 (Semestre Impar)</option>
+                                            <option value="FEB-JUL 2025">FEB-JUL 2025 (Semestre Par)</option>
+                                            <option value="AGO-DIC 2025">AGO-DIC 2025 (Semestre Impar)</option>
+                                            <option value="FEB-JUL 2026">FEB-JUL 2026 (Semestre Par)</option>
+                                        </select>
                                         <button class="btn btn-guinda" onclick="guardarCicloEscolarConfig()">
                                             <i class="bi bi-save me-1"></i>Guardar
                                         </button>
                                     </div>
-                                    <small class="text-muted x-small d-block"><i class="bi bi-info-circle me-1"></i>Sincronizado con MongoDB</small>
+                                    <small class="text-muted x-small d-block mb-1"><i class="bi bi-info-circle me-1"></i>Sincronizado con MongoDB</small>
+                                    <div class="p-2 bg-white rounded border border-info x-small text-dark mt-2" style="font-size: 0.72rem;">
+                                        <i class="bi bi-lightbulb-fill text-warning me-1"></i><b>Formato Oficial DGETI:</b><br>
+                                        • <code>FEB-JUL AAAA</code> (Febrero - Julio)<br>
+                                        • <code>AGO-DIC AAAA</code> (Agosto - Diciembre)
+                                    </div>
 				                </div>
 				            </div>
 				        </div>
