@@ -5,7 +5,18 @@ let alumnoSeleccionado = null;
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarConfiguracionEscolar();
     await cargarAlumnos();
+    conectarEventosFiltros();
 });
+
+function conectarEventosFiltros() {
+    ['busquedaGeneral', 'filtroEspecialidad', 'filtroEstatus', 'filtroGrado', 'filtroGrupo', 'filtroTurno'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', filtrarAlumnos);
+            el.addEventListener('change', filtrarAlumnos);
+        }
+    });
+}
 
 async function cargarConfiguracionEscolar() {
     try {
@@ -53,13 +64,14 @@ async function cargarAlumnos() {
 }
 
 function filtrarAlumnos() {
-    const tbody = document.getElementById('tablaAlumnos');
+    const tbody = document.getElementById('tablaAlumnosBody') || document.getElementById('tablaAlumnos');
     if (!tbody) return;
 
-    const busqueda = (document.getElementById('busquedaGeneral')?.value || '').toLowerCase();
+    const busqueda = (document.getElementById('busquedaGeneral')?.value || '').toLowerCase().trim();
     const filtroEsp = document.getElementById('filtroEspecialidad')?.value || '';
+    const filtroEstatus = document.getElementById('filtroEstatus')?.value || '';
     const filtroGrado = document.getElementById('filtroGrado')?.value || '';
-    const filtroGrupo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase();
+    const filtroGrupo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase().trim();
     const filtroTurno = document.getElementById('filtroTurno')?.value || '';
 
     const filtrados = alumnosCache.filter(al => {
@@ -67,11 +79,13 @@ function filtrarAlumnos() {
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
         const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.toLowerCase();
+        const estatusVal = (al.estatus_escolar || al.estatus || 'Activo');
 
         if (busqueda && !nombreCompleto.includes(busqueda) && !mat.includes(busqueda)) return false;
         if (filtroEsp && al.especialidad !== filtroEsp) return false;
+        if (filtroEstatus && estatusVal !== filtroEstatus) return false;
         if (filtroGrado && String(al.grado) !== filtroGrado) return false;
-        if (filtroGrupo && al.grupo !== filtroGrupo) return false;
+        if (filtroGrupo && (al.grupo || '').toUpperCase() !== filtroGrupo) return false;
         if (filtroTurno && al.turno !== filtroTurno) return false;
 
         return true;
@@ -198,11 +212,11 @@ async function eliminarAlumno(docId, matricula) {
 }
 
 function limpiarFiltros() {
-    ['busquedaGeneral', 'filtroEspecialidad', 'filtroGrado', 'filtroGrupo', 'filtroTurno'].forEach(id => {
+    ['busquedaGeneral', 'filtroEspecialidad', 'filtroEstatus', 'filtroGrado', 'filtroGrupo', 'filtroTurno'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
-    cargarAlumnos();
+    filtrarAlumnos();
 }
 
 function getColorSemaforo(color) {
