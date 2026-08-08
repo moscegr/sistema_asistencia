@@ -74,12 +74,26 @@ async function cargarConfiguracionInicial() {
 function inicializarLectorQR() {
     if (typeof Html5QrcodeScanner === 'undefined') return;
 
-    html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", 
-        { fps: 15, qrbox: { width: 250, height: 250 } },
-        /* verbose= */ false
-    );
+    const qrboxCalc = (viewfinderWidth, viewfinderHeight) => {
+        const minDim = Math.min(viewfinderWidth, viewfinderHeight);
+        const size = Math.max(150, Math.floor(minDim * 0.75));
+        return { width: size, height: size };
+    };
 
+    const config = {
+        fps: 25,
+        qrbox: qrboxCalc,
+        aspectRatio: 1.0,
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true
+        }
+    };
+
+    if (html5QrcodeScanner) {
+        try { html5QrcodeScanner.clear(); } catch(e) {}
+    }
+
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
     html5QrcodeScanner.render((text) => onScanSuccess(text, false), (err) => {});
 }
 
