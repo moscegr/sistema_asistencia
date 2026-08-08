@@ -363,23 +363,24 @@ async function confirmarCambioCiclo() {
     const { value: nuevoCiclo } = await Swal.fire({
         title: '¿Confirmar Cambio de Ciclo?',
         html: `
-            <p class="small text-muted mb-2">Los alumnos seleccionados avanzarán un semestre en MongoDB.</p>
-            <div class="alert alert-info py-2 px-3 text-start small mb-3" style="font-size: 0.8rem;">
-                <i class="bi bi-info-circle-fill me-1"></i> <b>Formato Oficial DGETI:</b><br>
-                • <code>FEB-JUL AAAA</code> (Febrero - Julio)<br>
-                • <code>AGO-DIC AAAA</code> (Agosto - Diciembre)
+            <p class="small text-muted mb-3">Los alumnos seleccionados avanzarán un semestre en MongoDB.</p>
+            <div class="alert alert-info py-2 px-3 text-start small mb-3" style="font-size: 0.8rem; border-radius: 8px;">
+                <i class="bi bi-info-circle-fill me-1"></i> <b>Sugerencia de Formato DGETI:</b><br>
+                • <code>FEB-JUL AAAA</code> (Ej: FEB-JUL 2027)<br>
+                • <code>AGO-DIC AAAA</code> (Ej: AGO-DIC 2026)
             </div>
             <label class="form-label small fw-bold text-start w-100 mb-1">Nombre del Nuevo Ciclo Escolar Activo:</label>
-            <select id="swalCicloNombre" class="swal2-select w-100 mt-1 mb-2 fw-bold text-guinda" style="max-width: 100%; border-radius: 8px;">
-                <option value="AGO-DIC 2026" selected>AGO-DIC 2026 (Semestre Impar)</option>
-                <option value="FEB-JUL 2027">FEB-JUL 2027 (Semestre Par)</option>
-                <option value="AGO-DIC 2027">AGO-DIC 2027 (Semestre Impar)</option>
-                <option value="FEB-JUL 2028">FEB-JUL 2028 (Semestre Par)</option>
-                <option value="AGO-DIC 2028">AGO-DIC 2028 (Semestre Impar)</option>
-                <option value="FEB-JUL 2025">FEB-JUL 2025 (Semestre Par)</option>
-                <option value="AGO-DIC 2025">AGO-DIC 2025 (Semestre Impar)</option>
-                <option value="FEB-JUL 2026">FEB-JUL 2026 (Semestre Par)</option>
-            </select>
+            <input id="swalCicloNombre" class="form-control form-control-lg fw-bold text-guinda text-center border-guinda" list="datalistCiclosModal" placeholder="Ej: AGO-DIC 2026" value="AGO-DIC 2026" autocomplete="off" style="border-radius: 8px; font-size: 1.05rem;">
+            <datalist id="datalistCiclosModal">
+                <option value="AGO-DIC 2026"></option>
+                <option value="FEB-JUL 2027"></option>
+                <option value="AGO-DIC 2027"></option>
+                <option value="FEB-JUL 2028"></option>
+                <option value="AGO-DIC 2028"></option>
+                <option value="FEB-JUL 2025"></option>
+                <option value="AGO-DIC 2025"></option>
+                <option value="FEB-JUL 2026"></option>
+            </datalist>
         `,
         icon: 'warning',
         showCancelButton: true,
@@ -389,7 +390,7 @@ async function confirmarCambioCiclo() {
         preConfirm: () => {
             const val = document.getElementById('swalCicloNombre').value.trim();
             if (!val) {
-                Swal.showValidationMessage('Selecciona el nombre del nuevo ciclo escolar.');
+                Swal.showValidationMessage('Ingresa el nombre del nuevo ciclo escolar.');
             }
             return val;
         }

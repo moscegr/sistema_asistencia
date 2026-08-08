@@ -318,9 +318,46 @@ function mostrarResultado(al, accion) {
     });
 }
 
-function enviarNotificacionTutor(al, tipoAcceso) {
-    if (al.teltutor || (al.tutor && al.tutor.telefono)) {
-        console.log(`Notificación enviada al tutor de ${al.nombre} por ${tipoAcceso}`);
+async function enviarNotificacionTutor(al, tipoAcceso) {
+    try {
+        const resSys = await fetch('/api/configuracion/sistema');
+        if (resSys.ok) {
+            const dataSys = await resSys.json();
+            if (dataSys.notificaciones_whatsapp_activas === false) {
+                console.log("Notificaciones de WhatsApp desactivadas globalmente desde configuración. Evento guardado en MongoDB.");
+                return;
+            }
+        }
+
+        const tel = al.teltutor || (al.tutor && al.tutor.telefono) || al.celular;
+        if (!tel) return;
+
+        const resWs = await fetch('/api/configuracion/whatsapp');
+        if (!resWs.ok) return;
+        const configWs = await resWs.json();
+        if (!configWs || !configWs.tipo_api) return;
+
+        const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        const pat = al.apepat || al.primerApellido || '';
+        const mensaje = `[CBTis 134] Notificación de Punto de Control:\nEl estudiante ${al.nombre} ${pat} ha registrado su ${tipoAcceso} al plantel a las ${hora}.`;
+
+        const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
+
+        await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: configWs.apiUrl || configWs.serverUrl,
+                apiKey: configWs.apiKey || configWs.token,
+                token: configWs.token || configWs.apiKey,
+                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                to: tel,
+                body: mensaje
+            })
+        });
+        console.log(`[Punto de Control] Notificación WhatsApp enviada al tutor (${tel}) por ${tipoAcceso}`);
+    } catch(e) {
+        console.warn("No se pudo enviar la notificación de WhatsApp:", e);
     }
 }
 

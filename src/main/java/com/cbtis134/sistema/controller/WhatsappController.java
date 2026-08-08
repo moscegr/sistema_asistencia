@@ -129,33 +129,55 @@ public class WhatsappController {
         String to = payload.get("to");
         String body = payload.get("body");
 
-        if (apiUrl != null && apiUrl.endsWith("/")) {
-            apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
+        if (apiUrl != null) {
+            apiUrl = apiUrl.trim();
+            if (apiUrl.endsWith("/")) {
+                apiUrl = apiUrl.substring(0, apiUrl.length() - 1);
+            }
+        }
+        if (instanceName != null) {
+            instanceName = instanceName.trim();
         }
 
-        String numeroLimpio = to.replace("whatsapp:", "").replace("+", "").replace(" ", "");
+        // Limpiar número telefónico y asegurar código de país para México (52)
+        String numeroLimpio = (to != null) ? to.replaceAll("[^0-9]", "") : "";
+        if (numeroLimpio.length() == 10) {
+            numeroLimpio = "52" + numeroLimpio;
+        }
+
         String urlFinal = apiUrl + "/message/sendText/" + instanceName;
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         if (apiKey != null && !apiKey.isEmpty()) {
-            headers.set("apikey", apiKey);
+            headers.set("apikey", apiKey.trim());
         }
 
-        Map<String, Object> jsonMap = Map.of(
-            "number", numeroLimpio,
-            "text", body
-        );
+        Map<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("number", numeroLimpio);
+        jsonMap.put("text", body);
+        jsonMap.put("textMessage", Map.of("text", body));
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(jsonMap, headers);
         RestTemplate restTemplate = new RestTemplate();
 
         try {
-            System.out.println("[Proxy Evolution API] Despachando a: " + urlFinal);
+            System.out.println("[Proxy Evolution API] Despachando a: " + urlFinal + " para " + numeroLimpio);
             ResponseEntity<String> response = restTemplate.postForEntity(urlFinal, request, String.class);
             return ResponseEntity.ok(response.getBody());
         } catch (Exception e) {
             System.err.println("Fallo en el Proxy de Evolution API: " + e.getMessage());
+            
+            // Intento alternativo con el nombre de instancia en minúsculas si fue escrito diferente
+            if (instanceName != null && !instanceName.equals(instanceName.toLowerCase())) {
+                try {
+                    String urlRetry = apiUrl + "/message/sendText/" + instanceName.toLowerCase();
+                    System.out.println("[Proxy Evolution API] Reintentando con instancia en minúsculas: " + urlRetry);
+                    ResponseEntity<String> res2 = restTemplate.postForEntity(urlRetry, request, String.class);
+                    return ResponseEntity.ok(res2.getBody());
+                } catch(Exception ex) {}
+            }
+
             return ResponseEntity.status(500).body("Error de Evolution API: " + e.getMessage());
         }
     }
