@@ -300,6 +300,10 @@ async function cargarConfigWhatsApp() {
             tipoSelect.value = tipo;
             cambiarFormularioWs(tipo);
 
+            if (document.getElementById('switchNotifWhatsapp')) {
+                document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
+            }
+
             if (tipo === 'EVOLUTION' || tipo === 'WPPCONNECT') {
                 document.getElementById('wsCampo1').value = data.apiUrl || data.serverUrl || '';
                 document.getElementById('wsCampo2').value = data.apiKey || data.token || '';
@@ -334,11 +338,34 @@ async function cargarConfigWhatsApp() {
     }
 }
 
+const switchWsToggle = document.getElementById('switchNotifWhatsapp');
+if (switchWsToggle) {
+    switchWsToggle.addEventListener('change', async () => {
+        const isChecked = switchWsToggle.checked;
+        try {
+            await fetch('/api/configuracion/sistema', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificaciones_whatsapp_activas: isChecked })
+            });
+            await fetch('/api/configuracion/whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notificaciones_whatsapp_activas: isChecked })
+            });
+            const toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+            toast.fire({ icon: isChecked ? 'success' : 'warning', title: `Notificaciones de WhatsApp ${isChecked ? 'ACTIVADAS' : 'DESACTIVADAS'}` });
+        } catch(e) { console.error("Error al actualizar switch de WhatsApp:", e); }
+    });
+}
+
 async function guardarConfigWhatsApp() {
     const tipo = document.getElementById('tipoApiWs').value;
     const campo1 = document.getElementById('wsCampo1').value.trim();
     const campo2 = document.getElementById('wsCampo2').value.trim();
     const campo3 = document.getElementById('wsCampo3').value.trim();
+    const switchWs = document.getElementById('switchNotifWhatsapp');
+    const isActivo = switchWs ? switchWs.checked : true;
 
     if (!campo1 || !campo2) {
         Swal.fire("Campos incompletos", "Por favor llena los campos requeridos para este proveedor.", "warning");
@@ -358,7 +385,8 @@ async function guardarConfigWhatsApp() {
             sessionName: campo3,
             instanceId: campo2,
             accessToken: campo1,
-            phoneNumberId: campo2
+            phoneNumberId: campo2,
+            notificaciones_whatsapp_activas: isActivo
         };
 
         await fetch('/api/configuracion/whatsapp', {
@@ -367,11 +395,17 @@ async function guardarConfigWhatsApp() {
             body: JSON.stringify(configData)
         });
 
+        await fetch('/api/configuracion/sistema', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificaciones_whatsapp_activas: isActivo })
+        });
+
         await cargarConfigWhatsApp();
 
         Swal.fire({
             title: "¡Configuración Guardada!",
-            text: `La API de ${tipo} ha sido configurada correctamente en MongoDB.`,
+            text: `La API de ${tipo} ha sido configurada correctamente en MongoDB. Notificaciones: ${isActivo ? 'ACTIVAS' : 'DESACTIVAS'}.`,
             icon: "success",
             confirmButtonColor: '#198754'
         });
