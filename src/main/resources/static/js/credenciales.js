@@ -274,18 +274,6 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
         const inputFoto = document.getElementById('inputFotoTemporal');
         if(inputFoto) inputFoto.value = '';
         fotoTemporalAlumno = null;
-
-        const containerQr = document.getElementById('pvcQR');
-        if (containerQr) {
-            containerQr.innerHTML = "";
-            const textoQR = (al.qrCode || al.qr_texto || `${mat}|${al.nombre}`).substring(0, 100);
-            new QRCode(containerQr, {
-                text: textoQR,
-                width: 55,
-                height: 55,
-                correctLevel: QRCode.CorrectLevel.L
-            });
-        }
     }
 
     if (document.getElementById('btnDescargarCredencialInd')) document.getElementById('btnDescargarCredencialInd').disabled = false;
@@ -477,12 +465,12 @@ async function generarCanvasCredencialFrente(alumno) {
                 ctx.drawImage(bgImage, 0, 0, 540, 856);
             } else {
                 ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 540, 856);
-                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 100);
+                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 95);
                 
                 ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 26px Arial"; ctx.textAlign = "center";
-                ctx.fillText("CBTis No. 134", 270, 45);
+                ctx.fillText("CBTis No. 134", 270, 42);
                 ctx.font = "14px Arial";
-                ctx.fillText("CREDENCIAL ESCOLAR DE ESTUDIANTE", 270, 75);
+                ctx.fillText("CREDENCIAL ESCOLAR DE ESTUDIANTE", 270, 72);
             }
 
             const pat = alumno.apepat || alumno.primerApellido || '';
@@ -498,37 +486,41 @@ async function generarCanvasCredencialFrente(alumno) {
 
             function renderDetails(foto) {
                 if (foto) {
-                    ctx.drawImage(foto, 160, 120, 220, 260);
+                    ctx.drawImage(foto, 160, 115, 220, 260);
                 } else {
-                    ctx.fillStyle = "#EEEEEE"; ctx.fillRect(160, 120, 220, 260);
+                    ctx.fillStyle = "#EEEEEE"; ctx.fillRect(160, 115, 220, 260);
                 }
 
+                // Name centered
                 ctx.fillStyle = "#000000"; ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
-                ctx.fillText(`${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase(), 270, 420);
+                ctx.fillText(`${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase(), 270, 415);
 
-                ctx.fillStyle = "#f8f9fa"; ctx.fillRect(40, 460, 460, 320);
-                ctx.strokeStyle = "#cccccc"; ctx.strokeRect(40, 460, 460, 320);
+                // Lowered & centered data box
+                ctx.fillStyle = "#f8f9fa"; ctx.fillRect(40, 450, 460, 320);
+                ctx.strokeStyle = "#cccccc"; ctx.lineWidth = 1.5; ctx.strokeRect(40, 450, 460, 320);
 
-                ctx.textAlign = "left"; ctx.fillStyle = "#333333"; ctx.font = "bold 18px Arial";
-                ctx.fillText("MATRÍCULA:", 60, 500);
-                ctx.fillStyle = "#7b1b37"; ctx.fillText(mat, 200, 500);
+                ctx.textAlign = "center";
 
-                ctx.fillStyle = "#333333";
-                ctx.fillText("CARRERA:", 60, 550);
-                ctx.font = "16px Arial"; ctx.fillText(alumno.especialidad || 'N/A', 200, 550);
+                // Line 1: MATRÍCULA
+                ctx.fillStyle = "#333333"; ctx.font = "bold 17px Arial";
+                ctx.fillText("MATRÍCULA:", 210, 495);
+                ctx.fillStyle = "#7b1b37"; ctx.font = "bold 18px Arial";
+                ctx.fillText(mat, 320, 495);
 
-                ctx.font = "bold 18px Arial";
-                ctx.fillText("GRUPO:", 60, 600);
-                ctx.font = "16px Arial"; ctx.fillText(`${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}`, 200, 600);
+                // Line 2: CARRERA
+                ctx.fillStyle = "#333333"; ctx.font = "bold 16px Arial";
+                ctx.fillText(`CARRERA: ${alumno.especialidad || 'N/A'}`, 270, 550);
 
-                ctx.font = "bold 18px Arial";
-                ctx.fillText("CURP:", 60, 650);
-                ctx.font = "16px Arial"; ctx.fillText(alumno.curp || 'N/A', 200, 650);
+                // Line 3: GRUPO
+                ctx.fillText(`GRUPO: ${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}`, 270, 605);
 
-                ctx.font = "bold 18px Arial";
-                ctx.fillText("VIGENCIA:", 60, 700);
-                ctx.font = "16px Arial"; ctx.fillText(cfgSistema.vigencia_actual || 'Agosto 2027', 200, 700);
+                // Line 4: CURP
+                ctx.fillText(`CURP: ${alumno.curp || 'N/A'}`, 270, 660);
 
+                // Line 5: VIGENCIA
+                ctx.fillText(`VIGENCIA: ${cfgSistema.vigencia_actual || 'Agosto 2027'}`, 270, 715);
+
+                // Bottom bar
                 ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 816, 540, 40);
                 ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
                 ctx.fillText("CBTIS 134 • SISTEMA DE CONTROL ESCOLAR", 270, 842);
