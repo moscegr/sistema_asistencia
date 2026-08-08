@@ -47,8 +47,9 @@ public class AdminSeeder implements ApplicationRunner {
         String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail : "koyer.pop@gmail.com";
         String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass : "kike1992";
 
-        if (!usuarioRepository.existsByCorreo(adminEmail)) {
-            Usuario admin = new Usuario();
+        Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
+        if (admin == null) {
+            admin = new Usuario();
             admin.setUid(UUID.randomUUID().toString());
             admin.setCorreo(adminEmail);
             admin.setPassword(passwordEncoder.encode(adminPassword));
@@ -59,27 +60,34 @@ public class AdminSeeder implements ApplicationRunner {
             admin.setPermisos(Arrays.asList("ALL"));
             usuarioRepository.save(admin);
             System.out.println("-> Admin Principal verificado/creado: " + adminEmail);
+        } else if (admin.getNombre() != null && !admin.getNombre().equals(admin.getNombre().toUpperCase())) {
+            admin.setNombre(admin.getNombre().toUpperCase());
+            usuarioRepository.save(admin);
         }
 
         List<UsuarioSeed> usuariosData = Arrays.asList(
             new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134"),
-            new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO ACT", "prefect1@gmail.com", "PREFECTO", "cbtis134"),
+            new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134"),
             new UsuarioSeed("Cbv74BQJQ3bA0qtZYlLvhX6q3Tj1", "CRUZ ENRIQUE GARCIA RAMOS", "cruz.egr@cbtis134.edu.mx", "ADMIN", "cbtis134"),
             new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134"),
             new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134")
         );
 
         for (UsuarioSeed u : usuariosData) {
-            if (!usuarioRepository.existsByCorreo(u.correo)) {
+            Usuario uExistente = usuarioRepository.findByCorreo(u.correo).orElse(null);
+            if (uExistente == null) {
                 Usuario usuario = new Usuario();
                 usuario.setUid(u.uid);
-                usuario.setNombre(u.nombre);
+                usuario.setNombre(u.nombre.toUpperCase());
                 usuario.setCorreo(u.correo);
                 usuario.setRol(u.rol);
                 usuario.setEstatus("Activo");
                 usuario.setPassword(passwordEncoder.encode(u.password));
                 usuarioRepository.save(usuario);
                 System.out.println("-> Usuario inicial verificado/creado: " + u.correo + " (" + u.rol + ")");
+            } else if (uExistente.getNombre() != null && !uExistente.getNombre().equals(uExistente.getNombre().toUpperCase())) {
+                uExistente.setNombre(uExistente.getNombre().toUpperCase());
+                usuarioRepository.save(uExistente);
             }
         }
     }

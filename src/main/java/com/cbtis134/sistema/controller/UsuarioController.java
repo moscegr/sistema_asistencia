@@ -22,7 +22,13 @@ public class UsuarioController {
 
     @GetMapping
     public List<Usuario> obtenerTodos() {
-        return usuarioRepository.findAll();
+        List<Usuario> lista = usuarioRepository.findAll();
+        for (Usuario u : lista) {
+            if (u.getNombre() != null) {
+                u.setNombre(u.getNombre().toUpperCase());
+            }
+        }
+        return lista;
     }
 
     @GetMapping("/{id}")
@@ -30,6 +36,10 @@ public class UsuarioController {
         return usuarioRepository.findById(id)
                 .or(() -> usuarioRepository.findByUid(id))
                 .or(() -> usuarioRepository.findByCorreo(id))
+                .map(u -> {
+                    if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    return u;
+                })
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -41,6 +51,9 @@ public class UsuarioController {
         }
         if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
             usuario.setUid(UUID.randomUUID().toString());
+        }
+        if (usuario.getNombre() != null) {
+            usuario.setNombre(usuario.getNombre().toUpperCase());
         }
         if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
@@ -58,7 +71,9 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByUid(id))
                 .or(() -> usuarioRepository.findByCorreo(id))
                 .map(usuario -> {
-                    if (usuarioActualizado.getNombre() != null) usuario.setNombre(usuarioActualizado.getNombre());
+                    if (usuarioActualizado.getNombre() != null) {
+                        usuario.setNombre(usuarioActualizado.getNombre().toUpperCase());
+                    }
                     if (usuarioActualizado.getCorreo() != null && !usuarioActualizado.getCorreo().trim().isEmpty()) {
                         usuario.setCorreo(usuarioActualizado.getCorreo().trim());
                     }
