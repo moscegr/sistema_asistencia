@@ -445,145 +445,115 @@ async function descargarPNGsDelGrupo() {
     }
 }
 
+// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (1:1 FIDELIDAD) ---
+
 async function generarCanvasCredencialFrente(alumno) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 540; canvas.height = 856;
-
-        if (plantillaFrente) {
-            const bg = new Image();
-            bg.src = plantillaFrente;
-            bg.onload = () => drawContent(bg);
-            bg.onerror = () => drawContent(null);
-        } else {
-            drawContent(null);
+    if (plantillaFrente) {
+        return generarCanvasCustomFrente(alumno);
+    }
+    return new Promise(async (resolve) => {
+        let container = document.getElementById('tempCardContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tempCardContainer';
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            document.body.appendChild(container);
         }
 
-        function drawContent(bgImage) {
-            if (bgImage) {
-                ctx.drawImage(bgImage, 0, 0, 540, 856);
-            } else {
-                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 540, 856);
-                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 95);
-                
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 26px Arial"; ctx.textAlign = "center";
-                ctx.fillText("CBTis No. 134", 270, 42);
-                ctx.font = "14px Arial";
-                ctx.fillText("CREDENCIAL ESCOLAR DE ESTUDIANTE", 270, 72);
-            }
+        const pat = alumno.apepat || alumno.primerApellido || '';
+        const matApe = alumno.apemat || alumno.segundoApellido || '';
+        const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase();
+        const mat = alumno.ncontrol || alumno.matricula || '';
+        const fotoSrc = fotoTemporalAlumno || '/img/logo-256.png';
+        const vigencia = cfgSistema.vigencia_actual || 'Agosto 2027';
 
-            const pat = alumno.apepat || alumno.primerApellido || '';
-            const matApe = alumno.apemat || alumno.segundoApellido || '';
-            const mat = alumno.ncontrol || alumno.matricula || '';
+        container.innerHTML = `
+            <div id="cardFrenteTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: Arial, sans-serif; text-align: left; box-sizing: border-box;">
+                <div style="background-color: #7b1b37; padding: 5px 2px; color: white; text-align: center;">
+                    <div style="font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
+                    <div style="font-size: 6px; opacity: 0.9;">CREDENCIAL ESCOLAR DE ESTUDIANTE</div>
+                </div>
+                <div style="padding: 8px 6px;">
+                    <div style="width: 28mm; height: 34mm; background: #eee; border: 1px dashed #999; margin: 0 auto 6px auto; background-image: url('${fotoSrc}'); background-size: contain; background-repeat: no-repeat; background-position: center; border-radius: 4px;"></div>
+                    <div style="font-size: 9.5px; font-weight: bold; color: #222; text-transform: uppercase; line-height: 1.1; margin-bottom: 8px; text-align: center;">${nombreCompleto}</div>
+                    
+                    <div style="background: #f8f9fa; border-radius: 6px; padding: 8px 10px; font-size: 7px; color: #333; margin: 8px auto 0 auto; border: 1px solid #e9ecef; line-height: 1.6; text-align: center;">
+                        <div><strong>MATRÍCULA:</strong> <span style="color: #7b1b37; font-weight: bold;">${mat}</span></div>
+                        <div><strong>CARRERA:</strong> <span>${alumno.especialidad || 'N/A'}</span></div>
+                        <div><strong>GRUPO:</strong> <span>${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}</span></div>
+                        <div><strong>CURP:</strong> <span>${alumno.curp || 'N/A'}</span></div>
+                        <div><strong>VIGENCIA:</strong> <span>${vigencia}</span></div>
+                    </div>
+                </div>
+                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 6px; color: white; font-weight: bold; padding: 3px 0; text-align: center;">CBTIS 134 • SISTEMA DE CONTROL ESCOLAR</div>
+            </div>
+        `;
 
-            const fotoSrc = fotoTemporalAlumno || '/img/logo-256.png';
-            const imgFoto = new Image();
-            imgFoto.src = fotoSrc;
+        const targetEl = container.firstElementChild;
+        const canvas = await html2canvas(targetEl, {
+            scale: 4,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+        });
 
-            imgFoto.onload = () => renderDetails(imgFoto);
-            imgFoto.onerror = () => renderDetails(null);
-
-            function renderDetails(foto) {
-                if (foto) {
-                    ctx.drawImage(foto, 160, 115, 220, 260);
-                } else {
-                    ctx.fillStyle = "#EEEEEE"; ctx.fillRect(160, 115, 220, 260);
-                }
-
-                // Name centered
-                ctx.fillStyle = "#000000"; ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
-                ctx.fillText(`${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase(), 270, 415);
-
-                // Lowered & centered data box
-                ctx.fillStyle = "#f8f9fa"; ctx.fillRect(40, 450, 460, 320);
-                ctx.strokeStyle = "#cccccc"; ctx.lineWidth = 1.5; ctx.strokeRect(40, 450, 460, 320);
-
-                ctx.textAlign = "center";
-
-                // Line 1: MATRÍCULA
-                ctx.fillStyle = "#333333"; ctx.font = "bold 17px Arial";
-                ctx.fillText("MATRÍCULA:", 210, 495);
-                ctx.fillStyle = "#7b1b37"; ctx.font = "bold 18px Arial";
-                ctx.fillText(mat, 320, 495);
-
-                // Line 2: CARRERA
-                ctx.fillStyle = "#333333"; ctx.font = "bold 16px Arial";
-                ctx.fillText(`CARRERA: ${alumno.especialidad || 'N/A'}`, 270, 550);
-
-                // Line 3: GRUPO
-                ctx.fillText(`GRUPO: ${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}`, 270, 605);
-
-                // Line 4: CURP
-                ctx.fillText(`CURP: ${alumno.curp || 'N/A'}`, 270, 660);
-
-                // Line 5: VIGENCIA
-                ctx.fillText(`VIGENCIA: ${cfgSistema.vigencia_actual || 'Agosto 2027'}`, 270, 715);
-
-                // Bottom bar
-                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 816, 540, 40);
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
-                ctx.fillText("CBTIS 134 • SISTEMA DE CONTROL ESCOLAR", 270, 842);
-
-                resolve(canvas.toDataURL("image/png"));
-            }
-        }
+        resolve(canvas.toDataURL("image/png"));
     });
 }
 
 async function generarCanvasCredencialReverso(alumno) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 540; canvas.height = 856;
-
-        if (plantillaReverso) {
-            const bg = new Image();
-            bg.src = plantillaReverso;
-            bg.onload = () => drawContent(bg);
-            bg.onerror = () => drawContent(null);
-        } else {
-            drawContent(null);
+    if (plantillaReverso) {
+        return generarCanvasCustomReverso(alumno);
+    }
+    return new Promise(async (resolve) => {
+        let container = document.getElementById('tempCardContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tempCardContainer';
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            document.body.appendChild(container);
         }
 
-        async function drawContent(bgImage) {
-            if (bgImage) {
-                ctx.drawImage(bgImage, 0, 0, 540, 856);
-            } else {
-                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 540, 856);
-                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 80);
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 22px Arial"; ctx.textAlign = "center";
-                ctx.fillText("INFORMACIÓN DE CONTROL Y ACCESO", 270, 50);
-            }
+        const mat = alumno.ncontrol || alumno.matricula || '';
+        const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 100);
+        const qrImgData = await generarQRConTigre(textoQR);
+        const director = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
 
-            const mat = alumno.ncontrol || alumno.matricula || '';
-            const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 100);
-            const qrImg = await generarQRConTigre(textoQR);
+        container.innerHTML = `
+            <div id="cardReversoTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: Arial, sans-serif; text-align: center; box-sizing: border-box;">
+                <div style="background-color: #7b1b37; padding: 5px 2px; color: white; text-align: center;">
+                    <div style="font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px;">INFORMACIÓN DE CONTROL Y ACCESO</div>
+                </div>
+                <div style="padding: 12px 6px;">
+                    <div style="width: 34mm; height: 34mm; margin: 4px auto 8px auto;">
+                        <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
+                    </div>
+                    <div style="font-size: 6.5px; color: #333; line-height: 1.3; margin-bottom: 15px;">
+                        Esta credencial es personal e intransferible.<br>
+                        Acredita al portador como alumno(a) del plantel CBTis No. 134.
+                    </div>
+                    
+                    <div style="width: 40mm; border-bottom: 1px solid #333; margin: 15px auto 4px auto;"></div>
+                    <div style="font-size: 8px; font-weight: bold; color: #000;">${director}</div>
+                    <div style="font-size: 6.5px; color: #555;">Director del Plantel CBTis No. 134</div>
+                </div>
+                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 6px; color: white; font-weight: bold; padding: 3px 0; text-align: center;">CLAVE CCT: 12DCT0001L</div>
+            </div>
+        `;
 
-            const imgQR = new Image();
-            imgQR.src = qrImg;
-            imgQR.onload = () => {
-                ctx.drawImage(imgQR, 120, 120, 300, 300);
+        const targetEl = container.firstElementChild;
+        const canvas = await html2canvas(targetEl, {
+            scale: 4,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+        });
 
-                ctx.fillStyle = "#333333"; ctx.font = "14px Arial"; ctx.textAlign = "center";
-                ctx.fillText("Esta credencial es personal e intransferible.", 270, 480);
-                ctx.fillText("Acredita al portador como alumno(a) del plantel CBTis No. 134.", 270, 505);
-
-                ctx.strokeStyle = "#000000"; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(150, 680); ctx.lineTo(390, 680); ctx.stroke();
-
-                ctx.font = "bold 16px Arial"; ctx.fillStyle = "#000000";
-                ctx.fillText(cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA", 270, 710);
-                ctx.font = "14px Arial"; ctx.fillStyle = "#555555";
-                ctx.fillText("Director del Plantel CBTis No. 134", 270, 735);
-
-                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 816, 540, 40);
-                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
-                ctx.fillText("CLAVE CCT: 12DCT0001L", 270, 842);
-
-                resolve(canvas.toDataURL("image/png"));
-            };
-        }
+        resolve(canvas.toDataURL("image/png"));
     });
 }
 
