@@ -13,49 +13,10 @@
     }
 })();
 
-const firebaseConfig = {
-    apiKey: "AIzaSyAzxAZhm5UC8RhSbs_pTURwP2qRIlix8ww",
-    authDomain: "cbtis134-37029.firebaseapp.com",
-    projectId: "cbtis134-37029",
-    storageBucket: "cbtis134-37029.firebasestorage.app",
-    messagingSenderId: "113128399234",
-    appId: "1:113128399234:web:43f375ea15675ba4df6f9b"
-};
-
-// Inicialización única
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-let rolUsuarioActual = null;
-
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        try {
-            const docUsuario = await db.collection("usuarios").doc(user.uid).get();
-            if (docUsuario.exists) {
-                rolUsuarioActual = docUsuario.data().rol;
-                const rolMayus = rolUsuarioActual.toUpperCase();
-
-                aplicarPermisosVisuales(rolUsuarioActual);
-
-                protegerRutasCentralizado(rolMayus);
-            } else {
-                window.location.href = "/login";
-            }
-        } catch (error) {
-            console.error("Error al obtener perfil:", error);
-        }
-    } else {
-
-        if (window.location.pathname !== '/login') {
-            window.location.href = "/login";
-        }
-    }
+document.addEventListener("DOMContentLoaded", () => {
+    const rol = (localStorage.getItem('userRole') || 'admin').toUpperCase();
+    aplicarPermisosVisuales(rol);
+    protegerRutasCentralizado(rol);
 });
 
 function protegerRutasCentralizado(rol) {
@@ -99,11 +60,6 @@ function protegerRutasCentralizado(rol) {
                 window.location.href = '/admin/dashboard';
             }
         }
-    } 
-
-    else if (path !== '/login' && path !== '/') {
-        console.warn(`RUTA DESCONOCIDA O NO REGISTRADA: ${path}`);
-        window.location.href = '/admin/dashboard';
     }
 }
 

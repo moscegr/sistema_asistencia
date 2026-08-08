@@ -1,14 +1,14 @@
 // static/js/nav_tigre.js
 
-// 1. Lógica de Redirección (Tu lógica original)
+// 1. Lógica de Redirección
 function redirigirAlInicio() {
     const rol = localStorage.getItem('userRole'); 
-	const rutas = {
-	                    'admin': '/admin/dashboard',
-	                    'prefecto': '/admin/dashboard',
-	                    'orientacion': '/admin/dashboard',
-	                    'guardia': '/admin/escaneo'
-	                };
+    const rutas = {
+        'admin': '/admin/dashboard',
+        'prefecto': '/admin/dashboard',
+        'orientacion': '/admin/dashboard',
+        'guardia': '/admin/escaneo'
+    };
 
     if (rol && rutas[rol.toLowerCase()]) {
         window.location.href = rutas[rol.toLowerCase()];
@@ -17,7 +17,7 @@ function redirigirAlInicio() {
     }
 }
 
-// 2. Cerrar Sesión
+// 2. Cerrar Sesión (Spring Security /logout)
 function confirmarCerrarSesion() {
     Swal.fire({
         title: '¿Cerrar Sesión?',
@@ -30,17 +30,10 @@ function confirmarCerrarSesion() {
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            firebase.auth().signOut().then(() => {
-                localStorage.clear();
-                sessionStorage.clear();
-				
-				document.cookie = "AuthToken=; path=/; max-age=0; SameSite=Strict";
-				
-                window.location.href = "/login";
-            }).catch((error) => {
-                console.error("Error al salir:", error);
-                window.location.href = "/login";
-            });
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie = "AuthToken=; path=/; max-age=0; SameSite=Strict";
+            window.location.href = "/logout";
         }
     });
 }
@@ -72,15 +65,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const activeLink = document.querySelector(`.sb-body a[href="${currentPath}"]`);
 
     if (activeLink) {
-
         activeLink.classList.add('active');
-
         const parentCollapse = activeLink.closest('.collapse');
         
         if (parentCollapse) {
-
             parentCollapse.classList.add('show');
-
             const toggleBtn = document.querySelector(`[aria-controls="${parentCollapse.id}"]`);
             if (toggleBtn) {
                 toggleBtn.setAttribute('aria-expanded', 'true');

@@ -1,46 +1,42 @@
 /**
- * Gestión de Usuarios Administrativos - CBTis 134
+ * Gestión de Usuarios Administrativos - CBTis 134 (MongoDB REST API)
  */
 
-let editUserUID = null; // Usaremos el UID (ID del doc) para la edición
+let editUserUID = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     listarUsuarios();
 
-    // --- MAGIA SIN TOCAR HTML: Interceptar cuando se abre el modal ---
     const modalElement = document.getElementById('modalNuevoUsuario');
     if (modalElement) {
         modalElement.addEventListener('show.bs.modal', function (event) {
-            // Verificamos si el modal se abrió por el botón "Registrar Nuevo" o por la función "prepararEdicion"
-            // Si editUserUID es nulo, significa que vamos a Crear uno nuevo.
             if (!editUserUID) {
-                // 1. Limpiamos el formulario
                 document.getElementById('formNuevoUsuario').reset();
                 
-                // 2. Restauramos los campos (quitamos bloqueos de la edición pasada)
                 document.getElementById('regCorreo').readOnly = false;
                 document.getElementById('regPassword').parentElement.style.display = 'block';
                 
-                // 3. Restauramos títulos y botones a su estado original
                 document.querySelector('#modalNuevoUsuario .modal-title').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Registrar Personal';
                 const btnSave = document.querySelector('#modalNuevoUsuario .btn-guinda');
                 btnSave.innerHTML = '<i class="bi bi-save me-2"></i>Guardar Usuario';
                 
-                // 4. Asignamos la función correcta
-                btnSave.onclick = crearUsuarioFirestore;
+                btnSave.onclick = crearUsuario;
             }
         });
 
-        // Limpiar la variable cuando se cierra el modal para evitar bugs en la próxima apertura
         modalElement.addEventListener('hidden.bs.modal', function () {
             editUserUID = null;
         });
     }
 });
 
-// 1. LEER (READ): Sincronización en tiempo real con Firestore
-function listarUsuarios() {
-    db.collection("usuarios").onSnapshot((snapshot) => {
+// 1. LEER (READ): Cargar lista desde /api/usuarios
+async function listarUsuarios() {
+    try {
+        const response = await fetch('/api/usuarios');
+        if (!response.ok) return;
+        const usuarios = await response.json();
+
         const tbody = document.getElementById('tablaUsuariosBody');
         if (!tbody) return;
         tbody.innerHTML = "";
@@ -52,10 +48,8 @@ function listarUsuarios() {
             'GUARDIA': 'bg-secondary text-white'
         };
 
-        snapshot.forEach((doc) => {
-            const user = doc.data();
-            const idDoc = doc.id; // Esto asume que el ID es el UID
-            
+        usuarios.forEach((user) => {
+            const idDoc = user.id || user.uid;
             const rolKey = (user.rol || "").toUpperCase();
             const badgeClass = coloresRoles[rolKey] || 'bg-dark text-white';
             const estatusClass = user.estatus === 'Activo' ? 'text-success' : 'text-danger';
@@ -95,11 +89,13 @@ function listarUsuarios() {
                     </td>
                 </tr>`;
         });
-    });
+    } catch (e) {
+        console.error("Error al cargar usuarios:", e);
+    }
 }
 
-// 2. CREAR (CREATE): Registro de nuevo personal con Firebase Auth
-async function crearUsuarioFirestore() {
+// 2. CREAR (CREATE): POST /api/usuarios
+async function crearUsuario() {
     const nombre = document.getElementById('regNombre').value.trim();
     const correo = document.getElementById('regCorreo').value.trim().toLowerCase();
     const password = document.getElementById('regPassword').value;
@@ -112,28 +108,23 @@ async function crearUsuarioFirestore() {
     try {
         Swal.fire({ title: 'Creando cuenta...', didOpen: () => Swal.showLoading() });
 
-        const secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
-        
-        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(correo, password);
-        const newUser = userCredential.user;
-
-        await db.collection("usuarios").doc(newUser.uid).set({
-            nombre: nombre,
-            correo: correo,
-            rol: rol,
-            uid: newUser.uid,
-            estatus: "Activo",
-            fecha_registro: firebase.firestore.FieldValue.serverTimestamp()
+        const res = await fetch('/api/usuarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, correo, password, rol, estatus: 'Activo' })
         });
 
-        await secondaryApp.auth().signOut();
-        await secondaryApp.delete();
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || "No se pudo crear el usuario");
+        }
 
-        Swal.fire("Éxito", `Usuario ${nombre} creado. Contraseña: ${password}`, "success");
+        Swal.fire("Éxito", `Usuario ${nombre} creado correctamente.`, "success");
         
-        // Limpiamos y cerramos
         document.getElementById('formNuevoUsuario').reset();
-        bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario')).hide();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
+        if (modal) modal.hide();
+        listarUsuarios();
 
     } catch (error) {
         console.error(error);
@@ -144,21 +135,19 @@ async function crearUsuarioFirestore() {
 // 3. ACTUALIZAR (UPDATE): Preparar modal para edición
 async function prepararEdicion(id) {
     try {
-        const doc = await db.collection("usuarios").doc(id).get();
-        if (!doc.exists) return;
+        const res = await fetch(`/api/usuarios/${id}`);
+        if (!res.ok) return;
 
-        const u = doc.data();
-        editUserUID = id; // Declaramos que estamos en modo edición
+        const u = await res.json();
+        editUserUID = u.id || u.uid;
 
         document.getElementById('regNombre').value = u.nombre;
         document.getElementById('regCorreo').value = u.correo;
         document.getElementById('regRol').value = u.rol;
 
-        // Bloqueamos correo y ocultamos contraseña
         document.getElementById('regCorreo').readOnly = true;
         document.getElementById('regPassword').parentElement.style.display = 'none';
 
-        // Modificamos el modal visualmente
         const modalTitle = document.querySelector('#modalNuevoUsuario .modal-title');
         const saveBtn = document.querySelector('#modalNuevoUsuario .btn-guinda');
         
@@ -166,7 +155,6 @@ async function prepararEdicion(id) {
         saveBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Actualizar Datos';
         saveBtn.onclick = actualizarUsuarioExistente;
 
-        // Mostramos el modal manualmente
         const myModal = new bootstrap.Modal(document.getElementById('modalNuevoUsuario'));
         myModal.show();
 
@@ -175,7 +163,7 @@ async function prepararEdicion(id) {
     }
 }
 
-// 3.1 ACTUALIZAR (UPDATE): Guardar cambios editados
+// 3.1 ACTUALIZAR (UPDATE): PUT /api/usuarios/{id}
 async function actualizarUsuarioExistente() {
     const nombre = document.getElementById('regNombre').value.trim();
     const rol = document.getElementById('regRol').value;
@@ -183,16 +171,19 @@ async function actualizarUsuarioExistente() {
     try {
         Swal.fire({ title: 'Actualizando...', didOpen: () => Swal.showLoading() });
 
-        await db.collection("usuarios").doc(editUserUID).update({
-            nombre: nombre,
-            rol: rol,
-            ultima_edicion: firebase.firestore.FieldValue.serverTimestamp()
+        const res = await fetch(`/api/usuarios/${editUserUID}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, rol })
         });
+
+        if (!res.ok) throw new Error("Error al actualizar");
 
         Swal.fire("Éxito", "Usuario actualizado correctamente.", "success");
         
-        // Cerramos el modal
-        bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario')).hide();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
+        if (modal) modal.hide();
+        listarUsuarios();
     } catch (e) {
         Swal.fire("Error", "No se pudo actualizar.", "error");
     }
@@ -202,17 +193,22 @@ async function actualizarUsuarioExistente() {
 async function toggleEstatusUsuario(id, activo) {
     const nuevoEstatus = activo ? "Activo" : "Inactivo";
     try {
-        await db.collection("usuarios").doc(id).update({ estatus: nuevoEstatus });
+        await fetch(`/api/usuarios/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estatus: nuevoEstatus })
+        });
+        listarUsuarios();
     } catch (e) {
         Swal.fire("Error", "No se pudo cambiar el estatus del usuario.", "error");
     }
 }
 
-// 5. BORRAR (DELETE)
+// 5. BORRAR (DELETE): DELETE /api/usuarios/{id}
 function eliminarUsuario(id) {
     Swal.fire({
         title: '¿Eliminar cuenta?',
-        text: `Se borrará el perfil de ${id}. Esta acción no se puede deshacer.`,
+        text: `Se borrará el perfil del usuario. Esta acción no se puede deshacer.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#7b1b37',
@@ -222,8 +218,10 @@ function eliminarUsuario(id) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await db.collection("usuarios").doc(id).delete();
+                const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error("Error al eliminar");
                 Swal.fire("Eliminado", "El usuario ha sido removido del sistema.", "success");
+                listarUsuarios();
             } catch (e) {
                 Swal.fire("Error", "No se pudo eliminar el registro.", "error");
             }
