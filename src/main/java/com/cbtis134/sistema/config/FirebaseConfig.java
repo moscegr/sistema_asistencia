@@ -6,9 +6,8 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -18,11 +17,11 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            InputStream serviceAccount;
+            InputStream serviceAccount = null;
 
             String firebaseCredentialsJson = System.getenv("FIREBASE_CREDENTIALS_JSON");
 
-            if (firebaseCredentialsJson != null && !firebaseCredentialsJson.isEmpty()) {
+            if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
                 serviceAccount = new ByteArrayInputStream(firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8));
                 System.out.println("=== [FIREBASE SDK] Inicializado desde variable segura en RAM (PROD) ===");
             } else {
@@ -31,7 +30,9 @@ public class FirebaseConfig {
                     serviceAccount = resource.getInputStream();
                     System.out.println("=== [FIREBASE SDK] Inicializado desde ClassPath interno (LOCAL/DEV) ===");
                 } else {
-                    throw new IllegalStateException("Error crítico: No se encontró la variable FIREBASE_CREDENTIALS_JSON ni el archivo local serviceAccountKey.json");
+                    System.out.println("=== [FIREBASE SDK] ADVERTENCIA: No se encontró la variable FIREBASE_CREDENTIALS_JSON ni el archivo local serviceAccountKey.json ===");
+                    System.out.println("=== [FIREBASE SDK] La aplicación continuará en modo seguro/local. ===");
+                    return;
                 }
             }
 
@@ -46,8 +47,8 @@ public class FirebaseConfig {
                 System.out.println("¡CONEXIÓN EXITOSA CON FIREBASE - CBTIS 134!");
                 System.out.println("=================================================");
             }
-        } catch (IOException e) {
-            System.err.println("ERROR CRÍTICO: No se pudo conectar con Firebase. " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("ADVERTENCIA: No se pudo inicializar Firebase SDK: " + e.getMessage());
         }
     }
 }

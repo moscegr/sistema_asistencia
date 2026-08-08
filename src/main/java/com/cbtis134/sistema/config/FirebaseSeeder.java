@@ -1,9 +1,9 @@
 package com.cbtis134.sistema.config;
 
 import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
@@ -25,6 +25,11 @@ public class FirebaseSeeder implements ApplicationRunner {
         String adminPassword = "AdminCbtis134!";
 
         try {
+            if (FirebaseApp.getApps().isEmpty()) {
+                System.out.println("=== [SEEDER] FirebaseApp no está inicializado. Omitiendo siembra en Firebase. ===");
+                return;
+            }
+
             Firestore dbFirestore = FirestoreClient.getFirestore();
             
             ApiFuture<QuerySnapshot> future = dbFirestore.collection("usuarios").limit(1).get();

@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 
@@ -40,7 +41,7 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
             }
         }
 
-        if (token != null) {
+        if (token != null && !FirebaseApp.getApps().isEmpty()) {
             try {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 
@@ -50,7 +51,6 @@ public class FirebaseTokenFilter extends OncePerRequestFilter {
                 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception e) {
-                // Si el token expiró o es falso, simplemente no autenticamos
                 System.err.println("Filtro: Token inválido o expirado.");
             }
         }
