@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="/img/favicon.png">
@@ -7,27 +7,7 @@
 <body>
 <div th:fragment="sidebar" id="sidebar-wrapper" class="text-white shadow">
 
-    <script>
-        (function() {
-            var r = (localStorage.getItem('userRole') || '').toUpperCase();
-            if (r) {
-                var s = document.createElement('style');
-                s.id = 'style-anti-flicker-instantaneo';
-                if (r === 'ADMIN') {
-                    s.innerHTML = '.requiere-permiso { display: flex !important; } div.requiere-permiso { display: block !important; }';
-                } else {
-                    s.innerHTML = '.requiere-permiso { display: none !important; } ' +
-                                  '.requiere-permiso[data-roles*="' + r + '"] { display: flex !important; } ' +
-                                  'p.sb-label[data-roles*="' + r + '"] { display: flex !important; } ' +
-                                  'div.requiere-permiso[data-roles*="' + r + '"] { display: block !important; }';
-                }
-                document.head.appendChild(s);
-            }
-        })();
-    </script>
-
     <style>
-
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
 
         :root {
@@ -73,7 +53,6 @@
             position: relative;
         }
 
-        /* Resplandor sutil detrás del logo */
         .sb-head::before {
             content: '';
             position: absolute;
@@ -309,22 +288,6 @@
             color: #fca5a5;
         }
 
-        .sb-item, .sb-sub {
-            animation: sb-fadein 0.35s ease both;
-        }
-
-        @keyframes sb-fadein {
-            from { opacity: 0; transform: translateX(-10px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-
-        .sb-item:nth-child(1)  { animation-delay: 0.05s; }
-        .sb-item:nth-child(2)  { animation-delay: 0.10s; }
-        .sb-item:nth-child(3)  { animation-delay: 0.15s; }
-        .sb-item:nth-child(4)  { animation-delay: 0.20s; }
-        .sb-item:nth-child(5)  { animation-delay: 0.25s; }
-        .sb-item:nth-child(6)  { animation-delay: 0.30s; }
-
         @media (max-width: 991px) {
             #sidebar-wrapper {
                 position: fixed !important;
@@ -357,54 +320,54 @@
 	
 	<div class="sb-body">
 	
-	    <a href="/admin/dashboard" class="sb-item active requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION">
+	    <a href="/admin/dashboard" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-item">
 	        <i class="bi bi-grid-1x2-fill"></i> Escritorio
 	    </a>
 	
-	    <p class="sb-label requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION">Gestión</p>
+	    <p sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-label">Gestión</p>
 	
-	    <a href="#submenuAlumnos" data-bs-toggle="collapse" class="sb-item sb-toggle requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION" aria-expanded="false" aria-controls="submenuAlumnos">
+	    <a href="#submenuAlumnos" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" data-bs-toggle="collapse" class="sb-item sb-toggle" aria-expanded="false" aria-controls="submenuAlumnos">
 	        <span class="sb-toggle-left">
 	            <i class="bi bi-people"></i> Alumnos
 	        </span>
 	        <i class="bi bi-chevron-down sb-chev"></i>
 	    </a>
-	    <div class="collapse" id="submenuAlumnos">
+	    <div class="collapse" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" id="submenuAlumnos">
 	        <div class="sb-submenu">
-	            <a href="/admin/alumnos" class="sb-sub requiere-permiso" data-roles="ADMIN"><i class="bi bi-list-ul"></i> Listado General</a>
-	            <a href="/admin/alumnos/nuevo" class="sb-sub requiere-permiso" data-roles="ADMIN"><i class="bi bi-person-plus"></i> Registrar Nuevo</a>
-	            <a href="/admin/alumnos/gestion-archivos" class="sb-sub requiere-permiso" data-roles="ADMIN"><i class="bi bi-file-earmark-spreadsheet"></i> Gestión de Archivos</a>
-	            <a href="/admin/alumnos/credenciales" class="sb-sub requiere-permiso" data-roles="ADMIN"><i class="bi bi-person-badge-fill"></i> Credenciales</a>
+	            <a href="/admin/alumnos" sec:authorize="hasRole('ADMIN')" class="sb-sub"><i class="bi bi-list-ul"></i> Listado General</a>
+	            <a href="/admin/alumnos/nuevo" sec:authorize="hasRole('ADMIN')" class="sb-sub"><i class="bi bi-person-plus"></i> Registrar Nuevo</a>
+	            <a href="/admin/alumnos/gestion-archivos" sec:authorize="hasRole('ADMIN')" class="sb-sub"><i class="bi bi-file-earmark-spreadsheet"></i> Gestión de Archivos</a>
+	            <a href="/admin/alumnos/credenciales" sec:authorize="hasRole('ADMIN')" class="sb-sub"><i class="bi bi-person-badge-fill"></i> Credenciales</a>
 	            
-	            <a href="/admin/alumnos/expediente" class="sb-sub requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION"><i class="bi bi-person-badge"></i> Expediente Digital</a>
-	            <a href="/admin/alumnos/seguimiento-conductual" class="sb-sub requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION"><i class="bi bi-clipboard-x"></i> Seguimiento Conductual</a>
-	            <a href="/admin/alumnos/monitoreo-salud" class="sb-sub requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION"><i class="bi bi-heart-pulse"></i> Monitoreo de Salud</a>
+	            <a href="/admin/alumnos/expediente" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-sub"><i class="bi bi-person-badge"></i> Expediente Digital</a>
+	            <a href="/admin/alumnos/seguimiento-conductual" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-sub"><i class="bi bi-clipboard-x"></i> Seguimiento Conductual</a>
+	            <a href="/admin/alumnos/monitoreo-salud" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-sub"><i class="bi bi-heart-pulse"></i> Monitoreo de Salud</a>
 	        </div>
 	    </div>
 	
-	    <a href="#submenuAdmin" data-bs-toggle="collapse" class="sb-item sb-toggle requiere-permiso" data-roles="ADMIN" aria-expanded="false" aria-controls="submenuAdmin">
+	    <a href="#submenuAdmin" sec:authorize="hasRole('ADMIN')" data-bs-toggle="collapse" class="sb-item sb-toggle" aria-expanded="false" aria-controls="submenuAdmin">
 	        <span class="sb-toggle-left">
 	            <i class="bi bi-person-badge"></i> Administrativos
 	        </span>
 	        <i class="bi bi-chevron-down sb-chev"></i>
 	    </a>
-	    <div class="collapse requiere-permiso" data-roles="ADMIN" id="submenuAdmin">
+	    <div class="collapse" sec:authorize="hasRole('ADMIN')" id="submenuAdmin">
 	        <div class="sb-submenu">
 	            <a href="/admin/usuarios" class="sb-sub"><i class="bi bi-person-lines-fill"></i> Ver Personal</a>
 	        </div>
 	    </div>
 	
-	    <p class="sb-label requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION">Movimientos</p>
+	    <p sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-label">Movimientos</p>
 	
-	    <a href="/admin/pases" class="sb-item requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION">
+	    <a href="/admin/pases" sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')" class="sb-item">
 	        <i class="bi bi-check-square"></i> Pases de Salida
 	    </a>
 	
-	    <a href="/admin/justificantes" class="sb-item requiere-permiso" data-roles="ADMIN,ORIENTACION">
+	    <a href="/admin/justificantes" sec:authorize="hasAnyRole('ADMIN','ORIENTACION')" class="sb-item">
 	        <i class="bi bi-file-earmark-check"></i> Justificantes
 	    </a>
 	
-	    <div class="requiere-permiso" data-roles="ADMIN,PREFECTO,ORIENTACION">
+	    <div sec:authorize="hasAnyRole('ADMIN','PREFECTO','ORIENTACION')">
 	        <a href="#submenuIncidencias" data-bs-toggle="collapse" class="sb-item sb-toggle" aria-expanded="false" aria-controls="submenuIncidencias">
 	            <span class="sb-toggle-left">
 	                <i class="bi bi-exclamation-triangle"></i> Incidencias
@@ -413,18 +376,18 @@
 	        </a>
 	        <div class="collapse" id="submenuIncidencias">
 	            <div class="sb-submenu">
-	                <a href="/admin/incidencias/prefectura" class="sb-sub requiere-permiso" data-roles="ADMIN,PREFECTO"><i class="bi bi-person-workspace"></i> Reporte Prefectura</a>
-	                <a href="/admin/incidencias/orientacion" class="sb-sub requiere-permiso" data-roles="ADMIN,ORIENTACION"><i class="bi bi-file-earmark-person"></i> Reporte Orientación</a>
+	                <a href="/admin/incidencias/prefectura" sec:authorize="hasAnyRole('ADMIN','PREFECTO')" class="sb-sub"><i class="bi bi-person-workspace"></i> Reporte Prefectura</a>
+	                <a href="/admin/incidencias/orientacion" sec:authorize="hasAnyRole('ADMIN','ORIENTACION')" class="sb-sub"><i class="bi bi-file-earmark-person"></i> Reporte Orientación</a>
 	            </div>
 	        </div>
 	    </div>
 	
-	    <p class="sb-label requiere-permiso" data-roles="ADMIN,GUARDIA">Accesos</p>
-	    <a href="/admin/escaneo" class="sb-item requiere-permiso" data-roles="ADMIN,GUARDIA">
+	    <p sec:authorize="hasAnyRole('ADMIN','GUARDIA')" class="sb-label">Accesos</p>
+	    <a href="/admin/escaneo" sec:authorize="hasAnyRole('ADMIN','GUARDIA')" class="sb-item">
 	        <i class="bi bi-qr-code-scan"></i> Punto de Control
 	    </a>
 	
-	    <div class="requiere-permiso" data-roles="ADMIN">
+	    <div sec:authorize="hasRole('ADMIN')">
 	        <p class="sb-label">Sistema</p>
 	        <a href="/admin/configuracion" class="sb-item">
 	            <i class="bi bi-gear"></i> Configuración
