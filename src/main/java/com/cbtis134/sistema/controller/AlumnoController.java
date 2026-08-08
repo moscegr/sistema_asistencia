@@ -29,14 +29,14 @@ public class AlumnoController {
 
     @GetMapping("/ncontrol/{ncontrol}")
     public ResponseEntity<Alumno> obtenerPorNControl(@PathVariable String ncontrol) {
-        return alumnoRepository.findByNcontrol(ncontrol)
+        return alumnoRepository.findFirstByNcontrol(ncontrol)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/qr/{qrCode}")
     public ResponseEntity<Alumno> obtenerPorQr(@PathVariable String qrCode) {
-        return alumnoRepository.findByQrCode(qrCode)
+        return alumnoRepository.findFirstByQrCode(qrCode)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

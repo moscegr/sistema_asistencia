@@ -101,7 +101,7 @@ public class AdminSeeder implements ApplicationRunner {
         List<Alumno> lista = crearListaAlumnosSeed();
         for (Alumno a : lista) {
             String matricula = a.getMatricula();
-            if (alumnoRepository.findByNcontrol(matricula).isEmpty()) {
+            if (alumnoRepository.findFirstByNcontrol(matricula).isEmpty()) {
                 alumnoRepository.save(a);
                 System.out.println("-> Alumno registrado: " + matricula + " - " + a.getNombre() + " " + a.getApepat());
             }
