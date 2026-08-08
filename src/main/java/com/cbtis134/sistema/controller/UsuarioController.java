@@ -29,6 +29,7 @@ public class UsuarioController {
     public ResponseEntity<Usuario> obtenerPorId(@PathVariable String id) {
         return usuarioRepository.findById(id)
                 .or(() -> usuarioRepository.findByUid(id))
+                .or(() -> usuarioRepository.findByCorreo(id))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -55,8 +56,12 @@ public class UsuarioController {
     public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Usuario usuarioActualizado) {
         return usuarioRepository.findById(id)
                 .or(() -> usuarioRepository.findByUid(id))
+                .or(() -> usuarioRepository.findByCorreo(id))
                 .map(usuario -> {
                     if (usuarioActualizado.getNombre() != null) usuario.setNombre(usuarioActualizado.getNombre());
+                    if (usuarioActualizado.getCorreo() != null && !usuarioActualizado.getCorreo().trim().isEmpty()) {
+                        usuario.setCorreo(usuarioActualizado.getCorreo().trim());
+                    }
                     if (usuarioActualizado.getRol() != null) usuario.setRol(usuarioActualizado.getRol());
                     if (usuarioActualizado.getEstatus() != null) usuario.setEstatus(usuarioActualizado.getEstatus());
                     if (usuarioActualizado.getPermisos() != null) usuario.setPermisos(usuarioActualizado.getPermisos());
@@ -72,6 +77,7 @@ public class UsuarioController {
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         return usuarioRepository.findById(id)
                 .or(() -> usuarioRepository.findByUid(id))
+                .or(() -> usuarioRepository.findByCorreo(id))
                 .map(usuario -> {
                     usuarioRepository.delete(usuario);
                     return ResponseEntity.ok().<Void>build();

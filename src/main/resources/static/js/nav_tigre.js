@@ -78,3 +78,119 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 });
+
+// 5. EDITAR MI PERFIL (ADMINISTRATIVOS)
+async function abrirModalMiPerfil() {
+    let modalEl = document.getElementById('modalMiPerfilGenerico');
+    if (!modalEl) {
+        const div = document.createElement('div');
+        div.innerHTML = `
+        <div class="modal fade" id="modalMiPerfilGenerico" tabindex="-1" aria-hidden="true" style="z-index: 1080 !important;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+                    <div class="modal-header bg-guinda text-white">
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-person-gear me-2"></i>Mi Perfil - Editar Mis Datos
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <form id="formMiPerfil">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark">Nombre Completo</label>
+                                <input type="text" id="miPerfilNombre" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark">Correo Institucional</label>
+                                <input type="email" id="miPerfilCorreo" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-dark">Nueva Contraseña (Opcional)</label>
+                                <div class="input-group">
+                                    <input type="password" id="miPerfilPassword" class="form-control" placeholder="Dejar en blanco para conservar actual">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="const p=document.getElementById('miPerfilPassword'); p.type=p.type==='password'?'text':'password';">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-guinda px-4" onclick="guardarDatosMiPerfil()">
+                            <i class="bi bi-check-circle me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.appendChild(div.firstElementChild);
+        modalEl = document.getElementById('modalMiPerfilGenerico');
+    }
+
+    const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('userEmailAuth') || '';
+    const currentName = localStorage.getItem('userName') || 'Administrador';
+
+    document.getElementById('miPerfilNombre').value = currentName;
+    document.getElementById('miPerfilCorreo').value = currentEmail;
+    document.getElementById('miPerfilPassword').value = '';
+
+    const bsModal = new bootstrap.Modal(modalEl);
+    bsModal.show();
+}
+
+async function guardarDatosMiPerfil() {
+    const nombre = document.getElementById('miPerfilNombre').value.trim();
+    const correo = document.getElementById('miPerfilCorreo').value.trim().toLowerCase();
+    const password = document.getElementById('miPerfilPassword').value;
+
+    if (!nombre || !correo) {
+        return Swal.fire("Campos incompletos", "El nombre y el correo son obligatorios.", "warning");
+    }
+
+    const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('userEmailAuth') || correo;
+
+    try {
+        Swal.fire({ title: 'Actualizando perfil...', didOpen: () => Swal.showLoading() });
+
+        const payload = { nombre, correo };
+        if (password && password.trim() !== '') {
+            payload.password = password;
+        }
+
+        const res = await fetch(`/api/usuarios/${encodeURIComponent(currentEmail)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error("No se pudieron guardar los cambios de perfil.");
+
+        localStorage.setItem('userName', nombre);
+        localStorage.setItem('userEmail', correo);
+
+        const elUserName = document.getElementById('userName');
+        const elBannerName = document.getElementById('userBannerName');
+        if (elUserName) elUserName.innerText = nombre;
+        if (elBannerName) elBannerName.innerText = nombre;
+
+        const modalEl = document.getElementById('modalMiPerfilGenerico');
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Perfil Actualizado!',
+            text: 'Tus datos administrativos se actualizaron correctamente.',
+            toast: true,
+            position: 'bottom-end',
+            timer: 3500,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        Swal.fire("Error", e.message, "error");
+    }
+}
+window.abrirModalMiPerfil = abrirModalMiPerfil;
+window.guardarDatosMiPerfil = guardarDatosMiPerfil;

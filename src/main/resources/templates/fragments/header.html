@@ -63,6 +63,7 @@
 
     .tigre-btn i { font-size: 1rem; line-height: 1; pointer-events: none; }
 
+    .tigre-btn.btn-profile:hover { background: #0088cc; color: #fff; transform: scale(1.12); }
     .tigre-btn.btn-logout:hover  { background: #e53e3e; color: #fff; transform: scale(1.12); }
     .tigre-btn.btn-home:hover    { background: #38a169; color: #fff; transform: scale(1.12); }
     .tigre-btn.btn-back:hover    { background: rgba(255,255,255,0.25); color: #fff; transform: scale(1.12); }
@@ -134,6 +135,16 @@
                  class="tigre-img">
 
             <div class="tigre-options">
+
+                <button class="tigre-btn btn-profile" onclick="abrirModalMiPerfil()">
+                    <i class="bi bi-person-gear"></i>
+                    <span class="label-tigre">
+                        Mi Perfil
+                        <span class="lbl-action">Editar mis datos</span>
+                    </span>
+                </button>
+
+                <div class="tigre-divider"></div>
 
                 <button class="tigre-btn btn-back" onclick="window.history.back()">
                     <i class="bi bi-arrow-left"></i>

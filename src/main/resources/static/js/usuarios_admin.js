@@ -13,14 +13,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!editUserUID) {
                 document.getElementById('formNuevoUsuario').reset();
                 
-                document.getElementById('regCorreo').readOnly = false;
-                document.getElementById('regPassword').parentElement.style.display = 'block';
+                const regCorreo = document.getElementById('regCorreo');
+                const lblPass = document.getElementById('lblRegPassword');
+                const descPass = document.getElementById('descRegPassword');
+                const regPass = document.getElementById('regPassword');
+                
+                if (regCorreo) regCorreo.readOnly = false;
+                if (lblPass) lblPass.innerText = 'Contraseña de Acceso';
+                if (descPass) descPass.style.display = 'none';
+                if (regPass) regPass.required = true;
                 
                 document.querySelector('#modalNuevoUsuario .modal-title').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Registrar Personal';
                 const btnSave = document.querySelector('#modalNuevoUsuario .btn-guinda');
-                btnSave.innerHTML = '<i class="bi bi-save me-2"></i>Guardar Usuario';
-                
-                btnSave.onclick = crearUsuario;
+                if (btnSave) {
+                    btnSave.innerHTML = '<i class="bi bi-save me-2"></i>Guardar Usuario';
+                    btnSave.onclick = crearUsuario;
+                }
             }
         });
 
@@ -80,10 +88,10 @@ async function listarUsuarios() {
                     <td class="text-center">
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary border-0" onclick="prepararEdicion('${idDoc}')" title="Editar">
-                                <i class="bi bi-pencil-square"></i>
+                                <i class="bi bi-pencil-square fs-5"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarUsuario('${idDoc}')" title="Eliminar">
-                                <i class="bi bi-trash3-fill"></i>
+                                <i class="bi bi-trash3-fill fs-5"></i>
                             </button>
                         </div>
                     </td>
@@ -102,7 +110,7 @@ async function crearUsuario() {
     const rol = document.getElementById('regRol').value;
 
     if (!nombre || !correo || !password || !rol) {
-        return Swal.fire("Campos Incompletos", "Llena todos los datos.", "warning");
+        return Swal.fire("Campos Incompletos", "Por favor llena todos los datos requeridos.", "warning");
     }
 
     try {
@@ -119,7 +127,7 @@ async function crearUsuario() {
             throw new Error(errText || "No se pudo crear el usuario");
         }
 
-        Swal.fire("Éxito", `Usuario ${nombre} creado correctamente.`, "success");
+        Swal.fire("Éxito", `Usuario ${nombre} registrado correctamente.`, "success");
         
         document.getElementById('formNuevoUsuario').reset();
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
@@ -141,19 +149,29 @@ async function prepararEdicion(id) {
         const u = await res.json();
         editUserUID = u.id || u.uid;
 
-        document.getElementById('regNombre').value = u.nombre;
-        document.getElementById('regCorreo').value = u.correo;
-        document.getElementById('regRol').value = u.rol;
+        document.getElementById('regNombre').value = u.nombre || '';
+        document.getElementById('regCorreo').value = u.correo || '';
+        document.getElementById('regRol').value = u.rol || '';
+        document.getElementById('regPassword').value = '';
 
-        document.getElementById('regCorreo').readOnly = true;
-        document.getElementById('regPassword').parentElement.style.display = 'none';
+        const regCorreo = document.getElementById('regCorreo');
+        const lblPass = document.getElementById('lblRegPassword');
+        const descPass = document.getElementById('descRegPassword');
+        const regPass = document.getElementById('regPassword');
+
+        if (regCorreo) regCorreo.readOnly = false;
+        if (lblPass) lblPass.innerText = 'Nueva Contraseña (Opcional)';
+        if (descPass) descPass.style.display = 'block';
+        if (regPass) regPass.required = false;
 
         const modalTitle = document.querySelector('#modalNuevoUsuario .modal-title');
         const saveBtn = document.querySelector('#modalNuevoUsuario .btn-guinda');
         
-        modalTitle.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Personal';
-        saveBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Actualizar Datos';
-        saveBtn.onclick = actualizarUsuarioExistente;
+        if (modalTitle) modalTitle.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Editar Personal';
+        if (saveBtn) {
+            saveBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Actualizar Datos';
+            saveBtn.onclick = actualizarUsuarioExistente;
+        }
 
         const myModal = new bootstrap.Modal(document.getElementById('modalNuevoUsuario'));
         myModal.show();
@@ -166,26 +184,37 @@ async function prepararEdicion(id) {
 // 3.1 ACTUALIZAR (UPDATE): PUT /api/usuarios/{id}
 async function actualizarUsuarioExistente() {
     const nombre = document.getElementById('regNombre').value.trim();
+    const correo = document.getElementById('regCorreo').value.trim().toLowerCase();
     const rol = document.getElementById('regRol').value;
+    const password = document.getElementById('regPassword').value;
+
+    if (!nombre || !correo || !rol) {
+        return Swal.fire("Campos Incompletos", "Nombre, correo y rol son obligatorios.", "warning");
+    }
 
     try {
         Swal.fire({ title: 'Actualizando...', didOpen: () => Swal.showLoading() });
 
+        const payload = { nombre, correo, rol };
+        if (password && password.trim() !== '') {
+            payload.password = password;
+        }
+
         const res = await fetch(`/api/usuarios/${editUserUID}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, rol })
+            body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error("Error al actualizar");
+        if (!res.ok) throw new Error("Error al actualizar datos del usuario");
 
-        Swal.fire("Éxito", "Usuario actualizado correctamente.", "success");
+        Swal.fire("Éxito", "Datos del usuario actualizados correctamente.", "success");
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
         if (modal) modal.hide();
         listarUsuarios();
     } catch (e) {
-        Swal.fire("Error", "No se pudo actualizar.", "error");
+        Swal.fire("Error", "No se pudo actualizar la información.", "error");
     }
 }
 

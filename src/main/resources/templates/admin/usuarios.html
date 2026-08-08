@@ -95,8 +95,14 @@
                             </select>
                         </div>
                         <div class="mb-3">
-						    <label class="form-label small fw-bold">Contraseña de Acceso</label>
-						    <input type="password" id="regPassword" class="form-control" placeholder="Mínimo 6 caracteres" required>
+						    <label class="form-label small fw-bold" id="lblRegPassword">Contraseña de Acceso</label>
+                            <div class="input-group">
+						        <input type="password" id="regPassword" class="form-control" placeholder="Mínimo 6 caracteres">
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('regPassword')">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted" id="descRegPassword" style="font-size:0.75rem; display:none;">Dejar en blanco si no desea cambiar la contraseña actual.</small>
 						</div>
                     </form>
                 </div>
@@ -115,5 +121,11 @@
     <script th:src="@{/js/firebase-init.js}"></script>
     <script th:src="@{/js/usuarios_admin.js}"></script>
     <script th:src="@{/js/nav_tigre.js}"></script>
+    <script>
+        function togglePassword(id) {
+            const input = document.getElementById(id);
+            if (input) input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
 </body>
 </html>
