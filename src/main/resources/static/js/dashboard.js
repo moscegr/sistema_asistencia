@@ -10,7 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     verificarIntegridadSistema();
     inicializarSesion();
     cargarDashboardCompleto();
-    setInterval(cargarDashboardCompleto, 60000);
+    cargarEstadisticas();
+    setInterval(() => {
+        cargarDashboardCompleto();
+        cargarEstadisticas();
+    }, 60000);
 });
 
 function inicializarSesion() {
@@ -80,13 +84,58 @@ function inicializarSwitchSalida() {
     }
 }
 
-function inicializarVistaCiclo() {
-    const displayHeader = document.getElementById('displayCicloActual');
-    if (displayHeader) displayHeader.innerText = "AGO-DIC 2026";
+async function inicializarVistaCiclo() {
+    try {
+        const res = await fetch('/api/configuracion/ciclo_escolar');
+        if (res.ok) {
+            const data = await res.json();
+            const displayHeader = document.getElementById('displayCicloActual');
+            if (displayHeader) displayHeader.innerText = data.actual || "AGO-DIC 2026";
+        }
+    } catch (e) {
+        const displayHeader = document.getElementById('displayCicloActual');
+        if (displayHeader) displayHeader.innerText = "AGO-DIC 2026";
+    }
 }
 
 function verificarIntegridadSistema() {
     console.log("Sistema CBTis 134 inicializado con MongoDB.");
+}
+
+async function cargarEstadisticas() {
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+
+    try {
+        const r1 = await fetch('/api/alumnos');
+        if (r1.ok) {
+            const list = await r1.json();
+            setVal('totalAlumnos', list.length);
+        }
+    } catch(e){}
+
+    try {
+        const r2 = await fetch('/api/pases');
+        if (r2.ok) {
+            const list = await r2.json();
+            setVal('totalPases', list.length);
+        }
+    } catch(e){}
+
+    try {
+        const r3 = await fetch('/api/justificantes');
+        if (r3.ok) {
+            const list = await r3.json();
+            setVal('totalJustificantes', list.length);
+        }
+    } catch(e){}
+
+    try {
+        const r4 = await fetch('/api/incidencias');
+        if (r4.ok) {
+            const list = await r4.json();
+            setVal('totalIncidencias', list.length);
+        }
+    } catch(e){}
 }
 
 /**
@@ -140,17 +189,21 @@ function determinarCicloSugerido() {
     }
 }
 
-function cargarEspecialidadesPromocion() {
+async function cargarEspecialidadesPromocion() {
     const selectCiclo = document.getElementById('selectCicloEsp');
     const selectFiltro = document.getElementById('selectFiltroModulo'); 
 
-    const especialidadesCache = [
-        "PROGRAMACIÓN",
-        "OFIMÁTICA",
-        "SOPORTE Y MANTENIMIENTO",
-        "CONTABILIDAD",
-        "CONSTRUCCIÓN"
-    ];
+    let especialidadesCache = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
+
+    try {
+        const res = await fetch('/api/configuracion/escolar');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.especialidades && data.especialidades.length > 0) {
+                especialidadesCache = data.especialidades.map(e => e.nombre);
+            }
+        }
+    } catch(e){}
 
     if (selectCiclo) {
         selectCiclo.innerHTML = '<option value="">-- Seleccionar Carrera --</option>';

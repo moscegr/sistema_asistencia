@@ -1,140 +1,123 @@
-let modalEdicion;
+/**
+ * Panel de Configuración - CBTis 134 (MongoDB & REST API)
+ */
 
-document.addEventListener('DOMContentLoaded', cargarDatosInstitucionales);
-document.addEventListener('DOMContentLoaded', inicializarVistaCiclo);
-document.addEventListener('DOMContentLoaded', cargarConfigFirebaseLocal);
-document.addEventListener('DOMContentLoaded', () => {
-
-    modalEdicion = new bootstrap.Modal(document.getElementById('modalEditarEsp'));
-    
-	cargarConfigWhatsApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    cargarCicloEscolar();
+    cargarDatosInstitucionales();
     cargarEspecialidades();
-    
-    document.getElementById('formEspecialidad').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nombre = document.getElementById('confNombre').value.toUpperCase().trim();
-        const alias = document.getElementById('confAlias').value.toUpperCase().trim();
-        const color = document.getElementById('confColor').value;
-		const turno = document.getElementById('confTurno').value;
-
-        if (validarAlias(alias)) {
-            await agregarEspecialidad(nombre, alias, color, turno);
-            e.target.reset();
-        }
-    });
-
-    document.getElementById('formEditarEsp').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const index = document.getElementById('editIndex').value;
-        const nombre = document.getElementById('editNombre').value.toUpperCase().trim();
-        const alias = document.getElementById('editAlias').value.toUpperCase().trim();
-        const color = document.getElementById('editColor').value;
-		const turno = document.getElementById('editTurno').value;
-
-        if (validarAlias(alias)) {
-            await actualizarEspecialidad(index, nombre, alias, color, turno);
-        }
-    });
+    cargarConfigWhatsApp();
 });
 
-function inicializarVistaCiclo() {
-    db.collection("configuracion").doc("ciclo_escolar").onSnapshot(doc => {
-        if (doc.exists) {
-            const ciclo = doc.data().actual;
-            // Intenta actualizar en Configuración
-            const displayLabel = document.getElementById('labelCicloActual');
-            if (displayLabel) displayLabel.innerText = ciclo;
+async function cargarCicloEscolar() {
+    try {
+        const res = await fetch('/api/configuracion/ciclo_escolar');
+        if (res.ok) {
+            const data = await res.json();
+            const lbl = document.getElementById('labelCicloActual');
+            if (lbl) lbl.innerText = data.actual || "FEB-JUL 2026";
         }
-    });
+    } catch (e) {
+        console.error(e);
+        const lbl = document.getElementById('labelCicloActual');
+        if (lbl) lbl.innerText = "FEB-JUL 2026";
+    }
 }
 
-// VALIDACIONES
-function validarAlias(alias) {
-    const regex = /^[A-Z0-9]{2,5}$/;
-    if (!regex.test(alias)) {
-        Swal.fire("Alias Inválido", "El alias debe tener entre 2 y 5 caracteres y no incluir espacios.", "error");
-        return false;
-    }
-    return true;
+async function cargarDatosInstitucionales() {
+    try {
+        const res = await fetch('/api/configuracion/sistema');
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('confDirector').value = data.nombre_director || "";
+            document.getElementById('confOrientacion').value = data.responsable_orientacion || "";
+            document.getElementById('confCCT').value = data.cct_escuela || "";
+            document.getElementById('confTelefono').value = data.telefono_escuela || "";
+            document.getElementById('confVigencia').value = data.vigencia_actual || "";
+        }
+    } catch (e) { console.error(e); }
+}
+
+const formInst = document.getElementById('formInstitucional');
+if (formInst) {
+    formInst.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
+
+        const actualizaciones = {
+            nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),
+            responsable_orientacion: document.getElementById('confOrientacion').value.trim().toUpperCase(),
+            cct_escuela: document.getElementById('confCCT').value.trim().toUpperCase(),
+            telefono_escuela: document.getElementById('confTelefono').value.trim(),
+            vigencia_actual: document.getElementById('confVigencia').value.trim()
+        };
+
+        try {
+            await fetch('/api/configuracion/sistema', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(actualizaciones)
+            });
+            Swal.fire("Éxito", "Datos de la institución actualizados.", "success");
+        } catch (error) {
+            Swal.fire("Error", "No se pudieron guardar los datos.", "error");
+        }
+    });
 }
 
 async function cargarEspecialidades() {
-    db.collection("configuracion").doc("escolar").onSnapshot((doc) => {
+    try {
+        const res = await fetch('/api/configuracion/escolar');
+        if (!res.ok) return;
+        const data = await res.json();
+        const lista = data.especialidades || [];
         const tbody = document.getElementById('tablaEspecialidades');
+        if (!tbody) return;
         tbody.innerHTML = "";
 
-        if (doc.exists && doc.data().especialidades) {
-            const lista = doc.data().especialidades;
-            lista.forEach((esp, index) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td><div style="width:25px; height:25px; border-radius:5px; background:${esp.color}"></div></td>
-                        <td class="fw-bold">${esp.nombre}</td>
-                        <td><span class="badge bg-dark">${esp.alias}</span></td>
-						<td>${esp.turno || 'N/A'}</td> <td class="text-center">
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary me-2" onclick="prepararEdicion(${index})">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarEspecialidad(${index})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>`;
+        lista.forEach((esp, idx) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="badge p-2" style="background-color: ${esp.color || '#7b1b37'}">&nbsp;&nbsp;</span></td>
+                    <td class="fw-bold">${esp.nombre}</td>
+                    <td><code>${esp.alias}</code></td>
+                    <td>${esp.turno}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarEspecialidad(${idx})">
+                            <i class="bi bi-trash3-fill"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    } catch (e) { console.error(e); }
+}
+
+const formEsp = document.getElementById('formEspecialidad');
+if (formEsp) {
+    formEsp.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById('confNombre').value.trim().toUpperCase();
+        const alias = document.getElementById('confAlias').value.trim().toUpperCase();
+        const color = document.getElementById('confColor').value;
+        const turno = document.getElementById('confTurno').value;
+
+        try {
+            const res = await fetch('/api/configuracion/escolar');
+            let data = res.ok ? await res.json() : { especialidades: [] };
+            let lista = data.especialidades || [];
+            lista.push({ nombre, alias, color, turno });
+
+            await fetch('/api/configuracion/escolar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ especialidades: lista })
             });
-        }
+
+            Swal.fire("Éxito", "Carrera agregada correctamente", "success");
+            formEsp.reset();
+            cargarEspecialidades();
+        } catch (e) { console.error(e); }
     });
-}
-
-async function prepararEdicion(index) {
-    const doc = await db.collection("configuracion").doc("escolar").get();
-    const esp = doc.data().especialidades[index];
-    
-    document.getElementById('editIndex').value = index;
-    document.getElementById('editNombre').value = esp.nombre;
-    document.getElementById('editAlias').value = esp.alias;
-    document.getElementById('editColor').value = esp.color;
-    document.getElementById('editTurno').value = esp.turno || 'Matutino';
-    
-    modalEdicion.show();
-}
-
-async function actualizarEspecialidad(index, nombre, alias, color, turno) {
-    try {
-        const docRef = db.collection("configuracion").doc("escolar");
-        const doc = await docRef.get();
-        let lista = doc.data().especialidades;
-
-        if (lista.some((e, i) => e.alias === alias && i != index)) {
-            return Swal.fire("Aviso", "Este alias ya está en uso por otra carrera", "warning");
-        }
-
-        lista[index] = { nombre, alias, color, turno };
-        await docRef.update({ especialidades: lista });
-        
-        modalEdicion.hide();
-        Swal.fire("Actualizado", "Especialidad modificada correctamente", "success");
-    } catch (e) {
-        Swal.fire("Error", e.message, "error");
-    }
-}
-
-async function agregarEspecialidad(nombre, alias, color, turno) {
-    try {
-        const docRef = db.collection("configuracion").doc("escolar");
-        const doc = await docRef.get();
-        let lista = doc.exists && doc.data().especialidades ? doc.data().especialidades : [];
-
-        if (lista.some(e => e.alias === alias)) {
-            return Swal.fire("Aviso", "Este alias ya está registrado", "warning");
-        }
-
-        lista.push({ nombre, alias, color, turno });
-        await docRef.set({ especialidades: lista }, { merge: true });
-        Swal.fire("Éxito", "Carrera agregada correctamente", "success");
-    } catch (e) {
-        console.error(e);
-    }
 }
 
 async function eliminarEspecialidad(index) {
@@ -147,15 +130,24 @@ async function eliminarEspecialidad(index) {
     });
 
     if (result.isConfirmed) {
-        const docRef = db.collection("configuracion").doc("escolar");
-        const doc = await docRef.get();
-        let lista = doc.data().especialidades;
-        lista.splice(index, 1);
-        await docRef.update({ especialidades: lista });
+        try {
+            const res = await fetch('/api/configuracion/escolar');
+            if (res.ok) {
+                let data = await res.json();
+                let lista = data.especialidades || [];
+                lista.splice(index, 1);
+                await fetch('/api/configuracion/escolar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ especialidades: lista })
+                });
+                cargarEspecialidades();
+            }
+        } catch (e) { console.error(e); }
     }
 }
 
-// --- FUNCIONES DE WHATSAPP ---
+// --- FUNCIONES DE WHATSAPP API ---
 function cambiarFormularioWs(tipo) {
     const lbl1 = document.getElementById('lblWsCampo1');
     const desc1 = document.getElementById('descWsCampo1');
@@ -163,13 +155,31 @@ function cambiarFormularioWs(tipo) {
     const lbl3 = document.getElementById('lblWsCampo3');
     const cont3 = document.getElementById('contenedorCampo3');
 
-    document.getElementById('wsCampo1').value = '';
-    document.getElementById('wsCampo2').value = '';
-    document.getElementById('wsCampo3').value = '';
+    if (!lbl1 || !lbl2 || !cont3) return;
 
-    if (tipo === 'META') {
+    if (tipo === 'EVOLUTION') {
+        lbl1.innerText = "API Host / Server URL";
+        desc1.innerText = "Ej: https://evolution.cegr.cloud o http://localhost:8080";
+        lbl2.innerText = "Global / Instance API Key";
+        lbl3.innerText = "Instance Name";
+        document.getElementById('wsCampo1').placeholder = "Ej. https://evolution.cegr.cloud";
+        document.getElementById('wsCampo2').placeholder = "Ej. 4296403A61694158...";
+        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
+        cont3.style.display = "block";
+    }
+    else if (tipo === 'WPPCONNECT') {
+        lbl1.innerText = "WPPConnect Server URL";
+        desc1.innerText = "Ej: http://localhost:21465";
+        lbl2.innerText = "Secret Key / Token";
+        lbl3.innerText = "Session Name";
+        document.getElementById('wsCampo1').placeholder = "Ej. http://localhost:21465";
+        document.getElementById('wsCampo2').placeholder = "Ej. THISISMYSECURETOKEN";
+        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
+        cont3.style.display = "block";
+    }
+    else if (tipo === 'META') {
         lbl1.innerText = "Permanent Access Token";
-        desc1.innerText = "Token generado en la consola de Meta.";
+        desc1.innerText = "Token generado en la consola de Meta Developers.";
         lbl2.innerText = "Phone Number ID";
         cont3.style.display = "none";
     } 
@@ -191,7 +201,7 @@ function cambiarFormularioWs(tipo) {
         desc1.innerText = "Ej: http://localhost:2785";
         lbl2.innerText = "API Token";
         lbl3.innerText = "Session ID / Name";
-        document.getElementById('wsCampo3').placeholder = "Ej. cbtis o UUID";
+        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
         cont3.style.display = "block";
     }
 }
@@ -199,47 +209,45 @@ function cambiarFormularioWs(tipo) {
 async function cargarConfigWhatsApp() {
     const badge = document.getElementById('badgeWsStatus');
     const tipoSelect = document.getElementById('tipoApiWs');
+    if (!badge || !tipoSelect) return;
 
     try {
-        const doc = await db.collection("configuracion").doc("whatsapp").get();
-        if (doc.exists) {
-            const data = doc.data();
+        const res = await fetch('/api/configuracion/whatsapp');
+        if (res.ok) {
+            const data = await res.json();
+            const tipo = data.tipo_api || 'EVOLUTION';
+            tipoSelect.value = tipo;
+            cambiarFormularioWs(tipo);
 
-            if(data.tipo_api) {
-                tipoSelect.value = data.tipo_api;
-                cambiarFormularioWs(data.tipo_api);
-            } else {
-                cambiarFormularioWs('META');
-            }
-
-            if (data.tipo_api === 'META') {
+            if (tipo === 'EVOLUTION' || tipo === 'WPPCONNECT') {
+                document.getElementById('wsCampo1').value = data.apiUrl || data.serverUrl || '';
+                document.getElementById('wsCampo2').value = data.apiKey || data.token || '';
+                document.getElementById('wsCampo3').value = data.instanceName || data.sessionName || '';
+            } else if (tipo === 'META') {
                 document.getElementById('wsCampo1').value = data.accessToken || '';
                 document.getElementById('wsCampo2').value = data.phoneNumberId || '';
-            } else if (data.tipo_api === 'ULTRAMSG') {
+            } else if (tipo === 'ULTRAMSG') {
                 document.getElementById('wsCampo1').value = data.token || '';
                 document.getElementById('wsCampo2').value = data.instanceId || '';
-            } else if (data.tipo_api === 'TWILIO') {
+            } else if (tipo === 'TWILIO') {
                 document.getElementById('wsCampo1').value = data.authToken || '';
                 document.getElementById('wsCampo2').value = data.accountSid || '';
                 document.getElementById('wsCampo3').value = data.twilioNumber || '';
-            } 
-
-			else if (data.tipo_api === 'OPENWA') {
-			    document.getElementById('wsCampo1').value = data.apiUrl || '';
-			    document.getElementById('wsCampo2').value = data.token || '';
-			    document.getElementById('wsCampo3').value = data.sessionId || '';
-			}
+            } else if (tipo === 'OPENWA') {
+                document.getElementById('wsCampo1').value = data.apiUrl || '';
+                document.getElementById('wsCampo2').value = data.token || '';
+                document.getElementById('wsCampo3').value = data.sessionId || '';
+            }
 
             badge.className = "badge bg-success-subtle text-success rounded-pill px-3 py-2 me-3";
             badge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Estado: Configurado';
-            
         } else {
             badge.className = "badge bg-secondary-subtle text-secondary rounded-pill px-3 py-2 me-3";
             badge.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Estado: Sin configurar';
-            cambiarFormularioWs('META');
+            cambiarFormularioWs('EVOLUTION');
         }
     } catch (error) {
-        console.error("Error al cargar configuración de WhatsApp:", error);
+        console.error("Error al cargar WhatsApp:", error);
         badge.className = "badge bg-danger-subtle text-danger rounded-pill px-3 py-2 me-3";
         badge.innerHTML = '<i class="bi bi-wifi-off me-1"></i> Error de conexión';
     }
@@ -251,370 +259,43 @@ async function guardarConfigWhatsApp() {
     const campo2 = document.getElementById('wsCampo2').value.trim();
     const campo3 = document.getElementById('wsCampo3').value.trim();
 
-    if (!campo1 || (tipo !== 'OPENWA' && !campo2) || (tipo === 'TWILIO' && !campo3)) {
-        Swal.fire("Campos incompletos", "Por favor llena todos los campos requeridos para este proveedor.", "warning");
+    if (!campo1 || !campo2) {
+        Swal.fire("Campos incompletos", "Por favor llena los campos requeridos para este proveedor.", "warning");
         return;
     }
 
     try {
-        Swal.fire({
-            title: 'Actualizando API...',
-            text: 'Conectando con Firebase.',
-            didOpen: () => { Swal.showLoading(); }
-        });
+        Swal.fire({ title: 'Guardando configuración...', didOpen: () => Swal.showLoading() });
 
         let configData = {
             tipo_api: tipo,
-            ultimaActualizacion: firebase.firestore.FieldValue.serverTimestamp()
+            apiUrl: campo1,
+            serverUrl: campo1,
+            apiKey: campo2,
+            token: campo2,
+            instanceName: campo3,
+            sessionName: campo3,
+            instanceId: campo2,
+            accessToken: campo1,
+            phoneNumberId: campo2
         };
 
-        if (tipo === 'META') {
-            configData.accessToken = campo1;
-            configData.phoneNumberId = campo2;
-        } else if (tipo === 'ULTRAMSG') {
-            configData.token = campo1;
-            configData.instanceId = campo2;
-        } else if (tipo === 'TWILIO') {
-            configData.authToken = campo1;
-            configData.accountSid = campo2;
-            configData.twilioNumber = campo3;
-        } 
-
-		else if (tipo === 'OPENWA') {
-		    configData.apiUrl = campo1;
-		    configData.token = campo2;
-		    configData.sessionId = campo3;
-		}
-
-        await db.collection("configuracion").doc("whatsapp").set(configData);
+        await fetch('/api/configuracion/whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(configData)
+        });
 
         await cargarConfigWhatsApp();
 
         Swal.fire({
             title: "¡Configuración Guardada!",
-            text: `La API de ${tipo} ha sido vinculada correctamente al sistema.`,
+            text: `La API de ${tipo} ha sido configurada correctamente en MongoDB.`,
             icon: "success",
             confirmButtonColor: '#198754'
         });
     } catch (error) {
-        console.error("Error al guardar API:", error);
+        console.error("Error al guardar API WhatsApp:", error);
         Swal.fire("Error", "No se pudo actualizar la configuración.", "error");
-    }
-}
-
-async function cargarDatosInstitucionales() {
-    const doc = await db.collection("configuracion").doc("sistema").get();
-    if (doc.exists) {
-        const data = doc.data();
-        document.getElementById('confDirector').value = data.nombre_director || "";
-        document.getElementById('confOrientacion').value = data.responsable_orientacion || "";
-        document.getElementById('confCCT').value = data.cct_escuela || "";
-        document.getElementById('confTelefono').value = data.telefono_escuela || "";
-        document.getElementById('confVigencia').value = data.vigencia_actual || "";
-    }
-}
-
-
-document.getElementById('formInstitucional').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
-
-    const actualizaciones = {
-        nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),
-        responsable_orientacion: document.getElementById('confOrientacion').value.trim().toUpperCase(),
-        cct_escuela: document.getElementById('confCCT').value.trim().toUpperCase(),
-        telefono_escuela: document.getElementById('confTelefono').value.trim(),
-        vigencia_actual: document.getElementById('confVigencia').value.trim()
-    };
-
-    try {
-        await db.collection("configuracion").doc("sistema").set(actualizaciones, { merge: true });
-        Swal.fire("Éxito", "Datos de la institución actualizados.", "success");
-    } catch (error) {
-        Swal.fire("Error", "No se pudieron guardar los datos.", "error");
-    }
-});
-
-async function depurarAlumnosInactivos() {
-    const { value: confirmacion } = await Swal.fire({
-        title: '⚠️ ADVERTENCIA CRÍTICA',
-        html: `Esta acción:<br>
-               1. Descargará un <b>Súper Excel de respaldo</b> con el expediente completo.<br>
-               2. Borrará a los alumnos en <b>Baja/Egresado</b>.<br>
-               3. <b>Limpiará en cascada</b> sus incidencias, justificantes, pases y registros diarios.<br><br>
-               Escriba <b>CONFIRMAR</b> para proceder:`,
-        input: 'text',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Eliminar Registros',
-        cancelButtonText: 'Cancelar'
-    });
-
-    if (confirmacion !== "CONFIRMAR") return Swal.fire("Cancelado", "Palabra de seguridad incorrecta.", "info");
-
-    Swal.fire({ title: 'Procesando...', html: 'Construyendo expediente en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    try {
-        const snapAlumnos = await db.collection("alumnos").where("estatus_escolar", "in", ["Baja", "Egresado"]).get();
-        if (snapAlumnos.empty) return Swal.fire("Todo limpio", "No hay alumnos inactivos para depurar.", "info");
-
-        const datosExcel = snapAlumnos.docs.map(doc => {
-            const d = doc.data();
-            
-            let padecimientosTexto = "Ninguno";
-            if (d.padecimientos_registrados && d.padecimientos_registrados.length > 0) {
-                padecimientosTexto = d.padecimientos_registrados.map(p => `${p.tipo} (${p.gravedad})`).join(' | ');
-            }
-
-            return {
-                "Matrícula": d.matricula || "S/N",
-                "CURP": d.curp || "N/A",
-                "Apellido Paterno": d.apepat || "",
-                "Apellido Materno": d.apemat || "",
-                "Nombre(s)": d.nombre || "",
-                "Género": d.genero || "N/A",
-                "Especialidad": d.especialidad || "N/A",
-                "Último Grado": d.grado || "N/A",
-                "Último Grupo": d.grupo || "N/A",
-                "Turno": d.turno || "N/A",
-                "Dirección": d.direccion || "N/A",
-                "Celular Alumno": d.celular || "N/A",
-                "Correo Electrónico": d.email || "N/A",
-                "Nombre del Tutor": d.nombretutor || "N/A",
-                "Teléfono Tutor": d.teltutor || "N/A",
-                "Ocupación Tutor": d.ocupaciontutor || "N/A",
-                "Padecimientos Médicos": padecimientosTexto,
-                "Última Asistencia": d.fecha_ultima_asistencia || "N/A",
-                "Estatus Final": d.estatus_escolar || "Desconocido"
-            };
-        });
-
-        const hoja = XLSX.utils.json_to_sheet(datosExcel);
-        const libro = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(libro, hoja, "Expedientes_Inactivos");
-        XLSX.writeFile(libro, `Expedientes_Bajas_${new Date().toISOString().split('T')[0]}.xlsx`);
-
-        Swal.update({ html: 'Excel asegurado.<br>Borrando perfil de alumnos...' });
-
-        const matriculasBorradas = [];
-        let operaciones = [];
-        let batchActual = db.batch();
-        let contOps = 0;
-
-        snapAlumnos.docs.forEach(doc => {
-            matriculasBorradas.push(doc.data().matricula);
-            batchActual.delete(doc.ref);
-            contOps++;
-            if (contOps === 450) {
-                operaciones.push(batchActual.commit());
-                batchActual = db.batch();
-                contOps = 0;
-            }
-        });
-        if (contOps > 0) operaciones.push(batchActual.commit());
-        await Promise.all(operaciones);
-
-        Swal.update({ html: 'Alumnos borrados.<br>Limpiando historial en cascada (Esto puede tardar un poco)...' });
-
-        const borrarRelacionados = async (nombreCol, campoBusqueda) => {
-            let totalBorrados = 0;
-
-            for (let i = 0; i < matriculasBorradas.length; i += 30) {
-                const chunk = matriculasBorradas.slice(i, i + 30);
-                const snapColeccion = await db.collection(nombreCol).where(campoBusqueda, "in", chunk).get();
-                
-                let subBatch = db.batch();
-                let subCont = 0;
-                let subOperaciones = [];
-
-                snapColeccion.docs.forEach(doc => {
-                    subBatch.delete(doc.ref);
-                    subCont++;
-                    totalBorrados++;
-
-                    if (subCont === 450) { 
-                        subOperaciones.push(subBatch.commit());
-                        subBatch = db.batch();
-                        subCont = 0;
-                    }
-                });
-                if (subCont > 0) subOperaciones.push(subBatch.commit());
-
-                if(subOperaciones.length > 0) await Promise.all(subOperaciones); 
-            }
-            return totalBorrados;
-        };
-
-        const eliminadasIncidencias = await borrarRelacionados("incidencias", "id_alumno");
-        const eliminadasJustificantes = await borrarRelacionados("justificantes", "id_alumno"); 
-        const eliminadasPases = await borrarRelacionados("pases_salida", "matricula");
-        const eliminadosRegistros = await borrarRelacionados("registros_diarios", "matricula");
-
-        Swal.fire(
-            "¡Mantenimiento Completo!", 
-            `<div class="text-start small mt-3">
-                <p class="mb-1"><i class="bi bi-person-dash text-danger me-2"></i><b>Alumnos Inactivos:</b> ${snapAlumnos.size}</p>
-                <p class="mb-1"><i class="bi bi-exclamation-triangle text-warning me-2"></i><b>Incidencias borradas:</b> ${eliminadasIncidencias}</p>
-                <p class="mb-1"><i class="bi bi-file-earmark-medical text-primary me-2"></i><b>Justificantes borrados:</b> ${eliminadasJustificantes}</p>
-                <p class="mb-1"><i class="bi bi-door-open text-success me-2"></i><b>Pases borrados:</b> ${eliminadasPases}</p>
-                <p class="mb-1"><i class="bi bi-clock-history text-secondary me-2"></i><b>Entradas/Salidas borradas:</b> ${eliminadosRegistros}</p>
-            </div>`, 
-            "success"
-        );
-
-    } catch (error) {
-        console.error("Error en depuración total:", error);
-        Swal.fire("Error crítico", "Fallo al procesar la limpieza masiva: " + error.message, "error");
-    }
-}
-
-async function revertirCicloEscolar() {
-    try {
-        const docRef = db.collection("configuracion").doc("ciclo_escolar");
-        const doc = await docRef.get();
-        
-        if (!doc.exists || !doc.data().ciclo_anterior) {
-            return Swal.fire("Operación no disponible", "No existe un registro histórico para revertir el ciclo o ya fue utilizado.", "info");
-        }
-
-        const actual = doc.data().actual;
-        const anterior = doc.data().ciclo_anterior;
-
-        const { isConfirmed } = await Swal.fire({
-            title: '¿Revertir Ciclo y Grados?',
-            html: `
-                <div class="text-start">
-                    <p>Esta acción devolverá el sistema al ciclo <b>${anterior}</b> e impactará a los alumnos:</p>
-                    <ul>
-                        <li>Los alumnos <b>Activos</b> bajarán un grado.</li>
-                        <li>Los <b>Egresados</b> recientes volverán a ser Activos en 6° semestre.</li>
-                    </ul>
-                    <p class="text-danger small"><b>Advertencia:</b> Solo use esta opción si el cambio de ciclo fue un error. <b>Esta acción solo se puede realizar una vez.</b></p>
-                </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ffc107',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<span class="text-dark fw-bold">Sí, revertir todo</span>',
-            cancelButtonText: 'Cancelar'
-        });
-
-        if (isConfirmed) {
-            Swal.fire({ title: 'Procesando reversión...', html: 'Ajustando expedientes de alumnos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            const snapAlumnos = await db.collection("alumnos")
-                .where("estatus_escolar", "in", ["Activo", "Egresado"])
-                .get();
-
-            const batch = db.batch();
-            let cambiosContador = 0;
-
-            snapAlumnos.forEach(alumnoDoc => {
-                const al = alumnoDoc.data();
-                let updates = {};
-
-                if (al.estatus_escolar === "Activo") {
-                    const gradoNum = parseInt(al.grado);
-                    if (gradoNum > 1) {
-                        updates.grado = String(gradoNum - 1);
-                        cambiosContador++;
-                    }
-                } 
-                else if (al.estatus_escolar === "Egresado" && al.motivo_baja === "Término de estudios") {
-                    updates.estatus_escolar = "Activo";
-                    updates.grado = "6";
-                    updates.motivo_baja = "";
-                    cambiosContador++;
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    batch.update(alumnoDoc.ref, updates);
-                }
-            });
-
-            batch.update(docRef, {
-                actual: anterior,
-                ciclo_anterior: firebase.firestore.FieldValue.delete(), 
-                ultima_actualizacion: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            await batch.commit();
-
-            Swal.fire({
-                title: "Restauración Exitosa",
-                html: `Se ha regresado al ciclo <b>${anterior}</b>.<br>Se actualizaron <b>${cambiosContador}</b> expedientes de alumnos.`,
-                icon: "success"
-            }).then(() => location.reload());
-        }
-    } catch (e) {
-        console.error("Error al revertir:", e);
-        Swal.fire("Error crítico", "No se pudo completar la reversión: " + e.message, "error");
-    }
-}
-
-function cargarConfigFirebaseLocal() {
-    const configTextarea = document.getElementById('textareaFirebase');
-    if (!configTextarea) return;
-    
-    const configGuardada = localStorage.getItem('customFirebaseConfig');
-    if (configGuardada) {
-        try {
-
-            configTextarea.value = JSON.stringify(JSON.parse(configGuardada), null, 2);
-        } catch (e) {
-            configTextarea.value = configGuardada;
-        }
-    }
-}
-
-async function guardarConfigFirebaseExterna() {
-    const jsonText = document.getElementById('textareaFirebase').value.trim();
-
-    if (!jsonText) {
-        Swal.fire("Campo vacío", "Por favor pegue el objeto JSON de configuración de Firebase.", "warning");
-        return;
-    }
-
-    try {
-
-        const parsedConfig = JSON.parse(jsonText);
-
-        if (!parsedConfig.apiKey || !parsedConfig.projectId || !parsedConfig.authDomain) {
-            Swal.fire("Estructura Inválida", "El JSON no contiene los parámetros esenciales de Firebase (apiKey, projectId, authDomain).", "error");
-            return;
-        }
-
-        const result = await Swal.fire({
-            title: '¿Vincular nueva Base de Datos?',
-            text: "El sistema cambiará de entorno inmediatamente. Se cerrará la sesión actual y el backend de Java generará el Administrador Maestro en la nueva BD al arrancar.",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#0d6efd',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, cambiar Base de Datos',
-            cancelButtonText: 'Cancelar'
-        });
-
-        if (result.isConfirmed) {
-
-            localStorage.setItem('customFirebaseConfig', JSON.stringify(parsedConfig));
-
-            localStorage.removeItem('userRole');
-
-            await Swal.fire({
-                title: "¡Conexión Vinculada!",
-                text: "Configuración guardada en el navegador. La página se reiniciará. Asegúrese de que el Ing. Cruz asigne la variable de entorno en Coolify para sincronizar el backend.",
-                icon: "success",
-                confirmButtonColor: '#0d6efd'
-            });
-
-            window.location.reload();
-        }
-
-    } catch (error) {
-        console.error("Error al procesar el JSON de Firebase:", error);
-        Swal.fire("JSON Inválido", "El texto ingresado no tiene un formato JSON válido. Revise que no falten comillas o llaves.", "error");
     }
 }

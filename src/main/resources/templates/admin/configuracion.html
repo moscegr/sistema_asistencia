@@ -50,14 +50,13 @@
 				                <div class="p-3 bg-light rounded border shadow-sm">
 				                    <span class="d-block x-small text-uppercase text-muted fw-bold">Ciclo Activo</span>
 				                    <h4 class="fw-bold text-guinda mb-0" id="labelCicloActual">Cargando...</h4>
-				                    <small class="text-muted x-small">Sincronizado con Firestore</small>
+				                    <small class="text-muted x-small">Sincronizado con MongoDB</small>
 				                </div>
 				            </div>
 				        </div>
 				    </div>
 				</div>
 				
-
 
 				<div class="col-md-12 mb-4">
 				    <div class="card card-custom shadow-sm p-4 h-100">
@@ -185,8 +184,10 @@
 				                <div class="col-md-4">
 				                    <label class="form-label small fw-bold">Proveedor de API</label>
 				                    <select id="tipoApiWs" class="form-select border-success" onchange="cambiarFormularioWs(this.value)">
-				                        <option value="META">Meta (WhatsApp Business API)</option>
+				                        <option value="EVOLUTION">Evolution API (Recomendado)</option>
+				                        <option value="WPPCONNECT">WPPConnect API</option>
 				                        <option value="ULTRAMSG">Ultramsg (API No Oficial)</option>
+				                        <option value="META">Meta (WhatsApp Business API)</option>
 				                        <option value="TWILIO">Twilio (API Oficial / Sandbox)</option>
 				                        <option value="OPENWA">OpenWA (Servidor Docker Local)</option>
 				                    </select>
@@ -195,24 +196,26 @@
 				
 				            <div class="row g-3 bg-light p-3 rounded border">
 				                <div class="col-md-6">
-				                    <label id="lblWsCampo1" class="form-label small fw-bold text-success">Permanent Access Token</label>
+				                    <label id="lblWsCampo1" class="form-label small fw-bold text-success">API URL / Host</label>
 				                    <div class="input-group">
-				                        <input type="password" id="wsCampo1" class="form-control" placeholder="Ej. EAABw..." autocomplete="new-password">
-				                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('wsCampo1')">
-				                            <i class="bi bi-eye"></i>
-				                        </button>
+				                        <input type="text" id="wsCampo1" class="form-control" placeholder="Ej. https://evolution.midominio.com">
 				                    </div>
-				                    <small id="descWsCampo1" class="text-muted" style="font-size: 0.7rem;">Token generado en la consola de Meta Developers.</small>
+				                    <small id="descWsCampo1" class="text-muted" style="font-size: 0.7rem;">URL base de la instancia de la API.</small>
 				                </div>
 				
 				                <div class="col-md-3">
-				                    <label id="lblWsCampo2" class="form-label small fw-bold text-success">Phone Number ID</label>
-				                    <input type="text" id="wsCampo2" class="form-control" placeholder="Ej. 1234567890" autocomplete="off">
+				                    <label id="lblWsCampo2" class="form-label small fw-bold text-success">API Key / Token</label>
+				                    <div class="input-group">
+				                        <input type="password" id="wsCampo2" class="form-control" placeholder="Ej. 1234567890" autocomplete="new-password">
+				                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('wsCampo2')">
+				                            <i class="bi bi-eye"></i>
+				                        </button>
+				                    </div>
 				                </div>
 				
-				                <div class="col-md-3" id="contenedorCampo3" style="display: none;">
-				                    <label id="lblWsCampo3" class="form-label small fw-bold text-success">Número Remitente</label>
-				                    <input type="text" id="wsCampo3" class="form-control" placeholder="Ej. +14155238886" autocomplete="off">
+				                <div class="col-md-3" id="contenedorCampo3">
+				                    <label id="lblWsCampo3" class="form-label small fw-bold text-success">Nombre de Instancia / Sesión</label>
+				                    <input type="text" id="wsCampo3" class="form-control" placeholder="Ej. cbtis134" autocomplete="off">
 				                </div>
 				
 				                <div class="col-12 mt-3 text-end">
@@ -295,46 +298,7 @@
 				        </div>
 				    </div>
 				</div>
-				
-				<div class="col-12 mb-4">
-				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-primary h-100">
-				        <div class="d-flex justify-content-between align-items-center user-select-none" data-bs-toggle="collapse" data-bs-target="#colapsoFirebase" aria-expanded="false" style="cursor: pointer;">
-				            <h5 class="fw-bold mb-0 text-primary">
-				                <i class="bi bi-database-fill-gear me-2"></i>Conexión a Base de Datos (Firebase Cliente)
-				            </h5>
-				            <i class="bi bi-chevron-down text-muted fs-5"></i>
-				        </div>
-				
-				        <div id="colapsoFirebase" class="collapse mt-4">
-				            <p class="text-muted small">
-				                Si desea migrar el sistema, pegue aquí el objeto JSON de configuración generado en la consola web del nuevo cliente.
-				            </p>
-				            
-				            <div class="bg-light p-3 rounded border">
-				                <div class="mb-3">
-				                    <label class="form-label small fw-bold text-primary">Objeto de Configuración Firebase (JSON)</label>
-				                    <textarea id="textareaFirebase" class="form-control font-monospace small" rows="8" placeholder='{
-				  "apiKey": "AIzaSy...",
-				  "authDomain": "su-proyecto.firebaseapp.com",
-				  "projectId": "su-proyecto",
-				  "storageBucket": "su-proyecto.firebasestorage.app",
-				  "messagingSenderId": "...",
-				  "appId": "..."
-				}'></textarea>
-				                    <small class="text-muted" style="font-size: 0.7rem;">
-				                        *Nota: Al guardar, la sesión se cerrará automáticamente para inicializar la nueva base de datos.
-				                    </small>
-				                </div>
-				
-				                <div class="text-end">
-				                    <button class="btn btn-primary px-4 rounded-pill" onclick="guardarConfigFirebaseExterna()">
-				                        <i class="bi bi-cloud-arrow-up-fill me-2"></i>Vincular Nueva Base de Datos
-				                    </button>
-				                </div>
-				            </div>
-				        </div>
-				    </div>
-				</div>
+
 			</div>
 		</div>
 	</div>
@@ -343,9 +307,6 @@
 	<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     
     <script th:src="@{/js/firebase-init.js}"></script>
     <script th:src="@{/js/configuracion.js}"></script>
@@ -354,7 +315,7 @@
     <script>
         function togglePassword(id) {
             const input = document.getElementById(id);
-            input.type = input.type === 'password' ? 'text' : 'password';
+            if (input) input.type = input.type === 'password' ? 'text' : 'password';
         }
     </script>
 </body>
