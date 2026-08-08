@@ -17,10 +17,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60000);
 });
 
-function inicializarSesion() {
+async function inicializarSesion() {
     const rawRole = localStorage.getItem('userRole') || "ADMIN";
-    const userName = localStorage.getItem('userName') || "Administrador";
-    const userRole = rawRole.toUpperCase(); 
+    let userName = localStorage.getItem('userName') || "Administrador";
+    let userEmail = localStorage.getItem('userEmail') || "";
+
+    try {
+        const list = await safeFetchJson('/api/usuarios');
+        if (list && Array.isArray(list)) {
+            const found = list.find(u => u.correo === userName || u.correo === userEmail || u.nombre === userName);
+            if (found) {
+                userName = found.nombre;
+                userEmail = found.correo;
+                localStorage.setItem('userName', found.nombre);
+                localStorage.setItem('userEmail', found.correo);
+                if (found.rol) localStorage.setItem('userRole', found.rol);
+            }
+        }
+    } catch(e){}
+
+    const userRole = (localStorage.getItem('userRole') || rawRole).toUpperCase(); 
 
     const elUserName = document.getElementById('userName');
     const elUserRol = document.getElementById('userBannerRol');
@@ -320,16 +336,36 @@ async function confirmarCambioCiclo() {
     const scope = document.getElementById('promocionScope').value;
     if (!scope) return Swal.fire("Aviso", "Selecciona un alcance", "warning");
 
-    const { isConfirmed } = await Swal.fire({
-        title: '¿Confirmar cambio de ciclo?',
-        text: 'Los alumnos subirán un grado escolar en MongoDB.',
+    const { value: nuevoCiclo } = await Swal.fire({
+        title: '¿Confirmar Cambio de Ciclo?',
+        html: `
+            <p class="small text-muted mb-2">Los alumnos seleccionados avanzarán un semestre en MongoDB.</p>
+            <label class="form-label small fw-bold text-start w-100 mb-1">Nombre del Nuevo Ciclo Escolar Activo:</label>
+            <input id="swalCicloNombre" class="swal2-input mt-0" placeholder="Ej: AGO-DIC 2026" value="AGO-DIC 2026">
+        `,
         icon: 'warning',
-        showCancelButton: true
+        showCancelButton: true,
+        confirmButtonColor: '#7b1b37',
+        confirmButtonText: 'Sí, aplicar cambio',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const val = document.getElementById('swalCicloNombre').value.trim();
+            if (!val) {
+                Swal.showValidationMessage('Ingresa el nombre del nuevo ciclo escolar.');
+            }
+            return val;
+        }
     });
 
-    if (isConfirmed) {
-        Swal.fire({ title: 'Procesando...', didOpen: () => Swal.showLoading() });
+    if (nuevoCiclo) {
+        Swal.fire({ title: 'Aplicando cambios en MongoDB...', didOpen: () => Swal.showLoading() });
         try {
+            await fetch('/api/configuracion/ciclo_escolar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ _id: 'ciclo_escolar', actual: nuevoCiclo })
+            });
+
             const alumnos = await safeFetchJson('/api/alumnos');
             if (alumnos) {
                 for (const al of alumnos) {
@@ -348,7 +384,7 @@ async function confirmarCambioCiclo() {
                         });
                     }
                 }
-                Swal.fire("Éxito", "Cambio de ciclo ejecutado.", "success").then(() => location.reload());
+                Swal.fire("Éxito", `Cambio de ciclo a "${nuevoCiclo}" ejecutado correctamente.`, "success").then(() => location.reload());
             }
         } catch(e) {
             Swal.fire("Error", e.message, "error");

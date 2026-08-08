@@ -14,15 +14,38 @@ async function cargarCicloEscolar() {
         const res = await fetch('/api/configuracion/ciclo_escolar');
         if (res.ok) {
             const data = await res.json();
-            const lbl = document.getElementById('labelCicloActual');
-            if (lbl) lbl.innerText = data.actual || "FEB-JUL 2026";
+            const select = document.getElementById('selectCicloEscolarConfig');
+            if (select && data.actual) select.value = data.actual;
         }
     } catch (e) {
         console.error(e);
-        const lbl = document.getElementById('labelCicloActual');
-        if (lbl) lbl.innerText = "FEB-JUL 2026";
     }
 }
+
+async function guardarCicloEscolarConfig() {
+    const select = document.getElementById('selectCicloEscolarConfig');
+    if (!select) return;
+    const nuevoCiclo = select.value;
+
+    try {
+        Swal.fire({ title: 'Guardando ciclo escolar...', didOpen: () => Swal.showLoading() });
+        const res = await fetch('/api/configuracion/ciclo_escolar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ _id: 'ciclo_escolar', actual: nuevoCiclo })
+        });
+        if (res.ok) {
+            Swal.fire("Éxito", `Ciclo escolar activo actualizado a "${nuevoCiclo}"`, "success");
+            const labelHeader = document.getElementById('displayCicloActual');
+            if (labelHeader) labelHeader.innerText = nuevoCiclo;
+        } else {
+            throw new Error("No se pudo guardar");
+        }
+    } catch(e) {
+        Swal.fire("Error", "Error al actualizar ciclo escolar.", "error");
+    }
+}
+window.guardarCicloEscolarConfig = guardarCicloEscolarConfig;
 
 async function cargarDatosInstitucionales() {
     try {

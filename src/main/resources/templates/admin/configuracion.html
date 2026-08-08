@@ -29,33 +29,41 @@
                 
                 <div class="row g-4">
                 
-                <div class="col-12 mb-4">
-				    <div class="card card-custom shadow-sm p-4 h-100">
+            				<div class="col-md-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4">
 				        <div class="row align-items-center">
-				            <div class="col-md-8">
-				                <h5 class="fw-bold mb-3 text-guinda">
+				            <div class="col-md-7">
+				                <h5 class="fw-bold mb-1 text-guinda">
 				                    <i class="bi bi-arrow-repeat me-2"></i>Ciclo Escolar Vigente
 				                </h5>
-				                <p class="text-muted small mb-0">
-				                *Visualización del ciclo escolar actual.
+				                <p class="text-muted small mb-1">
+				                *Administra y actualiza el ciclo escolar activo en todo el sistema.
 				                </p>
 				                <p class="text-muted small mb-0">
-				                *Se actualiza al hacer un "Cambio de Ciclo Escolar" a nivel general desde el Dashboard.
-				                </p>
-				                <p class="text-muted small mb-0">
-				                *Determina qué incidencias se muestran en las gráficas del Dashboard.
+				                *Determina qué periodo escolar se asigna a las estadísticas, asistencias e incidencias.
 				                </p>
 				            </div>
-				            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-				                <div class="p-3 bg-light rounded border shadow-sm">
-				                    <span class="d-block x-small text-uppercase text-muted fw-bold">Ciclo Activo</span>
-				                    <h4 class="fw-bold text-guinda mb-0" id="labelCicloActual">Cargando...</h4>
-				                    <small class="text-muted x-small">Sincronizado con MongoDB</small>
+				            <div class="col-md-5 text-md-end mt-3 mt-md-0">
+				                <div class="p-3 bg-light rounded border shadow-sm text-start">
+				                    <label class="form-label x-small text-uppercase text-muted fw-bold mb-1">Ciclo Escolar Activo</label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <select id="selectCicloEscolarConfig" class="form-select fw-bold text-guinda">
+                                            <option value="FEB-JUL 2026">FEB-JUL 2026</option>
+                                            <option value="AGO-DIC 2026">AGO-DIC 2026</option>
+                                            <option value="FEB-JUL 2027">FEB-JUL 2027</option>
+                                            <option value="AGO-DIC 2027">AGO-DIC 2027</option>
+                                            <option value="FEB-JUL 2028">FEB-JUL 2028</option>
+                                        </select>
+                                        <button class="btn btn-guinda" onclick="guardarCicloEscolarConfig()">
+                                            <i class="bi bi-save me-1"></i>Guardar
+                                        </button>
+                                    </div>
+                                    <small class="text-muted x-small d-block"><i class="bi bi-info-circle me-1"></i>Sincronizado con MongoDB</small>
 				                </div>
 				            </div>
 				        </div>
 				    </div>
-				</div>
+				</div>	</div>
 				
 
 				<div class="col-md-12 mb-4">
