@@ -17,14 +17,15 @@ document.getElementById('inputFotoTemporal')?.addEventListener('change', functio
             fotoTemporalAlumno = event.target.result; 
             if (recuadroFoto) {
                 recuadroFoto.style.backgroundImage = `url(${fotoTemporalAlumno})`;
-                recuadroFoto.style.backgroundSize = 'cover';
+                recuadroFoto.style.backgroundSize = 'contain';
+                recuadroFoto.style.backgroundRepeat = 'no-repeat';
                 recuadroFoto.style.backgroundPosition = 'center';
             }
         };
         reader.readAsDataURL(file);
     } else {
         fotoTemporalAlumno = null;
-        if (recuadroFoto) recuadroFoto.style.backgroundImage = 'none';
+        if (recuadroFoto) recuadroFoto.style.backgroundImage = `url('/img/logo-256.png')`;
     }
 });
 
@@ -107,6 +108,7 @@ function limpiarVistaPrevia() {
     if (document.getElementById('btnDescargarGafetesPNG')) document.getElementById('btnDescargarGafetesPNG').disabled = true;
     if (document.getElementById('btnDescargarCredencialMasiva')) document.getElementById('btnDescargarCredencialMasiva').disabled = true;
     if (document.getElementById('btnDescargarCredencialInd')) document.getElementById('btnDescargarCredencialInd').disabled = true;
+    if (document.getElementById('btnDescargarCredencialPNG')) document.getElementById('btnDescargarCredencialPNG').disabled = true;
 
     document.querySelectorAll('.infoConteo').forEach(el => el.innerText = "");
     document.querySelectorAll('.msgSeleccion').forEach(el => el.classList.remove('d-none'));
@@ -119,8 +121,6 @@ function limpiarVistaPrevia() {
 	
 	fotoTemporalAlumno = null;
 	if (document.getElementById('inputFotoTemporal')) document.getElementById('inputFotoTemporal').value = "";
-	if (document.getElementById('btnDescargarCredencialPNG')) document.getElementById('btnDescargarCredencialPNG').disabled = true;
-    
     alumnoSeleccionadoInd = null;
 }
 
@@ -215,7 +215,7 @@ function renderizarAlumnosGrupo() {
     }
     if (btnPdfCred) {
         btnPdfCred.disabled = false;
-        btnPdfCred.innerHTML = `<i class="bi bi-collection-fill text-primary me-2"></i>Descargar Grupo (Credenciales PDF)`;
+        btnPdfCred.innerHTML = `<i class="bi bi-collection-fill text-primary me-2"></i>Descargar Grupo (${alumnosDelGrupoSeleccionado.length} Credenciales PDF)`;
     }
 
     document.querySelectorAll('.infoConteo').forEach(el => {
@@ -247,17 +247,45 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
     const contCred = document.getElementById('credencialMuestraPVC');
     if (contCred) {
         contCred.classList.remove('d-none');
-        const pat = alumnoSeleccionadoInd.apepat || alumnoSeleccionadoInd.primerApellido || '';
-        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || '';
-        document.getElementById('pvcNombre').innerText = `${alumnoSeleccionadoInd.nombre} ${pat}`.toUpperCase();
-        document.getElementById('pvcMatricula').innerText = mat;
+        const al = alumnoSeleccionadoInd;
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const mat = al.ncontrol || al.matricula || '';
+
+        if (document.getElementById('pvcNombre')) document.getElementById('pvcNombre').innerText = `${al.nombre} ${pat} ${matApe}`.trim().toUpperCase();
+        if (document.getElementById('pvcMatricula')) document.getElementById('pvcMatricula').innerText = mat;
+        if (document.getElementById('pvcEspecialidad')) document.getElementById('pvcEspecialidad').innerText = al.especialidad || 'N/A';
+        if (document.getElementById('pvcGradoGrupo')) document.getElementById('pvcGradoGrupo').innerText = `${al.grado || ''}° "${al.grupo || ''}" ${al.turno || 'Matutino'}`;
+        if (document.getElementById('pvcCurp')) document.getElementById('pvcCurp').innerText = al.curp || 'N/A';
+        if (document.getElementById('pvcVigencia')) document.getElementById('pvcVigencia').innerText = cfgSistema.vigencia_actual || 'Agosto 2027';
 
         const recuadroFoto = document.getElementById('pvcFoto');
-        if (recuadroFoto) recuadroFoto.style.backgroundImage = 'none';
+        if (recuadroFoto) {
+            if (fotoTemporalAlumno) {
+                recuadroFoto.style.backgroundImage = `url(${fotoTemporalAlumno})`;
+            } else {
+                recuadroFoto.style.backgroundImage = `url('/img/logo-256.png')`;
+            }
+            recuadroFoto.style.backgroundSize = 'contain';
+            recuadroFoto.style.backgroundRepeat = 'no-repeat';
+            recuadroFoto.style.backgroundPosition = 'center';
+        }
 
         const inputFoto = document.getElementById('inputFotoTemporal');
         if(inputFoto) inputFoto.value = '';
         fotoTemporalAlumno = null;
+
+        const containerQr = document.getElementById('pvcQR');
+        if (containerQr) {
+            containerQr.innerHTML = "";
+            const textoQR = (al.qrCode || al.qr_texto || `${mat}|${al.nombre}`).substring(0, 100);
+            new QRCode(containerQr, {
+                text: textoQR,
+                width: 55,
+                height: 55,
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
     }
 
     if (document.getElementById('btnDescargarCredencialInd')) document.getElementById('btnDescargarCredencialInd').disabled = false;
@@ -360,4 +388,264 @@ async function generarImagenGafete(alumno) {
         };
         imgTigre.onerror = () => resolve(canvas.toDataURL("image/png")); 
     });
+}
+
+// --- DESCARGA DE GAFETES Y CREDENCIALES (PDF Y PNG ZIP) ---
+
+async function descargarGafetesDelGrupo() {
+    if (alumnosDelGrupoSeleccionado.length === 0) return;
+    Swal.fire({ title: 'Generando PDF de Gafetes...', text: 'Por favor espere unos segundos', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter');
+        
+        let col = 0, row = 0;
+        const widthGafete = 90, heightGafete = 120;
+        const marginX = 15, marginY = 15;
+
+        for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
+            const al = alumnosDelGrupoSeleccionado[i];
+            const imgData = await generarImagenGafete(al);
+
+            if (i > 0 && i % 4 === 0) {
+                pdf.addPage();
+                col = 0; row = 0;
+            } else if (i > 0 && i % 2 === 0) {
+                row++; col = 0;
+            } else if (i > 0) {
+                col++;
+            }
+
+            const x = marginX + (col * (widthGafete + 10));
+            const y = marginY + (row * (heightGafete + 10));
+            pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
+        }
+
+        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
+        const gpo = document.getElementById('filtroGpoCred').value || '';
+        pdf.save(`Gafetes_${esp}_${gpo}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar el PDF de gafetes.", "error");
+    }
+}
+
+async function descargarPNGsDelGrupo() {
+    if (alumnosDelGrupoSeleccionado.length === 0) return;
+    Swal.fire({ title: 'Generando imágenes PNG...', text: 'Empaquetando archivo ZIP', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const zip = new JSZip();
+        for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
+            const al = alumnosDelGrupoSeleccionado[i];
+            const mat = al.ncontrol || al.matricula || `ALUMNO_${i}`;
+            const imgData = await generarImagenGafete(al);
+            const base64Data = imgData.replace(/^data:image\/png;base64,/, "");
+            zip.file(`Gafete_${mat}.png`, base64Data, { base64: true });
+        }
+
+        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
+        const gpo = document.getElementById('filtroGpoCred').value || '';
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `Gafetes_PNG_${esp}_${gpo}.zip`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo empaquetar el archivo ZIP.", "error");
+    }
+}
+
+async function generarCanvasCredencialFrente(alumno) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 540; canvas.height = 856;
+
+        if (plantillaFrente) {
+            const bg = new Image();
+            bg.src = plantillaFrente;
+            bg.onload = () => drawContent(bg);
+            bg.onerror = () => drawContent(null);
+        } else {
+            drawContent(null);
+        }
+
+        function drawContent(bgImage) {
+            if (bgImage) {
+                ctx.drawImage(bgImage, 0, 0, 540, 856);
+            } else {
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 540, 856);
+                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 100);
+                
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 26px Arial"; ctx.textAlign = "center";
+                ctx.fillText("CBTis No. 134", 270, 45);
+                ctx.font = "14px Arial";
+                ctx.fillText("CREDENCIAL ESCOLAR DE ESTUDIANTE", 270, 75);
+            }
+
+            const pat = alumno.apepat || alumno.primerApellido || '';
+            const matApe = alumno.apemat || alumno.segundoApellido || '';
+            const mat = alumno.ncontrol || alumno.matricula || '';
+
+            const fotoSrc = fotoTemporalAlumno || '/img/logo-256.png';
+            const imgFoto = new Image();
+            imgFoto.src = fotoSrc;
+
+            imgFoto.onload = () => renderDetails(imgFoto);
+            imgFoto.onerror = () => renderDetails(null);
+
+            function renderDetails(foto) {
+                if (foto) {
+                    ctx.drawImage(foto, 160, 120, 220, 260);
+                } else {
+                    ctx.fillStyle = "#EEEEEE"; ctx.fillRect(160, 120, 220, 260);
+                }
+
+                ctx.fillStyle = "#000000"; ctx.font = "bold 24px Arial"; ctx.textAlign = "center";
+                ctx.fillText(`${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase(), 270, 420);
+
+                ctx.fillStyle = "#f8f9fa"; ctx.fillRect(40, 460, 460, 320);
+                ctx.strokeStyle = "#cccccc"; ctx.strokeRect(40, 460, 460, 320);
+
+                ctx.textAlign = "left"; ctx.fillStyle = "#333333"; ctx.font = "bold 18px Arial";
+                ctx.fillText("MATRÍCULA:", 60, 500);
+                ctx.fillStyle = "#7b1b37"; ctx.fillText(mat, 200, 500);
+
+                ctx.fillStyle = "#333333";
+                ctx.fillText("CARRERA:", 60, 550);
+                ctx.font = "16px Arial"; ctx.fillText(alumno.especialidad || 'N/A', 200, 550);
+
+                ctx.font = "bold 18px Arial";
+                ctx.fillText("GRUPO:", 60, 600);
+                ctx.font = "16px Arial"; ctx.fillText(`${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}`, 200, 600);
+
+                ctx.font = "bold 18px Arial";
+                ctx.fillText("CURP:", 60, 650);
+                ctx.font = "16px Arial"; ctx.fillText(alumno.curp || 'N/A', 200, 650);
+
+                ctx.font = "bold 18px Arial";
+                ctx.fillText("VIGENCIA:", 60, 700);
+                ctx.font = "16px Arial"; ctx.fillText(cfgSistema.vigencia_actual || 'Agosto 2027', 200, 700);
+
+                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 816, 540, 40);
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
+                ctx.fillText("CBTIS 134 • SISTEMA DE CONTROL ESCOLAR", 270, 842);
+
+                resolve(canvas.toDataURL("image/png"));
+            }
+        }
+    });
+}
+
+async function generarCanvasCredencialReverso(alumno) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 540; canvas.height = 856;
+
+        if (plantillaReverso) {
+            const bg = new Image();
+            bg.src = plantillaReverso;
+            bg.onload = () => drawContent(bg);
+            bg.onerror = () => drawContent(null);
+        } else {
+            drawContent(null);
+        }
+
+        async function drawContent(bgImage) {
+            if (bgImage) {
+                ctx.drawImage(bgImage, 0, 0, 540, 856);
+            } else {
+                ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 540, 856);
+                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 0, 540, 80);
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 22px Arial"; ctx.textAlign = "center";
+                ctx.fillText("INFORMACIÓN DE CONTROL Y ACCESO", 270, 50);
+            }
+
+            const mat = alumno.ncontrol || alumno.matricula || '';
+            const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 100);
+            const qrImg = await generarQRConTigre(textoQR);
+
+            const imgQR = new Image();
+            imgQR.src = qrImg;
+            imgQR.onload = () => {
+                ctx.drawImage(imgQR, 120, 120, 300, 300);
+
+                ctx.fillStyle = "#333333"; ctx.font = "14px Arial"; ctx.textAlign = "center";
+                ctx.fillText("Esta credencial es personal e intransferible.", 270, 480);
+                ctx.fillText("Acredita al portador como alumno(a) del plantel CBTis No. 134.", 270, 505);
+
+                ctx.strokeStyle = "#000000"; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(150, 680); ctx.lineTo(390, 680); ctx.stroke();
+
+                ctx.font = "bold 16px Arial"; ctx.fillStyle = "#000000";
+                ctx.fillText(cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA", 270, 710);
+                ctx.font = "14px Arial"; ctx.fillStyle = "#555555";
+                ctx.fillText("Director del Plantel CBTis No. 134", 270, 735);
+
+                ctx.fillStyle = "#7b1b37"; ctx.fillRect(0, 816, 540, 40);
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 16px Arial"; ctx.textAlign = "center";
+                ctx.fillText("CLAVE CCT: 12DCT0001L", 270, 842);
+
+                resolve(canvas.toDataURL("image/png"));
+            };
+        }
+    });
+}
+
+async function generarCredencialPDF(esMasivo) {
+    const listaAlumnos = esMasivo ? alumnosDelGrupoSeleccionado : (alumnoSeleccionadoInd ? [alumnoSeleccionadoInd] : []);
+    if (listaAlumnos.length === 0) return Swal.fire("Aviso", "Seleccione al menos un alumno para generar la credencial.", "warning");
+
+    Swal.fire({ title: 'Generando Credenciales PDF...', text: 'Procesando diseño en alta definición (CR80)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', [54, 85.6]);
+
+        for (let i = 0; i < listaAlumnos.length; i++) {
+            const al = listaAlumnos[i];
+            const imgFrente = await generarCanvasCredencialFrente(al);
+            const imgReverso = await generarCanvasCredencialReverso(al);
+
+            if (i > 0) pdf.addPage([54, 85.6], 'portrait');
+            pdf.addImage(imgFrente, 'PNG', 0, 0, 54, 85.6);
+
+            pdf.addPage([54, 85.6], 'portrait');
+            pdf.addImage(imgReverso, 'PNG', 0, 0, 54, 85.6);
+        }
+
+        const matOrGpo = esMasivo ? `Grupo_${document.getElementById('filtroGpoCred').value}` : (listaAlumnos[0].ncontrol || listaAlumnos[0].matricula);
+        pdf.save(`Credencial_PVC_${matOrGpo}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudieron generar las credenciales PDF.", "error");
+    }
+}
+
+async function descargarCredencialIndividualPNG() {
+    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
+
+    Swal.fire({ title: 'Generando PNGs...', text: 'Empaquetando en ZIP', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const zip = new JSZip();
+        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
+        
+        const imgFrente = await generarCanvasCredencialFrente(alumnoSeleccionadoInd);
+        const imgReverso = await generarCanvasCredencialReverso(alumnoSeleccionadoInd);
+
+        zip.file(`Credencial_Frente_${mat}.png`, imgFrente.replace(/^data:image\/png;base64,/, ""), { base64: true });
+        zip.file(`Credencial_Reverso_${mat}.png`, imgReverso.replace(/^data:image\/png;base64,/, ""), { base64: true });
+
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `Credencial_${mat}.zip`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudieron generar las imágenes PNG.", "error");
+    }
 }
