@@ -29,13 +29,13 @@ async function cargarDatosInstitucionales() {
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             const data = await res.json();
-            document.getElementById('confDirector').value = data.nombre_director || "";
-            document.getElementById('confOrientacion').value = data.responsable_orientacion || "";
-            document.getElementById('confCCT').value = data.cct_escuela || "";
-            document.getElementById('confTelefono').value = data.telefono_escuela || "";
-            document.getElementById('confVigencia').value = data.vigencia_actual || "";
+            if (document.getElementById('confDirector')) document.getElementById('confDirector').value = data.nombre_director || "JOSE MARTIN RODEA ZUÑIGA";
+            if (document.getElementById('confOrientacion')) document.getElementById('confOrientacion').value = data.responsable_orientacion || "MATILDE ABIGAIL GARCIA NAJERA";
+            if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "12DCT0001L";
+            if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "747 47 2 34 64";
+            if (document.getElementById('confVigencia')) document.getElementById('confVigencia').value = data.vigencia_actual || "Agosto 2026";
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error al cargar datos institucionales:", e); }
 }
 
 const formInst = document.getElementById('formInstitucional');
@@ -58,7 +58,7 @@ if (formInst) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualizaciones)
             });
-            Swal.fire("Éxito", "Datos de la institución actualizados.", "success");
+            Swal.fire("Éxito", "Datos de la institución actualizados correctamente en MongoDB.", "success");
         } catch (error) {
             Swal.fire("Error", "No se pudieron guardar los datos.", "error");
         }
@@ -72,7 +72,6 @@ async function cargarEspecialidades() {
         const data = await res.json();
         let lista = data.especialidades || [];
 
-        // Descubrir y sincronizar especialidades existentes en alumnos que falten en la lista
         try {
             const resAlumnos = await fetch('/api/alumnos');
             if (resAlumnos.ok) {
@@ -83,7 +82,7 @@ async function cargarEspecialidades() {
                         lista.push({
                             nombre: al.especialidad,
                             alias: al.especialidad.substring(0, 5).toUpperCase(),
-                            color: "#0088cc",
+                            color: "#7b1b37",
                             turno: al.turno || "Matutino"
                         });
                         actualizados = true;
@@ -175,7 +174,6 @@ async function eliminarEspecialidad(index) {
     }
 }
 
-// --- FUNCIONES DE WHATSAPP API ---
 function cambiarFormularioWs(tipo) {
     const lbl1 = document.getElementById('lblWsCampo1');
     const desc1 = document.getElementById('descWsCampo1');
