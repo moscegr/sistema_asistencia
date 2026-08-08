@@ -8,6 +8,10 @@ let gruposAutorizadosHoy = [];
 let procesandoEscaneo = false;
 let ultimoEscaneo = { matricula: "", tiempo: 0 };
 
+const igualMatricula = (val1, val2) => {
+    return String(val1 || '').trim() === String(val2 || '').trim();
+};
+
 const normalizarTexto = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
 };
@@ -57,7 +61,7 @@ async function cargarConfiguracionInicial() {
 
         pasesIndividualesHoy = resPases
             .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.matricula || p.id_alumno))
-            .map(p => p.matricula || p.id_alumno);
+            .map(p => String(p.matricula || p.id_alumno).trim());
 
         gruposAutorizadosHoy = resPases
             .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.grupo_especialidad || (p.grado && p.grupo && p.especialidad)))
@@ -101,11 +105,13 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
     if (procesandoEscaneo) return; 
 
     const esManual = (parametroExtra === true);
-    const textoCrudo = decodedText.trim();
-    const matricula = textoCrudo.includes('|') ? textoCrudo.split('|')[0] : textoCrudo;
+    const textoCrudo = String(decodedText || '').trim();
+    if (!textoCrudo) return;
+
+    const matricula = textoCrudo.includes('|') ? textoCrudo.split('|')[0].trim() : textoCrudo;
     const ahora = Date.now();
 
-    if (!esManual && ultimoEscaneo.matricula === matricula && (ahora - ultimoEscaneo.tiempo) < 5000) {
+    if (!esManual && ultimoEscaneo.matricula === matricula && (ahora - ultimoEscaneo.tiempo) < 3000) {
         return;
     }
 
@@ -115,40 +121,67 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
     const hoy = obtenerFechaLocal();
     
     try {
-        let al = alumnosCache.find(a => (a.ncontrol || a.matricula) === matricula);
+        let al = alumnosCache.find(a => 
+            igualMatricula(a.ncontrol, matricula) || 
+            igualMatricula(a.matricula, matricula) ||
+            String(a.qrCode || '').trim() === textoCrudo ||
+            String(a.qr_texto || '').trim() === textoCrudo
+        );
 
         if (!al) {
-            const resAl = await fetch(`/api/alumnos/ncontrol/${matricula}`);
+            const resAl = await fetch(`/api/alumnos/ncontrol/${encodeURIComponent(matricula)}`);
             if (resAl.ok) al = await resAl.json();
         }
 
-        if (!al || (al.estatus_escolar && al.estatus_escolar !== "Activo" && al.estatus !== "Activo")) {
+        if (!al) {
             if (typeof sonidoError !== 'undefined') sonidoError.play();
             Swal.fire({
-                icon: 'error', title: 'Error de Validación', text: 'Estudiante no encontrado o inactivo',
-                position: 'bottom-end', toast: true, width: '600px', timer: 4000, showConfirmButton: false
+                icon: 'error', 
+                title: 'Estudiante No Encontrado', 
+                text: `No se encontró ningún estudiante con la matrícula: ${matricula}`,
+                position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
             });
             procesandoEscaneo = false; 
             return;
         }
+
+        const estatusNormalizado = String(al.estatus || al.estatus_escolar || 'ACTIVO').toUpperCase();
+        if (estatusNormalizado === 'INACTIVO' || estatusNormalizado === 'BAJA') {
+            if (typeof sonidoError !== 'undefined') sonidoError.play();
+            Swal.fire({
+                icon: 'error', 
+                title: 'Estudiante Inactivo', 
+                text: `El alumno ${al.nombre} se encuentra inactivo.`,
+                position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
+            });
+            procesandoEscaneo = false; 
+            return;
+        }
+
         const resRegs = await fetch(`/api/registros-diarios/fecha/${hoy}`);
         const registrosHoy = resRegs.ok ? await resRegs.json() : [];
-        const regExistente = registrosHoy.find(r => (r.matricula || r.ncontrol) === matricula);
+        const regExistente = registrosHoy.find(r => 
+            igualMatricula(r.matricula, matricula) || igualMatricula(r.ncontrol, matricula)
+        );
 
         const resContingencia = await fetch('/api/configuracion/modo_contingencia');
         const dataContingencia = resContingencia.ok ? await resContingencia.json() : {};
         const salidaGeneralActiva = (dataContingencia?.activo === true);
 
-        const estaFuera = (!al.estado || al.estado === "FUERA" || !regExistente || regExistente.estatus_actual === "FUERA" || !regExistente.estatus_actual);
+        const estaFuera = (!al.estado || String(al.estado).toUpperCase() === "FUERA" || !regExistente || !regExistente.estatus_actual || String(regExistente.estatus_actual).toUpperCase() === "FUERA");
 
         if (estaFuera) {
             const horaEntrada = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
+            const pat = al.apepat || al.primerApellido || '';
+            const matApe = al.apemat || al.segundoApellido || '';
+            const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+
             const nuevoReg = regExistente || {
                 matricula: matricula,
-                nombre: `${al.nombre} ${al.apepat || al.primerApellido || ''} ${al.apemat || al.segundoApellido || ''}`.trim(),
+                nombre: nombreCompleto,
                 especialidad: al.especialidad,
-                grado: String(al.grado),
+                grado: String(al.grado || ''),
                 grupo: al.grupo,
                 fecha: hoy
             };
@@ -188,23 +221,37 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 }
 
 async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
-    const mat = al.ncontrol || al.matricula;
+    const mat = String(al.ncontrol || al.matricula || '').trim();
     const gpoKey = `${al.grado}${al.grupo}-${al.especialidad}`;
-    const tienePase = pasesIndividualesHoy.includes(mat) || gruposAutorizadosHoy.includes(gpoKey);
+    const tienePase = pasesIndividualesHoy.some(p => igualMatricula(p, mat)) || gruposAutorizadosHoy.includes(gpoKey);
 
     if (tienePase || salidaGeneralActiva) {
         let motivo = tienePase ? "PASE AUTORIZADO" : "MODO CONTINGENCIA (SALIDA LIBRE)";
-        let colorBanda = tienePase ? "#198754" : "#dc3545";;
+        let colorBanda = tienePase ? "#198754" : "#dc3545";
 
         const horaSalida = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        regExistente.hora_salida = horaSalida;
-        regExistente.estatus_actual = "FUERA";
-        regExistente.tipo_salida = motivo;
+        
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+
+        const regSalida = regExistente || {
+            matricula: mat,
+            nombre: nombreCompleto,
+            especialidad: al.especialidad,
+            grado: String(al.grado || ''),
+            grupo: al.grupo,
+            fecha: hoy
+        };
+
+        regSalida.hora_salida = horaSalida;
+        regSalida.estatus_actual = "FUERA";
+        regSalida.tipo_salida = motivo;
 
         await fetch('/api/registros-diarios', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(regExistente)
+            body: JSON.stringify(regSalida)
         });
 
         al.estado = "FUERA";
@@ -234,238 +281,132 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
             position: 'bottom-end',
             toast: true,
             width: '600px',
-            padding: '2rem',
-            timer: 4500,
-            showConfirmButton: false 
+            timer: 4000,
+            showConfirmButton: false
         });
     }
 }
 
-async function enviarNotificacionTutor(al, tipoAcceso) {
-    try {
-        if (!al.teltutor) return;
-        const payload = {
-            telefono: al.teltutor,
-            alumno: `${al.nombre} ${al.apepat || ''}`.trim(),
-            tipo: tipoAcceso,
-            fecha: new Date().toLocaleString('es-MX')
-        };
-        await fetch('/api/whatsapp/notificar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(() => {});
-    } catch (e) {
-        // Soft catch
-    }
-}
+function mostrarResultado(al, accion) {
+    if (typeof sonidoExito !== 'undefined') sonidoExito.play();
 
-function generarTableroDinamico() {
-    const contenedor = document.getElementById('tableroEspecialidades');
-    if (!contenedor) return;
-    contenedor.innerHTML = "";
-
-    const estructura = {};
-
-    alumnosCache.forEach(al => {
-        const estatus = (al.estatus_escolar || al.estatus || 'Activo').toUpperCase();
-        if (estatus !== 'INACTIVO' && estatus !== 'BAJA' && estatus !== 'EGRESADO' && al.especialidad && al.grado && al.grupo) {
-            const espOriginal = al.especialidad.trim();
-            const normEsp = normalizarTexto(espOriginal);
-            if (!estructura[normEsp]) {
-                estructura[normEsp] = {
-                    nombre: espOriginal,
-                    grupos: new Set()
-                };
-            }
-            estructura[normEsp].grupos.add(`${al.grado}${al.grupo}`);
-        }
-    });
-
-    const keys = Object.keys(estructura).sort();
-    if (keys.length === 0) {
-        contenedor.innerHTML = `<div class="col-12 text-center py-3 text-muted">No se encontraron grupos activos.</div>`;
-        return;
-    }
-
-    keys.forEach(normKey => {
-        const espObj = estructura[normKey];
-        const gruposReales = Array.from(espObj.grupos).sort();
-        const matchConfig = especialidadesConfig.find(e => normalizarTexto(e.nombre) === normKey);
-        const color = matchConfig?.color || '#7b1b37';
-        const espNombre = espObj.nombre;
-
-        contenedor.innerHTML += `
-            <div class="col-md-4 mb-3">
-                <div class="card shadow-sm h-100 border-0" style="border-top: 5px solid ${color}">
-                    <div class="card-body p-3">
-                        <h6 class="fw-bold mb-3" style="color: ${color}">${espNombre}</h6>
-                        <div class="d-flex flex-wrap gap-2">
-                            ${gruposReales.map(g => {
-                                const isAuth = gruposAutorizadosHoy.some(key => {
-                                    const keyNorm = normalizarTexto(key);
-                                    return keyNorm.startsWith(normalizarTexto(g)) && keyNorm.includes(normKey);
-                                });
-                                const claseBadge = isAuth ? 'bg-success text-white' : 'bg-light text-muted border';
-                                const icono = isAuth ? '<i class="bi bi-check-lg ms-1"></i>' : '';
-
-                                return `
-                                    <span class="badge ${claseBadge} p-2 shadow-sm" style="min-width: 45px; font-size: 0.85rem;">
-                                        ${g}${icono}
-                                    </span>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    });
-}
-
-function renderizarListaFiltrada(busqueda) {
-    const contenedor = document.getElementById('tablaSimpleAlumnos');
-    if (!contenedor) return;
-    contenedor.innerHTML = "";
-
-    const busquedaLimpia = normalizarTexto(busqueda);
-
-    const filtrados = alumnosCache.filter(al => {
-        const mat = al.ncontrol || al.matricula || '';
-        const pat = al.apepat || al.primerApellido || '';
-        const matApe = al.apemat || al.segundoApellido || '';
-        const nombreCompleto = normalizarTexto(`${al.nombre} ${pat} ${matApe}`);
-        return nombreCompleto.includes(busquedaLimpia) || mat.includes(busquedaLimpia);
-    });
-
-    const limitados = filtrados.slice(0, 30);
-
-    limitados.forEach(al => {
-        const mat = al.ncontrol || al.matricula || '';
-        const pat = al.apepat || al.primerApellido || '';
-        const estaDentro = al.estado === "DENTRO";
-        const dotColor = estaDentro ? "text-primary" : "text-muted";
-
-        const tienePase = pasesIndividualesHoy.includes(mat) || 
-                         gruposAutorizadosHoy.includes(`${al.grado}${al.grupo}-${al.especialidad}`);
-
-        contenedor.innerHTML += `
-            <tr class="table-active-hover ${tienePase ? 'table-success' : ''}" style="cursor: pointer;" onclick="consultarEstatus('${mat}')">
-                <td class="ps-3 py-2">
-                    <i class="bi bi-circle-fill ${dotColor} me-2" style="font-size: 0.5rem;"></i>
-                    <span class="fw-bold small text-uppercase">${al.nombre} ${pat}</span>
-                    <br><span class="x-small text-muted">${mat}</span>
-                </td>
-                <td class="text-end pe-3">
-                    <span class="badge ${estaDentro ? 'bg-primary' : 'bg-light text-muted'} rounded-pill" style="font-size: 0.6rem;">
-                        ${estaDentro ? 'PRESENTE' : 'FUERA'}
-                    </span>
-                </td>
-            </tr>`;
-    });
-
-    if (filtrados.length > 30) {
-        contenedor.innerHTML += `<tr><td colspan="2" class="text-center x-small text-muted py-2">Mostrando 30 de ${filtrados.length} coincidencias. Refine su búsqueda.</td></tr>`;
-    }
-}
-
-async function consultarEstatus(matriculaDirecta = null) {
-    let valorBusqueda = "";
-
-    if (matriculaDirecta) {
-        valorBusqueda = matriculaDirecta.toLowerCase();
-    } else {
-        const input = document.getElementById('busquedaManual');
-        if (!input) return;
-        valorBusqueda = normalizarTexto(input.value.trim());
-        input.value = "";
-    }
-
-    if (valorBusqueda.length < 3) {
-        return Swal.fire("Aviso", "Ingresa al menos 3 caracteres para buscar.", "info");
-    }
-
-    const resultado = alumnosCache.find(al => {
-        const mat = (al.ncontrol || al.matricula || "").toLowerCase();
-        const pat = al.apepat || al.primerApellido || '';
-        const matApe = al.apemat || al.segundoApellido || '';
-        const nombreCompleto = normalizarTexto(`${al.nombre} ${pat} ${matApe}`);
-        return mat === valorBusqueda || nombreCompleto.includes(valorBusqueda);
-    });
-
-    if (!resultado) {
-        return Swal.fire("No encontrado", "No existe un alumno activo con ese dato.", "error");
-    }
-
-    const estaDentro = resultado.estado === "DENTRO";
-    const colorEstado = estaDentro ? '#7b1b37' : '#6c757d';
-    const textoEstado = estaDentro ? 'ACTUALMENTE EN EL PLANTEL' : 'FUERA DEL PLANTEL';
-    const pat = resultado.apepat || resultado.primerApellido || '';
-    const matApe = resultado.apemat || resultado.segundoApellido || '';
-
-    Swal.fire({
-        title: 'Consulta de Estatus',
-        html: `
-            <div class="text-start">
-                <p class="mb-1"><b>Alumno:</b> ${resultado.nombre} ${pat} ${matApe}</p>
-                <p class="mb-1"><b>Matrícula:</b> ${resultado.ncontrol || resultado.matricula}</p>
-                <p class="mb-1"><b>Especialidad:</b> ${resultado.especialidad}</p>
-                <p class="mb-3"><b>Grado y Grupo:</b> ${resultado.grado}° "${resultado.grupo}"</p>
-                <div class="text-center p-2 rounded shadow-sm" style="background-color: ${colorEstado}; color: white; font-weight: bold; font-size: 1.1rem;">
-                    <i class="bi ${estaDentro ? 'bi-building-check' : 'bi-building-dash'} me-2"></i>${textoEstado}
-                </div>
-            </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#7b1b37'
-    });
-}
-
-function mostrarResultado(al, tipo) {
-    if (tipo === 'ENTRADA' && typeof sonidoEntrada !== 'undefined') sonidoEntrada.play();
-    if (tipo === 'SALIDA' && typeof sonidoSalidaAuth !== 'undefined') sonidoSalidaAuth.play();
-    
-    const colorNotificacion = (tipo === 'ENTRADA') ? '#0d6efd' : '#198754';
-    const icono = (tipo === 'ENTRADA') ? 'success' : 'success';
+    const colorBanda = accion === "ENTRADA" ? "#198754" : "#0d6efd";
+    const titulo = accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA";
     const pat = al.apepat || al.primerApellido || '';
     const matApe = al.apemat || al.segundoApellido || '';
+    const foto = al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg';
 
-    const Toast = Swal.mixin({
-        toast: true,
+    Swal.fire({
         position: 'bottom-end',
-        showConfirmButton: false,
-        timer: 4500,
+        toast: true,
         width: '600px',
-        padding: '2rem',
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-        }
-    });
-
-    Toast.fire({
-        icon: icono,
-        title: `<span style="color: ${colorNotificacion}; font-weight: 900; font-size: 1.6rem;">${tipo} REGISTRADA</span>`,
+        timer: 3500,
+        showConfirmButton: false,
+        background: '#ffffff',
         html: `
-            <div class="d-flex align-items-center mt-2">
-                <div class="ms-2 text-start">
-                    <div class="fw-bold text-uppercase" style="font-size: 1.2rem; line-height: 1.2;">
-                        ${al.nombre} ${pat} ${matApe}
-                    </div>
-                    <div class="text-muted mt-1" style="font-size: 1rem; letter-spacing: 0.5px;">
-                        <i class="bi bi-mortarboard-fill"></i> ${al.especialidad || 'N/A'} <br>
-                        <i class="bi bi-geo-alt-fill"></i> ${al.grado || ''}° "${al.grupo || ''}"
-                    </div>
+            <div id="bandaEstatus" style="background-color: ${colorBanda}; color: white; padding: 10px; font-weight: bold; font-size: 1.4rem; border-radius: 8px 8px 0 0; text-align: center;">
+                ${titulo}
+            </div>
+            <div class="d-flex align-items-center p-3">
+                <img src="${foto}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid ${colorBanda};">
+                <div class="ms-3 text-start">
+                    <h4 class="fw-bold mb-1" style="color: #212529;">${al.nombre} ${pat} ${matApe}</h4>
+                    <p class="mb-0 text-muted" style="font-size: 1.1rem;">
+                        <strong>Matrícula:</strong> ${al.ncontrol || al.matricula} <br>
+                        <strong>Carrera:</strong> ${al.especialidad} (${al.grado}° "${al.grupo}")
+                    </p>
                 </div>
             </div>
         `
     });
 }
 
+function enviarNotificacionTutor(al, tipoAcceso) {
+    if (al.teltutor || (al.tutor && al.tutor.telefono)) {
+        console.log(`Notificación enviada al tutor de ${al.nombre} por ${tipoAcceso}`);
+    }
+}
+
+function generarTableroDinamico() {
+    const contenedor = document.getElementById('tableroEspecialidades');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = "";
+
+    const paletaColores = ['#7b1b37', '#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6f42c1', '#fd7e14'];
+
+    especialidadesConfig.forEach((esp, index) => {
+        const color = paletaColores[index % paletaColores.length];
+        
+        const alumnosEsp = alumnosCache.filter(a => a.especialidad === esp.nombre);
+        const gruposUnicos = [...new Set(alumnosEsp.map(a => `${a.grado}${a.grupo}`))].sort();
+
+        let badgesHTML = "";
+        gruposUnicos.forEach(gpo => {
+            const gpoKey = `${gpo}-${esp.nombre}`;
+            const estaAutorizado = gruposAutorizadosHoy.includes(gpoKey);
+            const badgeClass = estaAutorizado ? 'bg-success text-white' : 'bg-light text-dark border';
+            
+            badgesHTML += `<span class="badge ${badgeClass} me-1 mb-1 p-2">${gpo}</span>`;
+        });
+
+        const card = document.createElement('div');
+        card.className = "col-md-6 col-lg-4";
+        card.innerHTML = `
+            <div class="card border-0 shadow-sm especialidad-card h-100" style="border-top-color: ${color} !important; border-radius: 12px;">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-2" style="color: ${color};">${esp.nombre}</h6>
+                    <div class="d-flex flex-wrap gap-1">
+                        ${badgesHTML || '<span class="text-muted small">Sin grupos</span>'}
+                    </div>
+                </div>
+            </div>
+        `;
+        contenedor.appendChild(card);
+    });
+}
+
+function renderizarListaFiltrada(filtro) {
+    const tbody = document.getElementById('tablaSimpleAlumnos');
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const f = normalizarTexto(filtro);
+    const filtrados = alumnosCache.filter(a => {
+        const nom = normalizarTexto(`${a.nombre} ${a.apepat || a.primerApellido || ''} ${a.apemat || a.segundoApellido || ''}`);
+        const mat = normalizarTexto(a.ncontrol || a.matricula);
+        return nom.includes(f) || mat.includes(f);
+    });
+
+    filtrados.slice(0, 50).forEach(al => {
+        const tr = document.createElement('tr');
+        tr.className = "table-active-hover";
+        const pat = al.apepat || al.primerApellido || '';
+        const estadoLabel = al.estado === "DENTRO" ? '<span class="badge bg-success">DENTRO</span>' : '<span class="badge bg-secondary">FUERA</span>';
+
+        tr.innerHTML = `
+            <td>
+                <div class="fw-bold">${al.nombre} ${pat}</div>
+                <div class="x-small text-muted">${al.ncontrol || al.matricula}</div>
+            </td>
+            <td class="text-end align-middle">
+                ${estadoLabel}
+            </td>
+        `;
+
+        tr.onclick = () => {
+            onScanSuccess(al.ncontrol || al.matricula, true);
+        };
+
+        tbody.appendChild(tr);
+    });
+}
+
+// ── RECONOCIMIENTO FACIAL ──
 let faceMatcher = null;
 let escaneoFacialActivo = false;
 let streamReconocimiento = null;
-let ultimoRostroDetectado = { matricula: "", tiempo: 0 };
 let modoEscaneoFacial = 'AMBOS'; 
 
 async function cambiarModoFacial(modo) {
@@ -480,6 +421,8 @@ async function cambiarModoFacial(modo) {
 
 async function inicializarMotorFacial() {
     try {
+        if (typeof faceapi === 'undefined') return;
+
         if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
             const rutaModelos = window.location.origin + '/models';
             await Promise.all([
@@ -492,12 +435,13 @@ async function inicializarMotorFacial() {
         const descriptoresEtiquetados = [];
 
         alumnosCache.forEach(al => {
-            const mat = al.ncontrol || al.matricula;
-            if (al.descriptor_facial && al.descriptor_facial.length === 128 && mat) {
-                if (modoEscaneoFacial === 'ENTRADA' && al.estado === 'DENTRO') return;
-                if (modoEscaneoFacial === 'SALIDA' && al.estado !== 'DENTRO') return;
+            const mat = String(al.ncontrol || al.matricula || '').trim();
+            const desc = al.descriptor_facial || al.descriptorFacial;
+            if (desc && desc.length === 128 && mat) {
+                if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') return;
+                if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') return;
 
-                const floatArray = new Float32Array(al.descriptor_facial);
+                const floatArray = new Float32Array(desc);
                 descriptoresEtiquetados.push(
                     new faceapi.LabeledFaceDescriptors(mat, [floatArray])
                 );
@@ -505,7 +449,7 @@ async function inicializarMotorFacial() {
         });
 
         if (descriptoresEtiquetados.length > 0) {
-            faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.45);
+            faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.6);
         } else {
             faceMatcher = null;
         }
@@ -545,8 +489,8 @@ async function toggleReconocimientoFacial() {
             await cambiarModoFacial('AMBOS');
 
             streamReconocimiento = await navigator.mediaDevices.getUserMedia({ video: {
-                width: { ideal: 640},
-                height: { ideal: 480}
+                width: { ideal: 640 },
+                height: { ideal: 480 }
             } });
             video.srcObject = streamReconocimiento;
             escaneoFacialActivo = true;
@@ -604,7 +548,7 @@ async function procesarFotogramasFaciales() {
 
             let etiquetaTexto = "DESCONOCIDO";
             if (bestMatch.label !== 'unknown') {
-                const alumnoEncontrado = alumnosCache.find(a => (a.ncontrol || a.matricula) === bestMatch.label);
+                const alumnoEncontrado = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, bestMatch.label));
                 if (alumnoEncontrado) {
                     const pat = alumnoEncontrado.apepat || alumnoEncontrado.primerApellido || '';
                     etiquetaTexto = `${alumnoEncontrado.nombre} ${pat}`.toUpperCase();
