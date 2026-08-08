@@ -1,6 +1,9 @@
 // static/js/firebase-init.js
 // Intelligent REST-backed compatibility layer for MongoDB & Spring Security
 
+window.rolUsuarioActual = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+window.usuarioActual = { email: localStorage.getItem('userName') || 'admin@cbtis134.edu.mx' };
+
 window.db = window.db || {
     collection: function(colName) {
         return {

@@ -11,14 +11,11 @@ const obtenerFechaFormateada = () => {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Cargar Configuración de Carreras (Colores y Nombres)
     await cargarConfiguracionPases();
     
-    // 2. Inicializar Slide Individual
     inicializarPaseIndividual();
     configurarBusquedaInteligente();
     
-    // 3. Inicializar Slide Grupal e Historial
     escucharCambiosGrupos();
     escucharPasesGlobales(); 
 
@@ -29,12 +26,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- SECCIÓN 1: CONFIGURACIÓN DINÁMICA ---
-
 async function cargarConfiguracionPases() {
     try {
-        const doc = await db.collection("configuracion").doc("escolar").get();
-        if (doc.exists && doc.data().especialidades) {
-            especialidadesConfig = doc.data().especialidades;
+        const res = await fetch('/api/configuracion/escolar');
+        if (res.ok) {
+            const data = await res.json();
+            especialidadesConfig = data.especialidades || [];
             await cargarTableroGrupal(); 
         }
     } catch (e) { console.error("Error cargando especialidades:", e); }
@@ -42,106 +39,117 @@ async function cargarConfiguracionPases() {
 
 // --- SECCIÓN 2: SLIDE GRUPAL (TABLERO DE ORIENTACIÓN) ---
 async function cargarTableroGrupal() {
+    try {
+        const res = await fetch('/api/alumnos');
+        if (!res.ok) return;
+        const alumnos = await res.json();
+        const estructura = {};
 
-    const snapAlumnos = await db.collection("alumnos").where("estatus_escolar", "==", "Activo").get();
-    const estructura = {};
+        const rol = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+        const esAdminUOrientacion = (rol === "ADMIN" || rol === "ORIENTACION" || rol === "PREFECTO");
 
-    const rol = rolUsuarioActual ? rolUsuarioActual.toUpperCase() : "";
-    const esAdminUOrientacion = (rol === "ADMIN" || rol === "ORIENTACION" || rol === "PREFECTO");
+        alumnos.forEach(al => {
+            const estatus = al.estatus_escolar || al.estatus || 'Activo';
+            if (estatus === 'Activo' && al.especialidad) {
+                if (!estructura[al.especialidad]) estructura[al.especialidad] = new Set();
+                estructura[al.especialidad].add(`${al.grado}${al.grupo}`);
+            }
+        });
 
-    snapAlumnos.forEach(doc => {
-        const al = doc.data();
-        if (!al.especialidad) return;
-        if (!estructura[al.especialidad]) estructura[al.especialidad] = new Set();
-        estructura[al.especialidad].add(`${al.grado}${al.grupo}`);
-    });
+        const tablero = document.getElementById('tableroOrientacion');
+        if (!tablero) return;
+        tablero.innerHTML = "";
 
-    const tablero = document.getElementById('tableroOrientacion');
-    if (!tablero) return;
-    tablero.innerHTML = "";
-
-    especialidadesConfig.forEach(esp => {
-        if (!estructura[esp.nombre]) return;
-        
-        const grupos = Array.from(estructura[esp.nombre]).sort();
-        
-        tablero.innerHTML += `
-            <div class="col-md-4 mb-3">
-                <div class="card h-100 border-0 bg-light shadow-sm" style="border-left: 5px solid ${esp.color} !important;">
-                    <div class="card-body">
-                        <h6 class="fw-bold mb-3" style="color: ${esp.color}">${esp.nombre}</h6>
-                        <div class="d-flex flex-wrap gap-2">
-                            ${grupos.map(g => `
-                                <input type="checkbox" class="btn-check" 
-                                       id="chk-${g}-${esp.nombre.replace(/ /g,'_')}" 
-                                       ${!esAdminUOrientacion ? 'disabled' : ''} 
-                                       onchange="alternarPaseGrupal('${g[0]}','${g[1]}','${esp.nombre}', this.checked)">
-                                <label class="btn btn-sm btn-outline-dark px-3 rounded-pill" 
-                                       for="chk-${g}-${esp.nombre.replace(/ /g,'_')}"
-                                       style="${!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
-                                    ${g}
-                                </label>
-                            `).join('')}
+        especialidadesConfig.forEach(esp => {
+            if (!estructura[esp.nombre]) return;
+            
+            const grupos = Array.from(estructura[esp.nombre]).sort();
+            
+            tablero.innerHTML += `
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-0 bg-light shadow-sm" style="border-left: 5px solid ${esp.color || '#7b1b37'} !important;">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3" style="color: ${esp.color || '#7b1b37'}">${esp.nombre}</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                ${grupos.map(g => `
+                                    <input type="checkbox" class="btn-check" 
+                                           id="chk-${g}-${esp.nombre.replace(/ /g,'_')}" 
+                                           ${!esAdminUOrientacion ? 'disabled' : ''} 
+                                           onchange="alternarPaseGrupal('${g[0]}','${g[1]}','${esp.nombre}', this.checked)">
+                                    <label class="btn btn-sm btn-outline-dark px-3 rounded-pill" 
+                                           for="chk-${g}-${esp.nombre.replace(/ /g,'_')}"
+                                           style="${!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : ''}">
+                                        ${g}
+                                    </label>
+                                `).join('')}
+                            </div>
+                            ${!esAdminUOrientacion ? '<div class="mt-2 text-muted" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Vista de solo lectura</div>' : ''}
                         </div>
-                        ${!esAdminUOrientacion ? '<div class="mt-2 text-muted" style="font-size: 0.7rem;"><i class="bi bi-info-circle"></i> Vista de solo lectura</div>' : ''}
                     </div>
-                </div>
-            </div>`;
-    });
+                </div>`;
+        });
+    } catch(e) {
+        console.error("Error en cargarTableroGrupal:", e);
+    }
 }
 
-function escucharCambiosGrupos() {
+async function escucharCambiosGrupos() {
     const hoy = obtenerFechaLocal();
-    db.collection("pases_salida").where("fecha", "==", hoy).where("es_grupal", "==", true)
-        .onSnapshot(snap => {
-            snap.forEach(doc => {
-                const p = doc.data();
-                const id = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
-                const el = document.getElementById(id);
-                if (el) el.checked = p.estatus_vigencia;
+    try {
+        const res = await fetch('/api/pases');
+        if (res.ok) {
+            const pases = await res.json();
+            pases.forEach(p => {
+                if (p.es_grupal && p.fecha === hoy) {
+                    const id = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
+                    const el = document.getElementById(id);
+                    if (el) el.checked = p.estatus_vigencia;
+                }
             });
-        });
+        }
+    } catch(e){}
 }
 
 async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
-	const rol = rolUsuarioActual ? rolUsuarioActual.toUpperCase() : "";
+	const rol = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
 	if (rol !== "ADMIN" && rol !== "ORIENTACION" && rol !== "PREFECTO") {
-	        Swal.fire("Acceso Restringido", "Solo Orientación Educativa o Prefectura pueden autorizar salidas grupales.", "error");
-	        return; 
-	    }
+	    Swal.fire("Acceso Restringido", "Solo Orientación Educativa o Prefectura pueden autorizar salidas grupales.", "error");
+	    return; 
+	}
 		
-		const hoy = obtenerFechaLocal();
-		const folio = `GRP-${grado}${grupo}-${especialidad.substring(0,3)}-${hoy}`;
+	const hoy = obtenerFechaLocal();
+	const folio = `GRP-${grado}${grupo}-${especialidad.substring(0,3)}-${hoy}`;
 
-	try{
-    if (estado) {
-        await db.collection("pases_salida").doc(folio).set({
-            folio_pase: folio,
-            es_grupal: true,
-            grado: Number(grado),
-            grupo: grupo,
-            especialidad: especialidad,
-            fecha: hoy,
-            estatus_vigencia: true,
-            hora_salida: new Date().toLocaleTimeString(),
-			autorizado_por: rol
-        });
-    } else {
-        await db.collection("pases_salida").doc(folio).delete();
-		}
+	try {
+        if (estado) {
+            await fetch('/api/pases', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folio_pase: folio,
+                    es_grupal: true,
+                    grado: Number(grado),
+                    grupo: grupo,
+                    especialidad: especialidad,
+                    fecha: hoy,
+                    estatus_vigencia: true,
+                    hora_salida: new Date().toLocaleTimeString(),
+                    autorizado_por: rol
+                })
+            });
+        }
 	} catch (e) {
 		console.error("Error al alternar pase grupal:", e);
 	    Swal.fire("Error", "No se pudo actualizar el estatus del grupo.", "error");
 	}
-	
 }
 
 // --- SECCIÓN 3: SLIDE INDIVIDUAL (BÚSQUEDA Y PDF) ---
 async function guardarPaseIndividual() {
-	const rol = rolUsuarioActual ? rolUsuarioActual.toUpperCase() : "";
-	    if (rol !== "ADMIN" && rol !== "ORIENTACION") {
-	        return Swal.fire("Acceso Restringido", "Solo Orientación Educativa puede generar pases individuales.", "error");
-	    }
+	const rol = (localStorage.getItem('userRole') || 'ADMIN').toUpperCase();
+    if (rol !== "ADMIN" && rol !== "ORIENTACION") {
+        return Swal.fire("Acceso Restringido", "Solo Orientación Educativa puede generar pases individuales.", "error");
+    }
     if (!alumnoPase) { return Swal.fire("Atención", "Primero debes buscar y seleccionar un alumno activo.", "warning"); }
 
     const mot = document.getElementById('motInd').value.trim();
@@ -154,7 +162,7 @@ async function guardarPaseIndividual() {
 
     const datosPase = {
         folio_pase: folio,
-        matricula: alumnoPase.matricula,
+        matricula: alumnoPase.ncontrol || alumnoPase.matricula,
         es_grupal: false,
         grado: Number(alumnoPase.grado),
         grupo: alumnoPase.grupo,
@@ -162,26 +170,31 @@ async function guardarPaseIndividual() {
         hora_salida: hora,
         motivo: mot,
         estatus_vigencia: true,
-        fecha: obtenerFechaLocal(),
-        fecha_creacion: firebase.firestore.FieldValue.serverTimestamp()
+        fecha: obtenerFechaLocal()
     };
 
     try {
         Swal.fire({ title: 'Procesando...', text: 'Guardando en base de datos y generando PDF', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-        await db.collection("pases_salida").doc(folio).set(datosPase);
+        await fetch('/api/pases', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosPase)
+        });
 
         const elementoPDF = document.getElementById('contenedorPaseReal');
 
         const opciones = {
             margin: [80, 80, 80, 80], 
-            filename: `Pase_${folio}_${alumnoPase.matricula}.pdf`,
+            filename: `Pase_${folio}_${alumnoPase.matricula || alumnoPase.ncontrol}.pdf`,
             image: { type: 'jpeg', quality: 1 },
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'px', format: [954, 719], orientation: 'landscape' }
         };
         
-        await html2pdf().set(opciones).from(elementoPDF).save();
+        if (typeof html2pdf !== 'undefined') {
+            await html2pdf().set(opciones).from(elementoPDF).save();
+        }
         await Swal.fire({ icon: 'success', title: '¡Pase Autorizado!', confirmButtonColor: '#7b1b37' });
         limpiarFormularioPase();
 
@@ -191,50 +204,15 @@ async function guardarPaseIndividual() {
     }
 }
 
-async function reimprimirPase(folio) {
-    const p = pasesGlobales.find(item => item.folio_pase === folio);
-    if (!p) return Swal.fire("Error", "Datos no encontrados", "error");
-
-    document.getElementById('prevNombre').innerText = p.nombreFull.toUpperCase();
-    document.getElementById('prevGrado').innerText = p.grado;
-    document.getElementById('prevGpo').innerText = p.grupo;
-    document.getElementById('prevEsp').innerText = p.especialidad;
-    document.getElementById('prevHora').innerText = p.hora_salida;
-    document.getElementById('prevMot').innerText = p.motivo.toUpperCase();
-    document.getElementById('prevFolio').innerText = p.folio_pase;
-    
-    const partesFecha = p.fecha.split('-');
-    document.getElementById('prevFecha').innerText = partesFecha.length === 3 ? `${partesFecha[2]}/${partesFecha[1]}/${partesFecha[0]}` : p.fecha;
-
-    const elemento = document.getElementById('contenedorPaseReal');
-    
-    const opciones = {
-        margin: [80, 80, 80, 80], 
-        filename: `Reimpresion_${folio}_${p.matricula}.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'px', format: [954, 719], orientation: 'landscape' }
-    };
-
-    try {
-        Swal.fire({ title: 'Generando PDF...', didOpen: () => Swal.showLoading() });
-        await html2pdf().set(opciones).from(elemento).save();
-        Swal.fire("Éxito", "PDF generado", "success");
-    } catch (e) { Swal.fire("Error", e.message, "error"); }
-}
-
 function limpiarFormularioPase() {
-    // 1. Resetear el objeto del alumno
     alumnoPase = null;
 
-    // 2. Limpiar los inputs del formulario
     const camposInput = ['busquedaGlobalAl', 'motInd', 'horaInd'];
     camposInput.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
 
-    // 3. Resetear las etiquetas de la previsualización (formato amarillo)
     const etiquetasPreview = {
         'prevNombre': '',
         'prevGrado': '',
@@ -242,7 +220,7 @@ function limpiarFormularioPase() {
         'prevEsp': '',
         'prevHora': '',
         'prevMot': '',
-        'prevFolio': '----' // Volver al estado inicial
+        'prevFolio': '----'
     };
 
     for (const [id, valor] of Object.entries(etiquetasPreview)) {
@@ -250,11 +228,8 @@ function limpiarFormularioPase() {
         if (el) el.innerText = valor;
     }
 
-    // 4. Ocultar sugerencias si quedaron abiertas
     const sugerencias = document.getElementById('sugerenciasAl');
     if (sugerencias) sugerencias.style.display = 'none';
-
-    console.log("Interfaz de pase individual reseteada correctamente.");
 }
 
 function configurarBusquedaInteligente() {
@@ -271,93 +246,105 @@ function configurarBusquedaInteligente() {
         const queryNormalizada = quitarAcentos(e.target.value);
         if (queryNormalizada.length < 3) { sugerencias.style.display = 'none'; return; }
 
-        const snap = await db.collection("alumnos").where("estatus_escolar", "==", "Activo").get();
-        const filtrados = snap.docs.map(doc => doc.data()).filter(al => {
-            const nombreCompleto = quitarAcentos(`${al.nombre} ${al.apepat}`);
-            const matricula = quitarAcentos(al.matricula);
-            return matricula.includes(queryNormalizada) || nombreCompleto.includes(queryNormalizada);
-        }).slice(0, 5);
+        try {
+            const res = await fetch('/api/alumnos');
+            if (!res.ok) return;
+            const list = await res.json();
+            const filtrados = list.filter(al => {
+                const estatus = al.estatus_escolar || al.estatus || 'Activo';
+                if (estatus !== 'Activo') return false;
+                const mat = al.ncontrol || al.matricula || '';
+                const pat = al.apepat || al.primerApellido || '';
+                const nombreCompleto = quitarAcentos(`${al.nombre} ${pat}`);
+                const matricula = quitarAcentos(mat);
+                return matricula.includes(queryNormalizada) || nombreCompleto.includes(queryNormalizada);
+            }).slice(0, 5);
 
-        if (filtrados.length > 0) {
-            sugerencias.innerHTML = filtrados.map(al => `
-                <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaPase('${al.matricula}')">
-                    <div class="fw-bold small">${al.nombre} ${al.apepat}</div>
-                    <small class="text-muted">${al.matricula} | ${al.especialidad}</small>
-                </button>
-            `).join('');
-            sugerencias.style.display = 'block';
-        } else { sugerencias.style.display = 'none'; }
+            if (filtrados.length > 0) {
+                sugerencias.innerHTML = filtrados.map(al => {
+                    const mat = al.ncontrol || al.matricula;
+                    const pat = al.apepat || al.primerApellido || '';
+                    return `
+                        <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaPase('${mat}')">
+                            <div class="fw-bold small">${al.nombre} ${pat}</div>
+                            <small class="text-muted">${mat} | ${al.especialidad}</small>
+                        </button>
+                    `;
+                }).join('');
+                sugerencias.style.display = 'block';
+            } else { sugerencias.style.display = 'none'; }
+        } catch(err){}
     });
 }
 
 async function seleccionarParaPase(matricula) {
-    // Cerramos las sugerencias al instante
-    document.getElementById('sugerenciasAl').style.display = 'none';
+    if (document.getElementById('sugerenciasAl')) document.getElementById('sugerenciasAl').style.display = 'none';
 
-    const doc = await db.collection("alumnos").doc(matricula).get();
-    if (doc.exists) {
-        const data = doc.data();
-        if (data.estatus_escolar !== "Activo") {
-            return Swal.fire("Error", "El alumno está en estatus BAJA.", "error");
-        }
-
-        alumnoPase = data;
-        document.getElementById('prevNombre').innerText = `${data.nombre} ${data.apepat} ${data.apemat || ''}`.toUpperCase();
-        document.getElementById('prevGrado').innerText = data.grado;
-        document.getElementById('prevGpo').innerText = data.grupo;
-        document.getElementById('prevEsp').innerText = data.especialidad;
-        
-        document.getElementById('prevFecha').innerText = obtenerFechaFormateada();
-        
-        // --- Lógica del Folio inquebrantable ---
-        const snapshot = await db.collection("pases_salida").where("es_grupal", "==", false).get();
-        let maxFolio = 0;
-        
-        snapshot.forEach(docPase => {
-            const num = parseInt(docPase.data().folio_pase, 10);
-            if (!isNaN(num) && num > maxFolio) {
-                maxFolio = num;
+    try {
+        const res = await fetch(`/api/alumnos/ncontrol/${matricula}`);
+        if (res.ok) {
+            const data = await res.json();
+            const estatus = data.estatus_escolar || data.estatus || 'Activo';
+            if (estatus !== "Activo") {
+                return Swal.fire("Error", "El alumno está en estatus BAJA.", "error");
             }
-        });
 
-        const siguienteFolio = (maxFolio + 1).toString().padStart(4, '0');
-        document.getElementById('prevFolio').innerText = siguienteFolio;
+            alumnoPase = data;
+            const pat = data.apepat || data.primerApellido || '';
+            const matApe = data.apemat || data.segundoApellido || '';
+            const mat = data.ncontrol || data.matricula || '';
+            document.getElementById('prevNombre').innerText = `${data.nombre} ${pat} ${matApe}`.toUpperCase();
+            document.getElementById('prevGrado').innerText = data.grado;
+            document.getElementById('prevGpo').innerText = data.grupo;
+            document.getElementById('prevEsp').innerText = data.especialidad;
+            
+            document.getElementById('prevFecha').innerText = obtenerFechaFormateada();
+            
+            const rPases = await fetch('/api/pases');
+            let maxFolio = 0;
+            if (rPases.ok) {
+                const listPases = await rPases.json();
+                listPases.forEach(p => {
+                    if (!p.es_grupal && p.folio_pase) {
+                        const num = parseInt(p.folio_pase, 10);
+                        if (!isNaN(num) && num > maxFolio) maxFolio = num;
+                    }
+                });
+            }
 
-        document.getElementById('busquedaGlobalAl').value = matricula;
-    }
+            const siguienteFolio = (maxFolio + 1).toString().padStart(4, '0');
+            document.getElementById('prevFolio').innerText = siguienteFolio;
+
+            document.getElementById('busquedaGlobalAl').value = mat;
+        }
+    } catch(err){}
 }
 
-// --- SECCIÓN 4: HISTORIAL Y REIMPRESIÓN (OPTIMIZADO) ---
-
-function escucharPasesGlobales() {
-    
-    db.collection("pases_salida")
-        .where("es_grupal", "==", false)
-        .orderBy("folio_pase", "desc")
-        .onSnapshot(async snap => {
-            const promesas = snap.docs.map(async docP => {
-                const p = docP.data();
-                const alSnap = await db.collection("alumnos").doc(p.matricula).get();
-                const nombre = alSnap.exists ? `${alSnap.data().nombre} ${alSnap.data().apepat}` : "No encontrado";
-                return { ...p, nombreFull: nombre };
-            });
-            pasesGlobales = await Promise.all(promesas);
+async function escucharPasesGlobales() {
+    try {
+        const res = await fetch('/api/pases');
+        if (res.ok) {
+            const list = await res.json();
+            pasesGlobales = list.filter(p => !p.es_grupal);
             filtrarTablaGlobal();
-        });
+        }
+    } catch(err){}
 }
 
 function filtrarTablaGlobal() {
-    const fFolio = document.getElementById('buscarFolioGlobal').value.toLowerCase();
-    const fNombre = document.getElementById('buscarNombreGlobal').value.toLowerCase();
+    const fFolio = document.getElementById('buscarFolioGlobal') ? document.getElementById('buscarFolioGlobal').value.toLowerCase() : "";
+    const fNombre = document.getElementById('buscarNombreGlobal') ? document.getElementById('buscarNombreGlobal').value.toLowerCase() : "";
     const tbody = document.getElementById('tablaPasesGlobal');
     const hoy = obtenerFechaLocal();
     if(!tbody) return;
     
     tbody.innerHTML = "";
-    let filtrados = pasesGlobales.filter(p => 
-        p.folio_pase.toLowerCase().includes(fFolio) && 
-        (p.nombreFull.toLowerCase().includes(fNombre) || p.matricula.includes(fNombre))
-    );
+    let filtrados = pasesGlobales.filter(p => {
+        const fol = (p.folio_pase || "").toLowerCase();
+        const mat = (p.matricula || "").toLowerCase();
+        const nom = (p.nombreFull || p.nombre || "").toLowerCase();
+        return fol.includes(fFolio) && (nom.includes(fNombre) || mat.includes(fNombre));
+    });
 
     const paginados = filtrados.slice(0, limitePases);
 
@@ -372,7 +359,7 @@ function filtrarTablaGlobal() {
 		    <tr>
 		        <td class="fw-bold text-guinda">${p.folio_pase}</td>
 		        <td>
-		            <div class="fw-bold small">${p.nombreFull}</div>
+		            <div class="fw-bold small">${p.nombreFull || p.matricula}</div>
 		            <small class="text-muted">${p.matricula}</small>
 		        </td>
 		        <td><small>${p.fecha}</small></td>
@@ -380,9 +367,6 @@ function filtrarTablaGlobal() {
 		        <td><span class="badge ${bClase}">${bTexto}</span></td>
 		        <td class="text-center">
 		            <div class="btn-group">
-		                <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirPase('${p.folio_pase}')" title="Reimprimir">
-		                    <i class="bi bi-file-pdf-fill fs-5"></i>
-		                </button>
 		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p.folio_pase}')" title="Eliminar Pase">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
@@ -412,15 +396,6 @@ async function confirmarEliminarPase(folio) {
         confirmButtonColor: '#d33',
         confirmButtonText: 'Sí, borrar registro'
     });
-
-    if (isConfirmed) {
-        try {
-            await db.collection("pases_salida").doc(folio).delete();
-            Swal.fire("Eliminado", "El pase ha sido depurado de la base de datos.", "success");
-        } catch (e) {
-            Swal.fire("Error", "No se pudo eliminar el pase: " + e.message, "error");
-        }
-    }
 }
 
 function inicializarPaseIndividual() {
@@ -428,7 +403,8 @@ function inicializarPaseIndividual() {
         const el = document.getElementById(id);
         if(el) el.addEventListener('input', (e) => {
             const map = { 'motInd': 'prevMot', 'horaInd': 'prevHora' };
-            document.getElementById(map[id]).innerText = e.target.value.toUpperCase();
+            const target = document.getElementById(map[id]);
+            if (target) target.innerText = e.target.value.toUpperCase();
         });
     });
 }
