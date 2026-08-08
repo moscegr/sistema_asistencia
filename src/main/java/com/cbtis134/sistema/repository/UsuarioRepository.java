@@ -1,0 +1,14 @@
+package com.cbtis134.sistema.repository;
+
+import com.cbtis134.sistema.model.Usuario;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UsuarioRepository extends MongoRepository<Usuario, String> {
+    Optional<Usuario> findByCorreo(String correo);
+    boolean existsByCorreo(String correo);
+    Optional<Usuario> findByUid(String uid);
+}
