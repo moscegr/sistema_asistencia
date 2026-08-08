@@ -1,126 +1,78 @@
-let adminUID = "admin_local";
-let editMatricula = null;
-let especialidadesCache = [];
-
-let descriptorFacialGlobal = null; 
-let streamCamara = null;
 let iaCargada = false;
+let streamCamara = null;
+let descriptorFacialGlobal = null;
+let fotoPerfilGlobal = null;
+let adminUID = "ADMIN_DEFAULT";
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await cargarEspecialidadesConfig();
-    cargarModelosIA();
-
-    const inputs = document.querySelectorAll('#formAlumno input, #formAlumno select');
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            if (input.checkValidity()) {
-                input.classList.remove('is-invalid');
-                input.classList.add('is-valid');
-            } else {
-                input.classList.remove('is-valid');
-                input.classList.add('is-invalid');
-            }
-        });
-    });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    editMatricula = urlParams.get('edit');
-
-    if (editMatricula) {
-        configurarModoEdicion(editMatricula);
-    }
+    await cargarEspecialidadesForm();
+    await cargarModelosIA();
+    verificarEdicion();
 });
 
-async function cargarEspecialidadesConfig() {
-    const select = document.getElementById('especialidad');
-    if (!select) return;
-
-    let listaEsp = [];
-
+async function cargarEspecialidadesForm() {
+    const selectEsp = document.getElementById('especialidad');
+    if (!selectEsp) return;
     try {
-        const resConfig = await fetch('/api/configuracion/escolar');
-        if (resConfig.ok) {
-            const dataConfig = await resConfig.json();
-            if (dataConfig.especialidades && dataConfig.especialidades.length > 0) {
-                especialidadesCache = dataConfig.especialidades;
-                listaEsp = dataConfig.especialidades.map(e => e.nombre);
-            }
-        }
-    } catch(e) {}
-
-    try {
-        const resAlumnos = await fetch('/api/alumnos');
-        if (resAlumnos.ok) {
-            const alumnos = await resAlumnos.json();
-            alumnos.forEach(a => {
-                if (a.especialidad && !listaEsp.includes(a.especialidad)) {
-                    listaEsp.push(a.especialidad);
-                }
+        const res = await fetch('/api/configuracion/escolar');
+        if (res.ok) {
+            const data = await res.json();
+            selectEsp.innerHTML = '<option value="">-- Seleccionar Carrera --</option>';
+            (data.especialidades || []).forEach(esp => {
+                selectEsp.innerHTML += `<option value="${esp.nombre}">${esp.nombre}</option>`;
             });
         }
-    } catch(e) {}
-
-    if (listaEsp.length === 0) {
-        listaEsp = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
-    }
-
-    listaEsp.sort();
-
-    select.innerHTML = '<option value="">Seleccionar carrera...</option>';
-    listaEsp.forEach(esp => {
-        const opt = document.createElement('option');
-        opt.value = esp;
-        opt.textContent = esp;
-        select.appendChild(opt);
-    });
+    } catch (e) { console.error("Error cargando especialidades:", e); }
 }
 
-function ajustarTurnos(nombreCarrera) {
-    const turnoSelect = document.getElementById('turno');
-    const config = especialidadesCache.find(e => e.nombre === nombreCarrera);
-    if (config && config.turno && turnoSelect) {
-        turnoSelect.value = config.turno;
-    }
+function ajustarTurnos(especialidadSel) {
+    const selectTurno = document.getElementById('turno');
+    if (!selectTurno) return;
+    selectTurno.value = "Matutino";
 }
 
-async function configurarModoEdicion(matricula) {
-    document.getElementById('matricula').readOnly = true; 
-    document.querySelector('button[type="submit"]').innerHTML = '<i class="bi bi-pencil-square me-2"></i> Actualizar Estudiante';
-    
+async function verificarEdicion() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const matEdit = urlParams.get('edit');
+    if (!matEdit) return;
+
     try {
-        const res = await fetch(`/api/alumnos/ncontrol/${matricula}`);
+        const res = await fetch(`/api/alumnos/ncontrol/${matEdit}`);
         if (res.ok) {
             const d = await res.json();
-            document.getElementById('matricula').value = d.ncontrol || d.matricula || '';
-            document.getElementById('curp').value = d.curp || '';
-            document.getElementById('genero').value = d.genero || '';
-            document.getElementById('nombre').value = d.nombre || '';
-            document.getElementById('apepat').value = d.apepat || d.primerApellido || '';
-            document.getElementById('apemat').value = d.apemat || d.segundoApellido || '';
-            document.getElementById('email').value = d.email || '';
-            document.getElementById('celular').value = d.celular || '';
-            document.getElementById('direccion').value = d.direccion || '';
-            document.getElementById('especialidad').value = d.especialidad || '';
-            document.getElementById('grado').value = d.grado || '';
-            document.getElementById('grupo').value = d.grupo || '';
-            document.getElementById('turno').value = d.turno || '';
-            document.getElementById('estatus_escolar').value = d.estatus_escolar || d.estatus || 'Activo';
-            document.getElementById('color_semaforo').value = d.color_semaforo || 'Verde';
-            document.getElementById('nombretutor').value = d.nombretutor || '';
-            document.getElementById('teltutor').value = d.teltutor || '';
-            document.getElementById('ocupaciontutor').value = d.ocupaciontutor || '';
             
-            if (d.descriptor_facial && d.descriptor_facial.length === 128) {
-                descriptorFacialGlobal = d.descriptor_facial;
-                if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
-                if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'block';
-                if (document.getElementById('btnActivarCamara')) document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Reemplazar Rostro';
+            if (document.getElementById('matricula')) {
+                document.getElementById('matricula').value = d.ncontrol || d.matricula;
+                document.getElementById('matricula').readOnly = true;
+            }
+            if (document.getElementById('curp')) document.getElementById('curp').value = d.curp || '';
+            if (document.getElementById('genero')) document.getElementById('genero').value = d.genero || '';
+            if (document.getElementById('nombre')) document.getElementById('nombre').value = d.nombre || '';
+            if (document.getElementById('apepat')) document.getElementById('apepat').value = d.apepat || d.primerApellido || '';
+            if (document.getElementById('apemat')) document.getElementById('apemat').value = d.apemat || d.segundoApellido || '';
+            if (document.getElementById('email')) document.getElementById('email').value = d.email || '';
+            if (document.getElementById('celular')) document.getElementById('celular').value = d.celular || '';
+            if (document.getElementById('direccion')) document.getElementById('direccion').value = d.direccion || '';
+            if (document.getElementById('especialidad')) document.getElementById('especialidad').value = d.especialidad || '';
+            if (document.getElementById('grado')) document.getElementById('grado').value = d.grado || '';
+            if (document.getElementById('grupo')) document.getElementById('grupo').value = d.grupo || '';
+            if (document.getElementById('turno')) document.getElementById('turno').value = d.turno || 'Matutino';
+            if (document.getElementById('estatus_escolar')) document.getElementById('estatus_escolar').value = d.estatus_escolar || d.estatus || 'Activo';
+            if (document.getElementById('color_semaforo')) document.getElementById('color_semaforo').value = d.color_semaforo || 'Verde';
+            if (document.getElementById('nombretutor')) document.getElementById('nombretutor').value = d.nombretutor || '';
+            if (document.getElementById('teltutor')) document.getElementById('teltutor').value = d.teltutor || '';
+            if (document.getElementById('ocupaciontutor')) document.getElementById('ocupaciontutor').value = d.ocupaciontutor || '';
+            
+            if (d.descriptor_facial) descriptorFacialGlobal = d.descriptor_facial;
+            if (d.fotoUrl || d.foto_url || d.foto) {
+                fotoPerfilGlobal = d.fotoUrl || d.foto_url || d.foto;
+                mostrarFotoPreview(fotoPerfilGlobal);
             }
             
             toggleAula(d.color_semaforo);
             if (d.aula_especifica && document.getElementById('aula_especifica')) document.getElementById('aula_especifica').value = d.aula_especifica;
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error al cargar datos para edición:", e); }
 }
 
 async function cargarModelosIA() {
@@ -168,28 +120,87 @@ async function iniciarCamaraRegistro() {
 
 async function capturarFirmaFacial() {
     const video = document.getElementById('videoRegistro');
-    Swal.fire({ title: 'Analizando rostro...', html: 'Mire directamente a la cámara...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Analizando rostro y capturando fotografía...', html: 'Mire directamente a la cámara...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     
-    const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-    
-    if (deteccion) {
-        descriptorFacialGlobal = Array.from(deteccion.descriptor); 
+    try {
+        const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
         
+        // Snapshot photo frame from video stream
+        const canvasSnap = document.createElement('canvas');
+        canvasSnap.width = video.videoWidth || 320;
+        canvasSnap.height = video.videoHeight || 240;
+        const ctxSnap = canvasSnap.getContext('2d');
+        ctxSnap.drawImage(video, 0, 0, canvasSnap.width, canvasSnap.height);
+        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
+
+        if (deteccion) {
+            descriptorFacialGlobal = Array.from(deteccion.descriptor);
+        }
+
         if (streamCamara) streamCamara.getTracks().forEach(track => track.stop());
-        
+
         if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
         if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'none';
-        if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'block';
         
+        mostrarFotoPreview(fotoPerfilGlobal);
+
         if (document.getElementById('btnActivarCamara')) {
-            document.getElementById('btnActivarCamara').style.display = 'block';
-            document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Volver a Escanear';
+            document.getElementById('btnActivarCamara').style.display = 'inline-block';
+            document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-arrow-repeat"></i> Volver a Tomar Foto';
         }
         
-        Swal.fire("¡Completado!", "Firma facial extraída correctamente.", "success");
-    } else {
-        Swal.fire("Rostro no detectado", "Por favor, asegúrese de tener buena iluminación y mirar a la cámara.", "warning");
+        Swal.fire("¡Foto y Biometría Registradas!", "Fotografía de perfil y patrón facial guardados.", "success");
+
+    } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "No se pudo capturar la imagen.", "error");
     }
+}
+
+function cargarFotoDesdeArchivo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        fotoPerfilGlobal = e.target.result;
+        mostrarFotoPreview(fotoPerfilGlobal);
+    };
+    reader.readAsDataURL(file);
+}
+
+function mostrarFotoPreview(srcFoto) {
+    if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
+    if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
+    
+    const divRes = document.getElementById('rostroCapturado');
+    const imgPrev = document.getElementById('imgFotoPerfilPreview');
+    const btnDel = document.getElementById('btnEliminarFoto');
+
+    if (divRes) divRes.style.display = 'block';
+    if (imgPrev) {
+        imgPrev.src = srcFoto;
+        imgPrev.style.display = 'block';
+    }
+    if (btnDel) btnDel.style.display = 'inline-block';
+}
+
+function eliminarFotoEstudiante() {
+    fotoPerfilGlobal = null;
+    descriptorFacialGlobal = null;
+
+    if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'none';
+    if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
+    if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'flex';
+    if (document.getElementById('btnEliminarFoto')) document.getElementById('btnEliminarFoto').style.display = 'none';
+    if (document.getElementById('inputFotoArchivo')) document.getElementById('inputFotoArchivo').value = '';
+    
+    if (document.getElementById('btnActivarCamara')) {
+        document.getElementById('btnActivarCamara').style.display = 'inline-block';
+        document.getElementById('btnActivarCamara').innerHTML = '<i class="bi bi-camera-video me-1"></i> Activar Cámara';
+    }
+
+    Swal.fire({ icon: 'info', title: 'Fotografía removida', text: 'Se eliminará la foto de perfil del estudiante.', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
 }
 
 const formAlumno = document.getElementById('formAlumno');
@@ -205,7 +216,7 @@ if (formAlumno) {
         const matricula = document.getElementById('matricula').value.trim();
         const curp = document.getElementById('curp').value.toUpperCase().trim();
 
-        Swal.fire({ title: 'Guardando datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Guardando estudiante...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         try {
             const nombre = document.getElementById('nombre').value.trim();
@@ -227,6 +238,9 @@ if (formAlumno) {
                 primerApellido: apepat,
                 segundoApellido: apemat,
                 descriptor_facial: descriptorFacialGlobal || [],
+                fotoUrl: fotoPerfilGlobal || null,
+                foto_url: fotoPerfilGlobal || null,
+                foto: fotoPerfilGlobal || null,
                 email: document.getElementById('email').value.trim(),
                 celular: document.getElementById('celular').value.trim(),
                 direccion: document.getElementById('direccion').value.trim(),

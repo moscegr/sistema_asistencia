@@ -2,43 +2,50 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Registro Estudiantes - CBTis 134</title>
+    <title>Nuevo Registro de Estudiante - CBTis 134</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
     <link rel="icon" type="image/png" href="/img/favicon.png">
-    <style>
-        .accordion-button:not(.collapsed) { background-color: #7b1b37; color: white; }
-        .form-label { color: #7b1b37; }
-    </style>
 </head>
 <body class="bg-light">
-<div class="container-fluid px-4 py-4">
-    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
-        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-            <h4 class="fw-bold mb-0" style="color: #7b1b37;">
-                <i class="bi bi-person-plus-fill me-2"></i>Nuevo Registro de Estudiante
-            </h4>
-            <a href="/admin/alumnos" class="btn btn-outline-secondary btn-sm">Volver al Listado</a>
-        </div>
-        
-        <div class="card-body">
+
+<div class="d-flex" id="wrapper">
+    <div th:replace="~{fragments/nav_lateral :: sidebar}"></div>
+
+    <div id="page-content-wrapper">
+        <div th:replace="~{fragments/header :: navbar('Padrón de Alumnos', 'Registro e inscripción de nuevo estudiante')}"></div>
+
+        <div class="container-fluid px-4 py-4">
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="fw-bold text-guinda mb-0"><i class="bi bi-person-plus-fill me-2"></i>Nuevo Registro de Estudiante</h4>
+                    <small class="text-muted">Complete la información del alumno para generar su expediente y código QR único.</small>
+                </div>
+                <a href="/admin/alumnos" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold px-3">
+                    <i class="bi bi-arrow-left me-1"></i>Volver al Listado
+                </a>
+            </div>
+
             <form id="formAlumno" class="needs-validation" novalidate>
+                
                 <div class="accordion" id="accordionAlumno">
                     
                     <div class="accordion-item border-0 mb-3 shadow-sm">
                         <h2 class="accordion-header">
-                            <button class="accordion-button fw-bold text-white rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#secPersonal" style="background-color: #7b1b37;">
-                                <i class="bi bi-person-vcard me-2"></i> 1. Identificación y Datos Personales
+                            <button class="accordion-button fw-bold text-white rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#secIdentificacion" style="background-color: #7b1b37;">
+                                <i class="bi bi-card-heading me-2"></i> 1. Identificación y Datos Personales
                             </button>
                         </h2>
-                        <div id="secPersonal" class="accordion-collapse collapse show">
+                        <div id="secIdentificacion" class="accordion-collapse collapse show">
                             <div class="accordion-body row g-3">
-                                <div class="col-md-3">
-							        <label class="form-label small fw-bold">Matrícula (14 dígitos)</label>
-							        <input type="text" id="matricula" class="form-control" pattern="^[0-9]{14}$" maxlength="14" required>
-							    </div>
-							    <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Matrícula / N° Control (14 dígitos)</label>
+                                    <input type="text" id="matricula" class="form-control" pattern="^[0-9]{14}$" maxlength="14" required>
+                                    <div class="invalid-feedback">Debe contener exactamente 14 dígitos numéricos.</div>
+                                </div>
+                                <div class="col-md-5">
 							        <label class="form-label small fw-bold">CURP</label>
 							        <input type="text" id="curp" class="form-control text-uppercase" pattern="^[A-Z]{4}[0-9]{6}[H,M][A-Z]{5}[A-Z0-9][0-9]$" required>
 							    </div>
@@ -75,8 +82,9 @@
                                     <label class="form-label small fw-bold">Dirección Completa</label>
                                     <input type="text" id="direccion" class="form-control" required>
                                 </div>
+                                
                                 <div class="col-md-12 mt-4 pt-3 border-top">
-								    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-bounding-box me-2"></i> Registro Biométrico Facial (Opcional)</h6>
+								    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-bounding-box me-2"></i> Fotografía y Registro Biométrico Facial (Opcional)</h6>
 								    <div class="row align-items-center bg-light p-3 rounded border">
 								        
 								        <div class="col-md-4 text-center">
@@ -84,9 +92,9 @@
 								                <video id="videoRegistro" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
 								            </div>
 								            
-								            <div id="rostroCapturado" class="bg-success text-white rounded p-4 mx-auto" style="width: 200px; display: none;">
-								                <i class="bi bi-check-circle-fill fs-1"></i>
-								                <p class="mb-0 fw-bold small mt-2">Rostro Registrado</p>
+								            <div id="rostroCapturado" class="bg-white border rounded p-2 mx-auto shadow-sm" style="width: 200px; display: none;">
+								                <img id="imgFotoPerfilPreview" src="" class="img-fluid rounded mb-2" style="max-height: 140px; object-fit: contain;">
+								                <div class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Foto Registrada</div>
 								            </div>
 								            
 								            <div id="iconoEspera" class="text-muted" style="width: 200px; height: 150px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc; border-radius: 10px; margin: 0 auto;">
@@ -95,16 +103,25 @@
 								        </div>
 								        
 								        <div class="col-md-8">
-								            <p class="x-small text-muted mb-3">Escanee el rostro del estudiante para habilitar el acceso automático por cámara. No se guardará ninguna fotografía, únicamente se generará un patrón matemático por seguridad.</p>
+								            <p class="x-small text-muted mb-3">Escanee el rostro del estudiante o suba una foto. Esta foto se guardará en su perfil y se utilizará por defecto en las credenciales escolares.</p>
 								            
-								            <div class="d-flex gap-2">
+								            <div class="d-flex gap-2 flex-wrap mb-2">
 								                <button type="button" id="btnActivarCamara" class="btn btn-outline-primary btn-sm fw-bold" onclick="iniciarCamaraRegistro()">
 								                    <i class="bi bi-camera-video me-1"></i> Activar Cámara
 								                </button>
 								                <button type="button" id="btnCapturarRostro" class="btn bg-guinda text-white btn-sm fw-bold" onclick="capturarFirmaFacial()" style="display: none; background-color: #7b1b37;">
-								                    <i class="bi bi-person-bounding-box me-1"></i> Escanear Rostro
+								                    <i class="bi bi-person-bounding-box me-1"></i> Escanear Rostro y Capturar Foto
+								                </button>
+								                <button type="button" id="btnEliminarFoto" class="btn btn-outline-danger btn-sm fw-bold" onclick="eliminarFotoEstudiante()" style="display: none;">
+								                    <i class="bi bi-trash me-1"></i> Eliminar Foto
 								                </button>
 								            </div>
+
+								            <div class="mt-2">
+								                <label class="x-small fw-bold text-secondary mb-1">O suba una imagen de perfil desde su equipo:</label>
+								                <input type="file" class="form-control form-control-sm" id="inputFotoArchivo" accept="image/png, image/jpeg" onchange="cargarFotoDesdeArchivo(event)">
+								            </div>
+
 								            <p id="msgBiometria" class="x-small text-danger mt-2 mb-0" style="display: none;">Cargando IA...</p>
 								        </div>
 								    </div>
@@ -196,7 +213,7 @@
                 </div>
 
                 <div class="mt-4 d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-light px-4">Limpiar</button>
+                    <button type="button" class="btn btn-light px-4" onclick="window.location.reload()">Limpiar</button>
                     <button type="submit" class="btn text-white px-5" style="background-color: #7b1b37;">
                         <i class="bi bi-qr-code me-2"></i>Generar Registro y QR
                     </button>

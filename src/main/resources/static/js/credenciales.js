@@ -25,7 +25,13 @@ document.getElementById('inputFotoTemporal')?.addEventListener('change', functio
         reader.readAsDataURL(file);
     } else {
         fotoTemporalAlumno = null;
-        if (recuadroFoto) recuadroFoto.style.backgroundImage = `url('/img/logo-256.png')`;
+        const fotoDefault = (alumnoSeleccionadoInd && (alumnoSeleccionadoInd.fotoUrl || alumnoSeleccionadoInd.foto_url || alumnoSeleccionadoInd.foto)) || '/img/logo-256.png';
+        if (recuadroFoto) {
+            recuadroFoto.style.backgroundImage = `url('${fotoDefault}')`;
+            recuadroFoto.style.backgroundSize = 'contain';
+            recuadroFoto.style.backgroundRepeat = 'no-repeat';
+            recuadroFoto.style.backgroundPosition = 'center';
+        }
     }
 });
 
@@ -261,11 +267,8 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
 
         const recuadroFoto = document.getElementById('pvcFoto');
         if (recuadroFoto) {
-            if (fotoTemporalAlumno) {
-                recuadroFoto.style.backgroundImage = `url(${fotoTemporalAlumno})`;
-            } else {
-                recuadroFoto.style.backgroundImage = `url('/img/logo-256.png')`;
-            }
+            const fotoReal = fotoTemporalAlumno || al.fotoUrl || al.foto_url || al.foto || '/img/logo-256.png';
+            recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
             recuadroFoto.style.backgroundSize = 'contain';
             recuadroFoto.style.backgroundRepeat = 'no-repeat';
             recuadroFoto.style.backgroundPosition = 'center';
@@ -445,7 +448,7 @@ async function descargarPNGsDelGrupo() {
     }
 }
 
-// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (GLASS DESIGN & POSICIONAMIENTO PERFECTO) ---
+// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (GLASS DESIGN & FIRMA BAJADA) ---
 
 async function generarCanvasCredencialFrente(alumno) {
     return new Promise(async (resolve) => {
@@ -463,7 +466,7 @@ async function generarCanvasCredencialFrente(alumno) {
         const matApe = alumno.apemat || alumno.segundoApellido || '';
         const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase();
         const mat = alumno.ncontrol || alumno.matricula || '';
-        const fotoSrc = fotoTemporalAlumno || '/img/logo-256.png';
+        const fotoSrc = fotoTemporalAlumno || alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/logo-256.png';
         const vigencia = cfgSistema.vigencia_actual || 'Agosto 2027';
 
         container.innerHTML = `
@@ -531,7 +534,7 @@ async function generarCanvasCredencialReverso(alumno) {
                         Acredita al portador como alumno(a) del plantel CBTis No. 134.
                     </div>
                     
-                    <div style="width: 40mm; border-bottom: 1px solid #333; margin: 28px auto 4px auto;"></div>
+                    <div style="width: 40mm; border-bottom: 1px solid #333; margin: 75px auto 4px auto;"></div>
                     <div style="font-size: 8px; font-weight: bold; color: #000;">${director}</div>
                     <div style="font-size: 6.5px; color: #555;">Director del Plantel CBTis No. 134</div>
                 </div>

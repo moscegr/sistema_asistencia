@@ -37,6 +37,9 @@ public class Alumno {
     private String qrCode;
     private String qr_texto;
     private String qr_url;
+    private String fotoUrl;
+    private String foto_url;
+    private String foto;
     private String registradoPor;
     private List<Double> descriptor_facial;
     private List<Float> descriptorFacial;
@@ -143,6 +146,19 @@ public class Alumno {
 
     public String getQr_url() { return qr_url; }
     public void setQr_url(String qr_url) { this.qr_url = qr_url; }
+
+    public String getFotoUrl() { return fotoUrl != null ? fotoUrl : (foto_url != null ? foto_url : foto); }
+    public void setFotoUrl(String fotoUrl) { 
+        this.fotoUrl = fotoUrl; 
+        this.foto_url = fotoUrl; 
+        this.foto = fotoUrl;
+    }
+
+    public String getFoto_url() { return getFotoUrl(); }
+    public void setFoto_url(String foto_url) { setFotoUrl(foto_url); }
+
+    public String getFoto() { return getFotoUrl(); }
+    public void setFoto(String foto) { setFotoUrl(foto); }
 
     public String getRegistradoPor() { return registradoPor; }
     public void setRegistradoPor(String registradoPor) { this.registradoPor = registradoPor; }
