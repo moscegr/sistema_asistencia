@@ -79,7 +79,7 @@ function inicializarCalendario(userRole) {
     calendar.render();
 }
 
-function inicializarSwitchSalida() {
+async function inicializarSwitchSalida() {
     const switchSalida = document.getElementById('switchSalidaGeneral');
     const btnConfirmar = document.getElementById('btnConfirmarSalida');
     const modalElement = document.getElementById('modalConfirmacionGeneral');
@@ -87,15 +87,39 @@ function inicializarSwitchSalida() {
     if (switchSalida && modalElement) {
         const modalConfirmacion = new bootstrap.Modal(modalElement);
         
+        try {
+            const dataContingencia = await safeFetchJson('/api/configuracion/modo_contingencia');
+            if (dataContingencia) {
+                switchSalida.checked = (dataContingencia.activo === true);
+            }
+        } catch(e){}
+
         switchSalida.addEventListener('click', (e) => {
             e.preventDefault();
             modalConfirmacion.show();
         });
 
-        btnConfirmar?.addEventListener('click', () => {
+        btnConfirmar?.addEventListener('click', async () => {
             const nuevoEstado = !switchSalida.checked;
-            switchSalida.checked = nuevoEstado;
-            modalConfirmacion.hide();
+            try {
+                Swal.fire({ title: 'Guardando estado de contingencia...', didOpen: () => Swal.showLoading() });
+                await fetch('/api/configuracion/modo_contingencia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _id: 'modo_contingencia', activo: nuevoEstado, fecha: new Date().toISOString() })
+                });
+                switchSalida.checked = nuevoEstado;
+                modalConfirmacion.hide();
+                Swal.fire({
+                    icon: nuevoEstado ? 'warning' : 'info',
+                    title: `Modo Contingencia ${nuevoEstado ? 'ACTIVADO' : 'DESACTIVADO'}`,
+                    text: nuevoEstado ? 'Se ha activado la salida libre en todo el plantel.' : 'El control de salidas ha vuelto a la normalidad.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } catch(e) {
+                Swal.fire("Error", "No se pudo cambiar el estado de contingencia.", "error");
+            }
         });
     }
 }

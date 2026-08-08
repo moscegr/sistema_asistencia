@@ -32,14 +32,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function cargarConfiguracionInicial() {
     try {
-        const [resAlumnos, resConfig, resPases] = await Promise.all([
+        const [resAlumnos, resConfig, resPases, resContingencia] = await Promise.all([
             fetch('/api/alumnos').then(r => r.ok ? r.json() : []),
             fetch('/api/configuracion/escolar').then(r => r.ok ? r.json() : {}),
-            fetch('/api/pases').then(r => r.ok ? r.json() : [])
+            fetch('/api/pases').then(r => r.ok ? r.json() : []),
+            fetch('/api/configuracion/modo_contingencia').then(r => r.ok ? r.json() : {})
         ]);
 
         alumnosCache = resAlumnos;
         especialidadesConfig = resConfig.especialidades || [];
+
+        const modoContingenciaActivo = (resContingencia?.activo === true);
+        const bannerCont = document.getElementById('bannerContingencia');
+        if (bannerCont) {
+            bannerCont.style.display = modoContingenciaActivo ? 'block' : 'none';
+        }
         
         const hoy = obtenerFechaLocal();
 
@@ -105,30 +112,30 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             procesandoEscaneo = false; 
             return;
         }
-
         const resRegs = await fetch(`/api/registros-diarios/fecha/${hoy}`);
         const registrosHoy = resRegs.ok ? await resRegs.json() : [];
         const regExistente = registrosHoy.find(r => (r.matricula || r.ncontrol) === matricula);
 
-        const configEscolarRes = await fetch('/api/configuracion/escolar');
-        const configData = configEscolarRes.ok ? await configEscolarRes.json() : {};
-        const salidaGeneralActiva = (configData?.salidaGeneralAutorizada === true) && 
-                                    (configData?.fechaSalidaGeneral === hoy);
+        const resContingencia = await fetch('/api/configuracion/modo_contingencia');
+        const dataContingencia = resContingencia.ok ? await resContingencia.json() : {};
+        const salidaGeneralActiva = (dataContingencia?.activo === true);
 
-        if (!regExistente || regExistente.estatus_actual === "FUERA" || !regExistente.estatus_actual) {
-            
+        const estaFuera = (!al.estado || al.estado === "FUERA" || !regExistente || regExistente.estatus_actual === "FUERA" || !regExistente.estatus_actual);
+
+        if (estaFuera) {
             const horaEntrada = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
-            const nuevoReg = {
+            const nuevoReg = regExistente || {
                 matricula: matricula,
                 nombre: `${al.nombre} ${al.apepat || al.primerApellido || ''} ${al.apemat || al.segundoApellido || ''}`.trim(),
                 especialidad: al.especialidad,
                 grado: String(al.grado),
                 grupo: al.grupo,
-                fecha: hoy,
-                hora_entrada: horaEntrada,
-                estatus_actual: "DENTRO"
+                fecha: hoy
             };
+
+            nuevoReg.hora_entrada = horaEntrada;
+            nuevoReg.estatus_actual = "DENTRO";
 
             await fetch('/api/registros-diarios', {
                 method: 'POST',
@@ -146,7 +153,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             mostrarResultado(al, "ENTRADA");
             enviarNotificacionTutor(al, "ENTRADA");
 
-        } else if (regExistente.estatus_actual === "DENTRO") {
+        } else {
             await validarSalida(al, regExistente, salidaGeneralActiva, hoy);
         }
 
@@ -167,8 +174,8 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
     const tienePase = pasesIndividualesHoy.includes(mat) || gruposAutorizadosHoy.includes(gpoKey);
 
     if (tienePase || salidaGeneralActiva) {
-        let motivo = tienePase ? "PASE AUTORIZADO" : "SALIDA GENERAL";
-        let colorBanda = tienePase ? "#198754" : "#0d6efd";
+        let motivo = tienePase ? "PASE AUTORIZADO" : "MODO CONTINGENCIA (SALIDA LIBRE)";
+        let colorBanda = tienePase ? "#198754" : "#dc3545";;
 
         const horaSalida = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         regExistente.hora_salida = horaSalida;
