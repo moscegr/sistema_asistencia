@@ -287,7 +287,7 @@ async function generarQRConTigre(texto) {
     return new Promise((resolve) => {
         const size = 250;
         const divTemporal = document.createElement('div');
-        const textoLimpio = (texto || '').substring(0, 100);
+        const textoLimpio = (texto || '').substring(0, 60);
         
         new QRCode(divTemporal, { 
             text: textoLimpio, 
@@ -295,7 +295,7 @@ async function generarQRConTigre(texto) {
             height: size, 
             colorDark : "#000000",
             colorLight : "#ffffff",
-            correctLevel: QRCode.CorrectLevel.L 
+            correctLevel: QRCode.CorrectLevel.H 
         });
 
         setTimeout(() => {
@@ -314,11 +314,11 @@ async function generarQRConTigre(texto) {
                 const imgTigre = new Image();
                 imgTigre.src = '/img/tigres.png';
                 imgTigre.onload = () => {
-                    const logoSize = 60;
+                    const logoSize = 40;
                     const pos = (size - logoSize) / 2;
 
                     ctx.fillStyle = "#FFFFFF";
-                    ctx.fillRect(pos - 5, pos - 5, logoSize + 10, logoSize + 10);
+                    ctx.fillRect(pos - 3, pos - 3, logoSize + 6, logoSize + 6);
                     ctx.drawImage(imgTigre, pos, pos, logoSize, logoSize);
                     
                     resolve(canvas.toDataURL("image/png"));
@@ -366,7 +366,7 @@ async function generarImagenGafete(alumno) {
                 height: 250,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.L
+                correctLevel: QRCode.CorrectLevel.H
             });
 
             setTimeout(() => {
@@ -378,8 +378,8 @@ async function generarImagenGafete(alumno) {
                 
                 finalQR.onload = function() {
                     ctx.drawImage(finalQR, 75, 120, 250, 250); 
-                    ctx.fillStyle = "#FFFFFF"; ctx.fillRect(165, 210, 70, 70);
-                    ctx.drawImage(imgTigre, 170, 215, 60, 60);
+                    ctx.fillStyle = "#FFFFFF"; ctx.fillRect(177, 222, 46, 46);
+                    ctx.drawImage(imgTigre, 180, 225, 40, 40);
 
                     ctx.fillStyle = "#7b1b37"; ctx.font = "bold 32px Arial";
                     ctx.fillText(mat, 200, 420);

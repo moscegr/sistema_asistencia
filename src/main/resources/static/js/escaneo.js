@@ -80,17 +80,14 @@ function inicializarLectorQR() {
 
     const qrboxCalc = (viewfinderWidth, viewfinderHeight) => {
         const minDim = Math.min(viewfinderWidth, viewfinderHeight);
-        const size = Math.max(150, Math.floor(minDim * 0.75));
+        const size = Math.max(160, Math.floor(minDim * 0.8));
         return { width: size, height: size };
     };
 
     const config = {
-        fps: 25,
+        fps: 30,
         qrbox: qrboxCalc,
-        aspectRatio: 1.0,
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true
-        }
+        aspectRatio: 1.0
     };
 
     if (html5QrcodeScanner) {
