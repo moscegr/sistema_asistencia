@@ -343,7 +343,7 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
 
         const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
 
-        await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+        const resp = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -355,7 +355,14 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
                 body: mensaje
             })
         });
-        console.log(`[Punto de Control] Notificación WhatsApp enviada al tutor (${tel}) por ${tipoAcceso}`);
+
+        if (resp.ok) {
+            const resData = await resp.json();
+            console.log(`[Punto de Control] Notificación WhatsApp enviada con éxito al tutor (${tel}):`, resData);
+        } else {
+            const errBody = await resp.text();
+            console.error(`[Punto de Control] ERROR al enviar WhatsApp (${resp.status}):`, errBody);
+        }
     } catch(e) {
         console.warn("No se pudo enviar la notificación de WhatsApp:", e);
     }

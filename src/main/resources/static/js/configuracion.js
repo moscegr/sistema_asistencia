@@ -415,6 +415,73 @@ async function guardarConfigWhatsApp() {
     }
 }
 
+async function probarEnvioWhatsApp() {
+    const tipo = document.getElementById('tipoApiWs')?.value || 'EVOLUTION';
+    const campo1 = document.getElementById('wsCampo1')?.value.trim() || '';
+    const campo2 = document.getElementById('wsCampo2')?.value.trim() || '';
+    const campo3 = document.getElementById('wsCampo3')?.value.trim() || '';
+
+    if (!campo1 || !campo2) {
+        Swal.fire("Campos incompletos", "Llena la URL y la API Key para realizar la prueba de envío.", "warning");
+        return;
+    }
+
+    const { value: telPrueba } = await Swal.fire({
+        title: 'Prueba de Envío de WhatsApp',
+        text: 'Ingresa un número telefónico de 10 dígitos para enviar un mensaje de prueba:',
+        input: 'text',
+        inputPlaceholder: 'Ej: 7471835257',
+        showCancelButton: true,
+        confirmButtonText: 'Enviar Mensaje de Prueba',
+        confirmButtonColor: '#198754',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value || value.replace(/[^0-9]/g, '').length < 10) {
+                return 'Por favor ingresa un número válido de 10 dígitos';
+            }
+        }
+    });
+
+    if (!telPrueba) return;
+
+    Swal.fire({ title: 'Enviando mensaje de prueba...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const tipoEndpoint = tipo.toLowerCase();
+        const res = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: campo1,
+                apiKey: campo2,
+                token: campo2,
+                instanceName: campo3,
+                to: telPrueba,
+                body: "🧪 [CBTis 134] Mensaje de prueba de conexión con la API de WhatsApp."
+            })
+        });
+
+        const resText = await res.text();
+
+        if (res.ok) {
+            Swal.fire({
+                title: "¡Mensaje Enviado con Éxito!",
+                html: `<p class="text-success fw-bold mb-1">La API de WhatsApp respondió correctamente (HTTP ${res.status}):</p><pre class="text-start bg-light p-2 border rounded x-small" style="max-height:180px; overflow:auto;">${resText}</pre>`,
+                icon: "success"
+            });
+        } else {
+            Swal.fire({
+                title: `Error en la API (HTTP ${res.status})`,
+                html: `<p class="text-danger fw-bold mb-1">Respuesta del servidor:</p><pre class="text-start bg-light p-2 border rounded x-small" style="max-height:180px; overflow:auto;">${resText}</pre>`,
+                icon: "error"
+            });
+        }
+    } catch(e) {
+        Swal.fire("Error de Conexión", e.message, "error");
+    }
+}
+window.probarEnvioWhatsApp = probarEnvioWhatsApp;
+
 async function limpiarTodosLosPases() {
     const { isConfirmed } = await Swal.fire({
         title: '¿Purgar TODOS los pases de salida?',
