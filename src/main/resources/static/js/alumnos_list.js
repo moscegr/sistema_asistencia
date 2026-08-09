@@ -239,13 +239,16 @@ async function enviarWhatsappPersonalizado(matricula) {
     }
 
     const pat = alumno.apepat || alumno.primerApellido || '';
-    const nombreCompleto = `${alumno.nombre} ${pat}`.trim();
+    const matApe = alumno.apemat || alumno.segundoApellido || '';
+    const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim();
+    const nombreTutor = alumno.nombre_tutor || alumno.tutor_nombre || alumno.nombreTutor || (typeof alumno.tutor === 'object' ? alumno.tutor?.nombre : alumno.tutor) || 'Padre / Tutor';
 
     const { value: mensajeTxt } = await Swal.fire({
         title: `<div class="fs-5 fw-bold text-dark mb-0"><i class="bi bi-whatsapp text-success me-2"></i>Enviar WhatsApp a Tutor</div>`,
         html: `
             <div class="text-start small mb-2 p-2 bg-light rounded border">
                 <div class="mb-1"><b>Estudiante:</b> ${nombreCompleto}</div>
+                <div class="mb-1"><b>Tutor:</b> <span class="fw-bold text-dark">${nombreTutor}</span></div>
                 <div><b>Teléfono Tutor:</b> <code class="text-success fw-bold">${tel}</code></div>
             </div>
             <textarea id="swalWsMensajePersonalizado" class="form-control form-control-sm border-success mt-2" placeholder="Escribe tu mensaje personalizado aquí..." rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem;"></textarea>
@@ -282,7 +285,7 @@ async function enviarWhatsappPersonalizado(matricula) {
                 token: configWs.token || configWs.apiKey,
                 instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
                 to: tel,
-                body: `🏫 *[CBTis 134 - AVISO OFICIAL]*\n\nEstimado tutor de ${nombreCompleto}:\n\n${mensajeTxt}`
+                body: `🏫 *[CBTis 134 - AVISO OFICIAL]*\n\nEstimado(a) tutor(a) ${nombreTutor} (Estudiante: ${nombreCompleto}):\n\n${mensajeTxt}`
             })
         });
 
