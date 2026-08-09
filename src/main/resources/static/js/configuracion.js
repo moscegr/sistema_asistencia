@@ -477,7 +477,7 @@ async function probarEnvioWhatsApp() {
         if (res.ok) {
             Swal.fire({
                 title: "¡Mensaje Enviado con Éxito!",
-                html: `<p class="text-success fw-bold mb-1">La API de WhatsApp respondió correctamente (HTTP ${res.status}):</p><pre class="text-start bg-light p-2 border rounded x-small" style="max-height:180px; overflow:auto;">${resText}</pre>`,
+                html: `<p class="text-success fw-bold mb-2"><i class="bi bi-check-circle-fill me-1"></i> La API de WhatsApp respondió correctamente (HTTP ${res.status}).</p><div class="p-3 bg-light border rounded text-start small"><i class="bi bi-info-circle me-1 text-primary"></i> El mensaje de prueba se entregó exitosamente a la cola de salida de la API de WhatsApp.</div>`,
                 icon: "success"
             });
         } else {

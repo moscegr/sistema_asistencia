@@ -251,7 +251,7 @@ async function enviarWhatsappPersonalizado(matricula) {
                 <div class="mb-1"><b>Tutor:</b> <span class="fw-bold text-dark">${nombreTutor}</span></div>
                 <div><b>Teléfono Tutor:</b> <code class="text-success fw-bold">${tel}</code></div>
             </div>
-            <textarea id="swalWsMensajePersonalizado" class="form-control form-control-sm border-success mt-2" placeholder="Escribe tu mensaje aquí..." rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem;">🏫 *[CBTis 134 - AVISO OFICIAL]*:\n</textarea>
+            <textarea id="swalWsMensajePersonalizado" class="form-control form-control-sm border-success mt-2" placeholder="Escribe tu mensaje aquí..." rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">🏫 *[CBTis 134 - AVISO OFICIAL]*:\n</textarea>
         `,
         showCancelButton: true,
         confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Mensaje',
