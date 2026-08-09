@@ -128,6 +128,9 @@ function filtrarAlumnos() {
                         <button class="btn btn-sm btn-outline-guinda" onclick="verExpedienteQuick('${mat}')" title="Ver Ficha">
                             <i class="bi bi-eye-fill"></i>
                         </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="enviarWhatsappPersonalizado('${mat}')" title="Enviar WhatsApp a Tutor">
+                            <i class="bi bi-whatsapp"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="editarAlumno('${mat}')" title="Editar">
                             <i class="bi bi-pencil-fill"></i>
                         </button>
@@ -225,3 +228,71 @@ function getColorSemaforo(color) {
     if (color.includes("Amarillo")) return "#ffc107";
     return "#dc3545"; 
 }
+
+async function enviarWhatsappPersonalizado(matricula) {
+    const alumno = alumnosCache.find(a => (a.ncontrol || a.matricula) === matricula);
+    if (!alumno) return;
+
+    const tel = alumno.teltutor || (alumno.tutor && alumno.tutor.telefono) || alumno.celular;
+    if (!tel) {
+        return Swal.fire("Sin número de teléfono", "El estudiante no tiene registrado un número telefónico de tutor.", "warning");
+    }
+
+    const pat = alumno.apepat || alumno.primerApellido || '';
+    const nombreCompleto = `${alumno.nombre} ${pat}`.trim();
+
+    const { value: mensajeTxt } = await Swal.fire({
+        title: `<i class="bi bi-whatsapp text-success me-2"></i>Enviar WhatsApp a Tutor`,
+        html: `
+            <div class="text-start small mb-2">
+                <b>Estudiante:</b> ${nombreCompleto}<br>
+                <b>Teléfono Tutor:</b> <code>${tel}</code>
+            </div>
+            <textarea id="swalWsMensajePersonalizado" class="swal2-textarea mt-1" placeholder="Escribe tu mensaje personalizado aquí..." style="height: 110px; font-size: 0.9rem; width: 100%; box-sizing: border-box;"></textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Enviar Mensaje',
+        confirmButtonColor: '#198754',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const val = document.getElementById('swalWsMensajePersonalizado').value.trim();
+            if (!val) Swal.showValidationMessage('Ingresa el texto del mensaje.');
+            return val;
+        }
+    });
+
+    if (!mensajeTxt) return;
+
+    Swal.fire({ title: 'Despachando mensaje por WhatsApp...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const resWs = await fetch('/api/configuracion/whatsapp');
+        if (!resWs.ok) throw new Error("No hay API de WhatsApp configurada.");
+        const configWs = await resWs.json();
+
+        const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
+
+        const res = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: configWs.apiUrl || configWs.serverUrl,
+                apiKey: configWs.apiKey || configWs.token,
+                token: configWs.token || configWs.apiKey,
+                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                to: tel,
+                body: `🏫 *[CBTis 134 - AVISO OFICIAL]*\n\nEstimado tutor de ${nombreCompleto}:\n\n${mensajeTxt}`
+            })
+        });
+
+        const resText = await res.text();
+        if (res.ok) {
+            Swal.fire("¡Mensaje Enviado!", `El mensaje ha sido entregado a la API de WhatsApp con éxito.`, "success");
+        } else {
+            Swal.fire("Error al Enviar", `La API respondió con error (HTTP ${res.status}): ${resText}`, "error");
+        }
+    } catch(e) {
+        Swal.fire("Error", e.message, "error");
+    }
+}
+window.enviarWhatsappPersonalizado = enviarWhatsappPersonalizado;

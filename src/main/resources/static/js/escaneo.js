@@ -338,8 +338,24 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
         if (!configWs || !configWs.tipo_api) return;
 
         const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+        const fecha = new Date().toLocaleDateString('es-MX');
         const pat = al.apepat || al.primerApellido || '';
-        const mensaje = `[CBTis 134] Notificación de Punto de Control:\nEl estudiante ${al.nombre} ${pat} ha registrado su ${tipoAcceso} al plantel a las ${hora}.`;
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.trim();
+        const mat = al.ncontrol || al.matricula || '';
+
+        let plantillaBase = (tipoAcceso === 'ENTRADA')
+            ? (configWs.plantilla_entrada || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}.')
+            : (configWs.plantilla_salida || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}.');
+
+        let mensaje = plantillaBase
+            .replace(/{nombre}/g, nombreCompleto)
+            .replace(/{matricula}/g, mat)
+            .replace(/{grado}/g, al.grado || '')
+            .replace(/{grupo}/g, al.grupo || '')
+            .replace(/{carrera}/g, al.especialidad || '')
+            .replace(/{hora}/g, hora)
+            .replace(/{fecha}/g, fecha);
 
         const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
 

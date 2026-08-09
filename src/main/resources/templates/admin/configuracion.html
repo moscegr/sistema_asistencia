@@ -269,6 +269,27 @@
 				                    </button>
 				                </div>
 				            </div>
+
+				            <!-- Plantillas de Mensajes de WhatsApp -->
+				            <div class="mt-4 pt-3 border-top">
+				                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-chat-quote-fill text-success me-2"></i>Plantillas de Mensajes Automáticos (Punto de Control)</h6>
+				                <p class="text-muted x-small mb-3">Personaliza el mensaje que se enviará automáticamente a los tutores al registrar entrada o salida en el colegio.</p>
+				                
+				                <div class="row g-3">
+				                    <div class="col-md-6">
+				                        <label class="form-label small fw-bold">Plantilla de ENTRADA</label>
+				                        <textarea id="plantillaEntradaWs" class="form-control form-control-sm font-monospace" rows="3" placeholder="🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}."></textarea>
+				                        <small class="text-muted x-small d-block mt-1">Variables: <code>{nombre}</code>, <code>{matricula}</code>, <code>{grado}</code>, <code>{grupo}</code>, <code>{carrera}</code>, <code>{hora}</code>, <code>{fecha}</code></small>
+				                    </div>
+
+				                    <div class="col-md-6">
+				                        <label class="form-label small fw-bold">Plantilla de SALIDA</label>
+				                        <textarea id="plantillaSalidaWs" class="form-control form-control-sm font-monospace" rows="3" placeholder="🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}."></textarea>
+				                        <small class="text-muted x-small d-block mt-1">Variables: <code>{nombre}</code>, <code>{matricula}</code>, <code>{grado}</code>, <code>{grupo}</code>, <code>{carrera}</code>, <code>{hora}</code>, <code>{fecha}</code></small>
+				                    </div>
+				                </div>
+				            </div>
+				            </div>
 				        </div>
 				    </div>
 				</div>

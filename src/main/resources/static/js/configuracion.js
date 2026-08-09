@@ -303,6 +303,12 @@ async function cargarConfigWhatsApp() {
             if (document.getElementById('switchNotifWhatsapp')) {
                 document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             }
+            if (document.getElementById('plantillaEntradaWs')) {
+                document.getElementById('plantillaEntradaWs').value = data.plantilla_entrada || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}.';
+            }
+            if (document.getElementById('plantillaSalidaWs')) {
+                document.getElementById('plantillaSalidaWs').value = data.plantilla_salida || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}.';
+            }
 
             if (tipo === 'EVOLUTION' || tipo === 'WPPCONNECT') {
                 document.getElementById('wsCampo1').value = data.apiUrl || data.serverUrl || '';
@@ -367,6 +373,9 @@ async function guardarConfigWhatsApp() {
     const switchWs = document.getElementById('switchNotifWhatsapp');
     const isActivo = switchWs ? switchWs.checked : true;
 
+    const plantillaEntrada = document.getElementById('plantillaEntradaWs') ? document.getElementById('plantillaEntradaWs').value.trim() : '';
+    const plantillaSalida = document.getElementById('plantillaSalidaWs') ? document.getElementById('plantillaSalidaWs').value.trim() : '';
+
     if (!campo1 || !campo2) {
         Swal.fire("Campos incompletos", "Por favor llena los campos requeridos para este proveedor.", "warning");
         return;
@@ -386,7 +395,9 @@ async function guardarConfigWhatsApp() {
             instanceId: campo2,
             accessToken: campo1,
             phoneNumberId: campo2,
-            notificaciones_whatsapp_activas: isActivo
+            notificaciones_whatsapp_activas: isActivo,
+            plantilla_entrada: plantillaEntrada,
+            plantilla_salida: plantillaSalida
         };
 
         await fetch('/api/configuracion/whatsapp', {
