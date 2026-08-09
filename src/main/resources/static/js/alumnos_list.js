@@ -242,18 +242,19 @@ async function enviarWhatsappPersonalizado(matricula) {
     const nombreCompleto = `${alumno.nombre} ${pat}`.trim();
 
     const { value: mensajeTxt } = await Swal.fire({
-        title: `<i class="bi bi-whatsapp text-success me-2"></i>Enviar WhatsApp a Tutor`,
+        title: `<div class="fs-5 fw-bold text-dark mb-0"><i class="bi bi-whatsapp text-success me-2"></i>Enviar WhatsApp a Tutor</div>`,
         html: `
-            <div class="text-start small mb-2">
-                <b>Estudiante:</b> ${nombreCompleto}<br>
-                <b>Teléfono Tutor:</b> <code>${tel}</code>
+            <div class="text-start small mb-2 p-2 bg-light rounded border">
+                <div class="mb-1"><b>Estudiante:</b> ${nombreCompleto}</div>
+                <div><b>Teléfono Tutor:</b> <code class="text-success fw-bold">${tel}</code></div>
             </div>
-            <textarea id="swalWsMensajePersonalizado" class="swal2-textarea mt-1" placeholder="Escribe tu mensaje personalizado aquí..." style="height: 110px; font-size: 0.9rem; width: 100%; box-sizing: border-box;"></textarea>
+            <textarea id="swalWsMensajePersonalizado" class="form-control form-control-sm border-success mt-2" placeholder="Escribe tu mensaje personalizado aquí..." rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem;"></textarea>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Enviar Mensaje',
+        confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Mensaje',
         confirmButtonColor: '#198754',
         cancelButtonText: 'Cancelar',
+        focusConfirm: false,
         preConfirm: () => {
             const val = document.getElementById('swalWsMensajePersonalizado').value.trim();
             if (!val) Swal.showValidationMessage('Ingresa el texto del mensaje.');
