@@ -373,11 +373,7 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
         });
 
         if (resp.ok) {
-            const resData = await resp.json();
-            console.log(`[Punto de Control] Notificación WhatsApp enviada con éxito al tutor (${tel}):`, resData);
-        } else {
-            const errBody = await resp.text();
-            console.error(`[Punto de Control] ERROR al enviar WhatsApp (${resp.status}):`, errBody);
+            // Notificación enviada con éxito en segundo plano
         }
     } catch(e) {
         console.warn("No se pudo enviar la notificación de WhatsApp:", e);
