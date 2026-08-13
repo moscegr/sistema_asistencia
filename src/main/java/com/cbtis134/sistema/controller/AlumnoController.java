@@ -53,6 +53,22 @@ public class AlumnoController {
         return alumnoRepository.save(alumno);
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<List<Alumno>> guardarMasivo(@RequestBody List<Alumno> alumnos) {
+        if (alumnos == null || alumnos.isEmpty()) {
+            return ResponseEntity.ok(List.of());
+        }
+        for (Alumno a : alumnos) {
+            String searchKey = a.getNcontrol() != null ? a.getNcontrol() : a.getMatricula();
+            if (a.getId() == null && searchKey != null) {
+                alumnoRepository.findFirstByNcontrolOrMatricula(searchKey, searchKey)
+                        .ifPresent(existente -> a.setId(existente.getId()));
+            }
+        }
+        List<Alumno> guardados = alumnoRepository.saveAll(alumnos);
+        return ResponseEntity.ok(guardados);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Alumno> actualizar(@PathVariable String id, @RequestBody Alumno alumnoActualizado) {
         return alumnoRepository.findById(id)

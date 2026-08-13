@@ -6,6 +6,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class VistaController {
 
+    @GetMapping({"/", "/index"})
+    public String index(org.springframework.security.core.Authentication auth) {
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
+            boolean isGuardia = auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().contains("GUARDIA"));
+            if (isGuardia) {
+                return "redirect:/admin/escaneo";
+            }
+            return "redirect:/admin/dashboard";
+        }
+        return "redirect:/login";
+    }
+
     @GetMapping("/login")
     public String login() {
         return "auth/login";

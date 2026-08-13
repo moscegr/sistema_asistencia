@@ -7,28 +7,32 @@ let incidenciasCache = [];
 let limiteIncidencias = 10;
 
 const PUNTOS_OFICIALES = [
-    "ACUMULAR 3 FALTAS INJUSTIFICADAS EN UN MES",
-    "RETARDOS REITERADOS AL PLANTEL O A CLASE",
-    "SALIR DEL PLANTEL SIN AUTORIZACIÓN",
+    "NO PORTA EL UNIFORME CORRECTAMENTE",
+    "NO CUMPLE CON LOS TRABAJOS ESCOLARES",
+    "UTILIZAR LENGUAJE SOEZ",
     "PROVOCAR DESORDEN EN LOS PASILLOS O AULAS",
     "FALTA DE RESPETO A SUS COMPAÑEROS",
-    "FALTA DE RESPETO A PERSONAL DOCENTE, ADMINISTRATIVO SERVICIOS",
-    "DAÑO A LA INFRAESTRUCTURA O MOBILIARIO DEL PLANTEL",
-    "CONSUMO O POSESIÓN DE SUSTANCIAS NOCIVAS O PROHIBIDAS",
-    "USO ADECUADO DEL UNIFORME Y PRESENTACIÓN",
-    "USO NO AUTORIZADO DE DISPOSITIVOS ELECTRÓNICOS",
-    "INCLUMPLIMIENTO DE COMPROMISOS ACADÉMICOS",
-    "PORTACIÓN DE OBJETOS PUNSOCORTANTES O ARMAS"
+    "FALTA DE RESPETO A PERSONAL DOCENTE, ADMINISTRATIVO O SERVICIOS",
+    "NO PORTA CREDENCIAL",
+    "CABELLO LARGO, TATUAJES VISIBLES, PERFORACIONES (PIERCING), CABELLO TEÑIDO, UÑAS EXTRAVAGANTES (MUJERES)",
+    "DAÑOS A LA INFRAESTRUCTURA DEL PLANTEL",
+    "FUMAR DENTRO DE LAS INSTALACIONES EDUCATIVAS (VAPEADOR, CIGARRO)",
+    "PRESENTARSE BAJO LOS EFECTOS DEL ALCOHOL U OTRA SUSTANCIA NOCIVA",
+    "FALTA DE RESPETO A LOS SÍMBOLOS PATRIOS",
+    "FALTAS A LA MORAL Y BUENAS COSTUMBRES",
+    "UTILIZAR DISPOSITIVO ELECTRÓNICO ESTANDO EN CLASES",
+    "AUSENTISMO EN CLASES"
 ];
 
-const POSICIONES_Y = [17, 23.5, 30, 36.5, 43, 49.5, 56, 62.5, 69, 75.5, 82, 88.5];
-const POS_X_OVALO = 91.5; 
+const POSICIONES_Y = [22.6, 25.3, 28.0, 30.7, 33.4, 36.1, 38.8, 41.5, 44.2, 46.9, 49.6, 52.3, 55.0, 57.7, 60.4];
+const POS_X_OVALO = 90.8; 
 
 const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    renderizarChecklistInfacciones();
     configurarBusquedaInteligente();
     configurarEventosReglamento();
     escucharIncidenciasGlobales();
@@ -38,6 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
         inputFiltro.addEventListener('input', renderizarTablaIncidencias);
     }
 });
+
+function renderizarChecklistInfacciones() {
+    const contenedor = document.getElementById('checklistIncidencias');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = PUNTOS_OFICIALES.map((falta, idx) => `
+        <div class="form-check mb-2">
+            <input class="form-check-input check-falta" type="checkbox" value="${falta}" id="falta_${idx}">
+            <label class="form-check-label x-small text-dark fw-bold" for="falta_${idx}" style="cursor: pointer; font-size: 0.82rem;">
+                ${falta}
+            </label>
+        </div>
+    `).join('');
+}
 
 function configurarEventosReglamento() {
     const checkboxes = document.querySelectorAll('.check-falta');

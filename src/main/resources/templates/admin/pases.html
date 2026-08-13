@@ -95,18 +95,31 @@
     .etiqueta-firma { font-weight:bold; font-size:11.5px; }
     
     @media print {
-      body { background:none; padding:0; gap:0; }
-      .panel-captura { display:none !important; }
-      
+      body, #wrapper, #page-content-wrapper, .container-fluid {
+          background: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          width: 100% !important;
+          box-shadow: none !important;
+      }
+      #sidebar-wrapper, .navbar, #pills-tab, .panel-captura, .btn, .card:not(#contenedorPaseReal) {
+          display: none !important;
+      }
+      .tab-pane:not(.active) {
+          display: none !important;
+      }
       .hoja-pase { 
-          box-shadow:none; 
-          border:none; 
-          min-height:auto; 
+          box-shadow: none !important; 
+          border: 1px solid #c8b44a !important; 
+          min-height: auto !important; 
+          width: 100% !important;
+          min-width: 0 !important;
           background: #FFFAB9 !important;
           -webkit-print-color-adjust: exact; 
           print-color-adjust: exact; 
+          margin: 0 auto !important;
       }
-      @page { size: A5 landscape; margin:5mm; }
+      @page { size: A5 landscape; margin: 6mm; }
     }
 </style>
 </head>

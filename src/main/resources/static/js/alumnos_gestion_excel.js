@@ -128,46 +128,53 @@ async function ejecutarCargaReal() {
     if (document.getElementById('btnIniciarCarga')) document.getElementById('btnIniciarCarga').disabled = true;
     if (document.getElementById('excelInput')) document.getElementById('excelInput').disabled = true;
     
-    Swal.fire({ title: 'Procesando lista...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Procesando lista...', text: 'Importando en bloques para evitar congelamiento...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     let exitosos = 0, fallos = 0, duplicados = 0;
     const regexMatricula = /^\d{14}$/;
 
-    const resAlumnos = await fetch('/api/alumnos');
-    const alumnosExistentes = resAlumnos.ok ? await resAlumnos.json() : [];
-    const setMatriculas = new Set(alumnosExistentes.map(a => a.ncontrol || a.matricula));
+    try {
+        const resAlumnos = await fetch('/api/alumnos');
+        const alumnosExistentes = resAlumnos.ok ? await resAlumnos.json() : [];
+        const setMatriculas = new Set(alumnosExistentes.map(a => a.ncontrol || a.matricula));
 
-    for (let row of json) {
-        const r = Object.keys(row).reduce((acc, key) => { 
-            const cleanKey = key.toLowerCase().replace(/\./g, '').replace(/\s/g, '_');
-            acc[cleanKey] = row[key]; 
-            return acc; 
-        }, {});
-        
-        const matricula = String(r.matricula || r.no_control || "").trim();
-        const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").trim();
+        const lotes = [];
+        let loteActual = [];
 
-        let nombre = String(r.nombre || "").trim();
-        let apepat = String(r.apepat || r.apellido_paterno || "").trim();
-        let apemat = String(r.apemat || r.apellido_materno || "").trim();
+        for (let i = 0; i < json.length; i++) {
+            const row = json[i];
+            const r = Object.keys(row).reduce((acc, key) => { 
+                const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+                acc[cleanKey] = row[key]; 
+                return acc; 
+            }, {});
+            
+            const matricula = String(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").trim();
+            const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").trim();
 
-        if (nombre && !apepat) {
-            const partes = nombre.split(" ");
-            if (partes.length >= 3) {
-                apepat = partes[0];
-                apemat = partes[1];
-                nombre = partes.slice(2).join(" ");
+            let nombre = String(r.nombre || "").trim();
+            let apepat = String(r.apepat || r.apellido_paterno || "").trim();
+            let apemat = String(r.apemat || r.apellido_materno || "").trim();
+
+            if (nombre && !apepat) {
+                const partes = nombre.split(" ");
+                if (partes.length >= 3) {
+                    apepat = partes[0];
+                    apemat = partes[1];
+                    nombre = partes.slice(2).join(" ");
+                } else if (partes.length === 2) {
+                    apepat = partes[0];
+                    nombre = partes[1];
+                }
             }
-        }
 
-        if (!regexMatricula.test(matricula)) { fallos++; continue; }
+            if (!regexMatricula.test(matricula)) { 
+                fallos++; 
+                continue; 
+            }
 
-        try {
             if (setMatriculas.has(matricula)) { 
                 duplicados++; 
-                const totalProcesados = exitosos + fallos + duplicados;
-                const pct = Math.round((totalProcesados / json.length) * 100);
-                if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
                 continue; 
             }
 
@@ -179,8 +186,9 @@ async function ejecutarCargaReal() {
             let grupoFinal = String(r.grupo || "").trim().toUpperCase();
             let turnoFinal = "Matutino";
 
-            if (r.gpo) {
-                const infoEscolar = normalizarDatosCBTis(r.gpo);
+            const gpoCod = r.gpo || r.grupo_oficial || r.grupo_redis;
+            if (gpoCod) {
+                const infoEscolar = normalizarDatosCBTis(gpoCod);
                 especialidadFinal = infoEscolar.especialidad;
                 gradoFinal = infoEscolar.grado || gradoFinal;
                 grupoFinal = infoEscolar.grupo || grupoFinal;
@@ -208,7 +216,7 @@ async function ejecutarCargaReal() {
                 apemat: apemat.toUpperCase(),
                 genero: String(r.genero || r.sexo || "N/A").toUpperCase().substring(0,1), 
                 email: String(r.email || r.correo_electronico || "").trim(),
-                celular: String(r.celular || r.numero_celular || "").trim(),
+                celular: String(r.celular || r.telefono_celular_alumno || r.numero_celular || "").trim(),
                 direccion: String(r.direccion || "N/A"),
                 
                 especialidad: especialidadFinal,
@@ -220,40 +228,68 @@ async function ejecutarCargaReal() {
                 estatus: "Activo",
                 color_semaforo: "Verde",
                 
-                nombretutor: r.tutor || r.nombre_del_tutor || r.nombre_tutor || "PENDIENTE",
+                nombretutor: String(r.tutor || r.nombre_tutor || r.nombre_del_tutor || r.nombre_tutor_ || "PENDIENTE").trim(),
                 teltutor: teltutor,
-                ocupaciontutor: r.ocupacion || r.ocupacion_del_tutor || "N/A",
+                ocupaciontutor: String(r.ocupacion || r.ocupacion_del_tutor || "N/A").trim(),
                 
                 qr_texto: textoUnicoQR,
                 fecharegistro: new Date().toISOString()
             };
 
-            await fetch('/api/alumnos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(alumno)
-            });
-
             setMatriculas.add(matricula);
-            exitosos++;
+            loteActual.push(alumno);
 
-            const totalProcesados = exitosos + fallos + duplicados;
-            const pct = Math.round((totalProcesados / json.length) * 100);
-            if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
-            if (document.getElementById('textoProgreso')) document.getElementById('textoProgreso').innerText = `Procesando registros... ${pct}%`;
-
-        } catch (err) { 
-            fallos++; 
-            const totalProcesados = exitosos + fallos + duplicados;
-            const pct = Math.round((totalProcesados / json.length) * 100);
-            if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
+            if (loteActual.length >= 50) {
+                lotes.push(loteActual);
+                loteActual = [];
+            }
         }
+
+        if (loteActual.length > 0) {
+            lotes.push(loteActual);
+        }
+
+        // Procesar lotes asíncronamente cediendo el hilo de ejecución a la interfaz gráfica
+        for (let idx = 0; idx < lotes.length; idx++) {
+            const lote = lotes[idx];
+            try {
+                const res = await fetch('/api/alumnos/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lote)
+                });
+
+                if (res.ok) {
+                    exitosos += lote.length;
+                } else {
+                    fallos += lote.length;
+                }
+            } catch (errBatch) {
+                fallos += lote.length;
+            }
+
+            const totalProcesados = exitosos + fallos + duplicados;
+            const pct = Math.min(100, Math.round((totalProcesados / json.length) * 100));
+
+            if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
+            if (document.getElementById('textoProgreso')) document.getElementById('textoProgreso').innerText = `Procesando batch ${idx + 1}/${lotes.length}... ${pct}%`;
+
+            // Ceder control al event loop del navegador para repintar la UI
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+
+    } catch (e) {
+        console.error("Error en importación masiva:", e);
     }
 
     Swal.fire({
         icon: 'success',
         title: 'Carga Masiva Completa',
-        html: `<div class="text-start">✅ Éxitos: ${exitosos}<br>⚠️ Duplicados: ${duplicados}<br>❌ Errores: ${fallos}</div>`,
+        html: `<div class="text-start p-2 bg-light rounded border">
+            <p class="mb-1 text-success"><strong>✅ Exitosos:</strong> ${exitosos}</p>
+            <p class="mb-1 text-warning"><strong>⚠️ Duplicados omitidos:</strong> ${duplicados}</p>
+            <p class="mb-0 text-danger"><strong>❌ Errores/Filas inválidas:</strong> ${fallos}</p>
+        </div>`,
         confirmButtonColor: '#7b1b37'
     }).then(() => location.reload());
 }
