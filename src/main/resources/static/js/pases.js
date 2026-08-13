@@ -231,11 +231,11 @@ async function guardarPaseIndividual() {
         const elementoPDF = document.getElementById('contenedorPaseReal');
 
         const opciones = {
-            margin: [80, 80, 80, 80], 
+            margin: [8, 10, 8, 10], 
             filename: `Pase_${folio}_${mat}.pdf`,
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'px', format: [954, 719], orientation: 'landscape' }
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
         };
         
         if (typeof html2pdf !== 'undefined') {
