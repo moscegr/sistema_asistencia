@@ -47,20 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderizarChecklistInfacciones() {
     const contenedor = document.getElementById('checklistIncidencias');
-    if (contenedor) {
-        contenedor.innerHTML = PUNTOS_OFICIALES.map((falta, idx) => `
-            <div class="form-check mb-2">
-                <input class="form-check-input check-falta" type="checkbox" value="${falta}" id="falta_${idx}">
-                <label class="form-check-label x-small text-dark fw-bold" for="falta_${idx}" style="cursor: pointer; font-size: 0.82rem;">
-                    ${falta}
-                </label>
-            </div>
-        `).join('');
+    if (!contenedor) return;
 
-        const checkboxes = document.querySelectorAll('.check-falta');
-        checkboxes.forEach(cb => cb.addEventListener('change', actualizarMarcasX));
-    }
-    actualizarMarcasX();
+    contenedor.innerHTML = PUNTOS_OFICIALES.map((falta, idx) => `
+        <div class="form-check mb-2">
+            <input class="form-check-input check-falta" type="checkbox" value="${falta}" id="falta_${idx}">
+            <label class="form-check-label x-small text-dark fw-bold" for="falta_${idx}" style="cursor: pointer; font-size: 0.82rem;">
+                ${falta}
+            </label>
+        </div>
+    `).join('');
 }
 
 function configurarEventosReglamento() {
@@ -77,23 +73,18 @@ function configurarEventosReglamento() {
 }
 
 function actualizarMarcasX() {
-    const contenedorPdf = document.getElementById('listaFaltasPdf');
-    if (!contenedorPdf) return;
+    const capa = document.getElementById('capaMarcasX');
+    if (!capa) return;
+    capa.innerHTML = "";
 
     const seleccionados = Array.from(document.querySelectorAll('.check-falta:checked')).map(cb => cb.value);
 
-    contenedorPdf.innerHTML = PUNTOS_OFICIALES.map((falta) => {
-        const estaSeleccionado = seleccionados.includes(falta);
-        const marcaX = estaSeleccionado ? '<b style="font-size: 11pt; color: #000;">X</b>' : '&nbsp;';
-        return `
-            <div class="d-flex justify-content-between align-items-center mb-1 py-1 border-bottom border-light">
-                <div class="pe-2">➢ ${falta}</div>
-                <div style="width: 30px; height: 18px; border: 1.5px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; flex-shrink: 0;">
-                    ${marcaX}
-                </div>
-            </div>
-        `;
-    }).join('');
+    seleccionados.forEach(falta => {
+        const idx = PUNTOS_OFICIALES.indexOf(falta);
+        if (idx !== -1) {
+            capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
+        }
+    });
 }
 
 function configurarBusquedaInteligente() {
