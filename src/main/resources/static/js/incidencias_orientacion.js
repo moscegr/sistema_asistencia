@@ -21,11 +21,13 @@ const PUNTOS_OFICIALES = [
     "FALTA DE RESPETO A LOS SÍMBOLOS PATRIOS",
     "FALTAS A LA MORAL Y BUENAS COSTUMBRES",
     "UTILIZAR DISPOSITIVO ELECTRÓNICO ESTANDO EN CLASES",
-    "AUSENTISMO EN CLASES"
+    "AUSENTISMO EN CLASES",
+    "PORTAR OBJETOS NO PERMITIDOS POR LA INSTITUCION EDUCATIVA",
+    "OTRO (ESPECIFIQUE)"
 ];
 
-const POSICIONES_Y = [22.6, 25.3, 28.0, 30.7, 33.4, 36.1, 38.8, 41.5, 44.2, 46.9, 49.6, 52.3, 55.0, 57.7, 60.4];
-const POS_X_OVALO = 90.8; 
+const POSICIONES_Y = [25.2, 27.3, 29.4, 31.5, 33.6, 35.7, 41.0, 44.5, 52.5, 55.0, 58.8, 65.0, 67.8, 70.5, 73.5, 76.5, 79.2];
+const POS_X_OVALO = 85.6; 
 
 const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";

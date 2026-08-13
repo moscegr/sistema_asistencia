@@ -65,8 +65,6 @@ async function procesarCargaMasiva() {
     const reader = new FileReader();
     reader.onload = async (e) => {
         try {
-            Swal.fire({ title: 'Analizando archivo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             jsonDatosPendientes = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false, defval: "" });
@@ -77,17 +75,15 @@ async function procesarCargaMasiva() {
 
             for (let row of jsonDatosPendientes) {
                 const r = Object.keys(row).reduce((acc, key) => { 
-                    const cleanKey = key.toLowerCase().replace(/\./g, '').replace(/\s/g, '_');
+                    const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
                     acc[cleanKey] = row[key]; 
                     return acc; 
                 }, {});
-                const matricula = String(r.matricula || r.no_control || "").trim();
+                const matricula = String(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").trim();
                 
                 if (regexMatricula.test(matricula)) posiblesExitos++;
                 else descartadosPreviamente++;
             }
-
-            Swal.hideLoading(); 
 
             const result = await Swal.fire({
                 title: '¿Iniciar importación?',
@@ -104,7 +100,7 @@ async function procesarCargaMasiva() {
                 showCancelButton: true,
                 confirmButtonColor: '#7b1b37',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="bi bi-cloud-arrow-up"></i> Sí, iniciar carga',
+                confirmButtonText: 'Sí, iniciar carga',
                 cancelButtonText: 'Cancelar'
             });
 

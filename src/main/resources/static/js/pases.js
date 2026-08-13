@@ -414,6 +414,9 @@ function filtrarTablaGlobal() {
 		        <td><span class="badge ${bClase}">${bTexto}</span></td>
 		        <td class="text-center">
 		            <div class="btn-group">
+		                <button class="btn btn-sm btn-outline-primary border-0 text-primary" onclick="reimprimirPaseIndividual('${p._id || p.id || p.folio_pase}')" title="Ver / Reimprimir Pase">
+		                    <i class="bi bi-printer-fill fs-5"></i>
+		                </button>
 		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p._id || p.id || p.folio_pase}')" title="Eliminar Pase">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
@@ -490,3 +493,34 @@ async function limpiarTodosLosPases() {
     }
 }
 window.limpiarTodosLosPases = limpiarTodosLosPases;
+
+async function reimprimirPaseIndividual(idPase) {
+    const pase = pasesGlobales.find(p => (p._id === idPase || p.id === idPase || p.folio_pase === idPase));
+    if (!pase) return Swal.fire("Error", "No se encontró la información del pase.", "error");
+
+    const folClean = pase.folio_pase ? (String(pase.folio_pase).includes('-') ? String(pase.folio_pase).split('-').pop() : String(pase.folio_pase)) : '0001';
+    if (document.getElementById('prevFolio')) document.getElementById('prevFolio').innerText = folClean;
+    if (document.getElementById('prevFecha')) document.getElementById('prevFecha').innerText = pase.fecha || obtenerFechaFormateada();
+    if (document.getElementById('prevNombre')) document.getElementById('prevNombre').innerText = (pase.nombreFull || pase.matricula || '').toUpperCase();
+    if (document.getElementById('prevGrado')) document.getElementById('prevGrado').innerText = pase.grado || '';
+    if (document.getElementById('prevGpo')) document.getElementById('prevGpo').innerText = pase.grupo || '';
+    if (document.getElementById('prevEsp')) document.getElementById('prevEsp').innerText = (pase.especialidad || '').toUpperCase();
+    if (document.getElementById('prevHora')) document.getElementById('prevHora').innerText = pase.hora_salida || '';
+    if (document.getElementById('prevMot')) document.getElementById('prevMot').innerText = (pase.motivo || '').toUpperCase();
+
+    const tabBtn = document.getElementById('pills-individual-tab');
+    if (tabBtn) {
+        const bsTab = bootstrap.Tab.getInstance(tabBtn) || new bootstrap.Tab(tabBtn);
+        bsTab.show();
+    }
+
+    const contenedor = document.getElementById('contenedorPaseReal');
+    if (contenedor) {
+        contenedor.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    setTimeout(() => {
+        window.print();
+    }, 400);
+}
+window.reimprimirPaseIndividual = reimprimirPaseIndividual;

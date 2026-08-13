@@ -100,6 +100,7 @@
           padding: 0 !important;
           margin: 0 !important;
           width: 100% !important;
+          height: auto !important;
           box-shadow: none !important;
       }
       #sidebar-wrapper, .navbar, #pills-tab, .panel-captura, .btn, .card:not(#contenedorPaseReal) {
@@ -111,15 +112,18 @@
       .hoja-pase { 
           box-shadow: none !important; 
           border: 1px solid #c8b44a !important; 
-          min-height: auto !important; 
           width: 100% !important;
+          max-width: 100% !important;
           min-width: 0 !important;
+          min-height: 0 !important;
+          padding: 10px 14px !important;
           background: #FFFAB9 !important;
           -webkit-print-color-adjust: exact; 
           print-color-adjust: exact; 
-          margin: 0 auto !important;
+          margin: 0 !important;
+          page-break-inside: avoid;
       }
-      @page { size: A5 landscape; margin: 6mm; }
+      @page { size: landscape; margin: 4mm; }
     }
 </style>
 </head>
