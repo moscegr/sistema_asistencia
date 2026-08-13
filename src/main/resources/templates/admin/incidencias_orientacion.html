@@ -57,19 +57,58 @@
                     </div>
 
                     <div class="col-lg-8">
-					    <div class="shadow-lg rounded-3 overflow-auto p-2 bg-secondary bg-opacity-10" style="max-height: 700px;">
-					        <div id="contenedorReporteReal" class="fuente-reporte mx-auto" style="transform: scale(0.90); transform-origin: top center; margin-bottom: -50px;"> 
-					            <div style="top: 14.3%; left: -7%; width: 80%;" class="campo-inc text-end">
-								    Chilpancingo de los Bravo, Gro.; a <span id="pdfDia">__</span> de <span id="pdfMes">__________</span> del <span id="pdfAnio">____</span>.
-								</div>
-					            <div style="top: 16.6%; left: 13.5%; width: 80%;" class="campo-inc">
-					                Nombre del alumno(a): <span id="pdfNombreAl" style="padding-left: 10px;">________________________________________</span>
+					    <div class="shadow-lg rounded-3 overflow-auto p-2 bg-secondary bg-opacity-10" style="max-height: 750px;">
+					        <div id="contenedorReporteReal" class="mx-auto p-4 bg-white border shadow-sm" style="width: 216mm; min-height: 279mm; font-family: 'Courier New', Courier, monospace; color: #000; box-sizing: border-box; transform: scale(0.90); transform-origin: top center; margin-bottom: -40px;"> 
+					            <!-- Encabezado Logos -->
+					            <div class="d-flex align-items-center justify-content-between mb-2">
+					                <div style="width: 140px;">
+					                    <img th:src="@{/img/logoSep.png}" alt="SEP" style="max-width: 100%; height: auto; display: block;">
+					                </div>
+					                <div class="text-center flex-grow-1 px-2" style="font-size: 8pt; line-height: 1.35; font-weight: bold; color: #111;">
+					                    <div>Subsecretaría de Educación Media Superior</div>
+					                    <div>Dirección General de Educación Tecnológica Industrial y de Servicios</div>
+					                    <div>Centro de Bachillerato Tecnológico industrial y de servicios No. 134</div>
+					                    <div style="font-size: 7.5pt; font-weight: normal;">12DCT0001L</div>
+					                </div>
+					                <div style="width: 140px; text-align: right;">
+					                    <img th:src="@{/img/logoMujerGob.png}" alt="Gobierno" style="max-width: 100%; height: auto; display: block; margin-left: auto;">
+					                </div>
 					            </div>
-					            <div style="top: 18.8%; left: 13.5%; width: 80%;" class="campo-inc">
-					                Semestre: <span id="pdfSemestre">__</span> Grupo: <span id="pdfGrupo">__</span> Especialidad: <span id="pdfEsp">_______________________</span>
+
+					            <div class="text-center fw-bold fs-6 my-3 text-uppercase" style="letter-spacing: 1px;">
+					                Asunto: REPORTE DE INCIDENCIA
 					            </div>
-					            <div id="capaMarcasX"></div>
-					            <span style="top: 66.4%; left: 44%; font-size: 9pt;" class="campo-inc" id="pdfTextoOtro"></span>
+
+					            <div class="mb-3 text-end" style="font-size: 9.5pt; font-weight: bold;">
+					                CHILPANCINGO DE LOS BRAVO, GRO.; A <span id="pdfDia" class="border-bottom border-dark px-2">__</span> DE <span id="pdfMes" class="border-bottom border-dark px-2">__________</span> DEL <span id="pdfAnio" class="border-bottom border-dark px-2">____</span>.
+					            </div>
+
+					            <div class="mb-3" style="font-size: 9.5pt; line-height: 1.8; font-weight: bold;">
+					                <div><b>NOMBRE DEL ALUMNO(A) :</b> <span id="pdfNombreAl" class="border-bottom border-dark px-2 text-uppercase">________________________________________</span></div>
+					                <div>
+					                    <b>SEMESTRE:</b> <span id="pdfSemestre" class="border-bottom border-dark px-2">__</span>
+					                    <span class="ms-3"><b>GRUPO:</b> <span id="pdfGrupo" class="border-bottom border-dark px-2">__</span></span>
+					                    <span class="ms-3"><b>ESPECIALIDAD:</b> <span id="pdfEsp" class="border-bottom border-dark px-2 text-uppercase">_______________________</span></span>
+					                </div>
+					            </div>
+
+					            <div class="fw-bold my-2" style="font-size: 10pt;">
+					                FALTA EN LAS QUE INCURRE:
+					            </div>
+
+					            <!-- Lista de Faltas Vectorial con Óvalos -->
+					            <div id="listaFaltasPdf" class="mb-3" style="font-size: 8.5pt; line-height: 1.5; font-weight: bold;">
+					            </div>
+
+					            <div class="mb-4" style="font-size: 9pt; font-weight: bold;">
+					                <b>➢ OTRO (ESPECIFIQUE):</b> <span id="pdfTextoOtro" class="border-bottom border-dark d-inline-block w-75 px-2 text-uppercase"></span>
+					            </div>
+
+					            <div class="mt-5 pt-3 text-center" style="font-size: 9pt; font-weight: bold;">
+					                <div class="border-top border-dark mx-auto w-50 pt-1">
+					                    NOMBRE Y FIRMA DE ORIENTACIÓN EDUCATIVA
+					                </div>
+					            </div>
 					        </div>
 					    </div>
 					</div>
