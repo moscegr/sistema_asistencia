@@ -55,14 +55,27 @@ async function inicializarSesion() {
     inicializarSwitchSalida();
 }
 
+let calendarioInstancia = null;
+
+const PALETA_COLORES_CALENDARIO = [
+    { nombre: 'Institucional Guinda', valor: '#7b1b37' },
+    { nombre: 'Inhábiles / Suspensión', valor: '#dc3545' },
+    { nombre: 'Evaluaciones / Exámenes', valor: '#0d6efd' },
+    { nombre: 'Actividad Cívica / Cultural', valor: '#198754' },
+    { nombre: 'Administrativo / Consejo', valor: '#6f42c1' },
+    { nombre: 'Calificaciones / Avisos', valor: '#fd7e14' }
+];
+
 function inicializarCalendario(userRole) {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl || typeof FullCalendar === 'undefined') return;
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
+    const esAdmin = (userRole === 'ADMIN' || userRole === 'ORIENTACION');
+
+    calendarioInstancia = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'es',
-        height: 600,
+        height: 'auto',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -71,12 +84,391 @@ function inicializarCalendario(userRole) {
         buttonText: {
             today: 'Hoy', month: 'Mes', week: 'Semana', list: 'Agenda'
         },
-        editable: (userRole === 'ADMIN'),
-        selectable: (userRole === 'ADMIN'),
-        events: []
+        editable: esAdmin,
+        selectable: esAdmin,
+        selectMirror: true,
+        dayMaxEvents: true,
+        navLinks: true,
+        events: async function(info, successCallback, failureCallback) {
+            try {
+                const res = await fetch('/api/calendario');
+                if (!res.ok) throw new Error("Error HTTP " + res.status);
+                const eventos = await res.json();
+                const mapeados = (eventos || []).map(evt => ({
+                    id: evt.id || evt._id,
+                    title: evt.title,
+                    start: evt.start,
+                    end: evt.end,
+                    allDay: evt.allDay !== false,
+                    backgroundColor: evt.color || '#7b1b37',
+                    borderColor: evt.color || '#7b1b37',
+                    textColor: '#ffffff',
+                    extendedProps: {
+                        descripcion: evt.descripcion || '',
+                        creadoPor: evt.creadoPor || 'ADMIN'
+                    }
+                }));
+                successCallback(mapeados);
+            } catch (err) {
+                console.error("Error al cargar eventos del calendario:", err);
+                failureCallback(err);
+            }
+        },
+        select: function(selectionInfo) {
+            if (!esAdmin) return;
+            abrirModalNuevoEvento(selectionInfo.startStr, selectionInfo.endStr, selectionInfo.allDay);
+        },
+        eventClick: function(clickInfo) {
+            abrirModalDetalleEvento(clickInfo.event, esAdmin);
+        },
+        eventDrop: async function(changeInfo) {
+            if (!esAdmin) {
+                changeInfo.revert();
+                return;
+            }
+            await actualizarFechasEvento(changeInfo.event, changeInfo.revert);
+        },
+        eventResize: async function(changeInfo) {
+            if (!esAdmin) {
+                changeInfo.revert();
+                return;
+            }
+            await actualizarFechasEvento(changeInfo.event, changeInfo.revert);
+        }
     });
 
-    calendar.render();
+    calendarioInstancia.render();
+}
+
+async function abrirModalNuevoEvento(fechaInicio = '', fechaFin = '', esTodoElDia = true) {
+    const hoyStr = new Date().toLocaleDateString('en-CA');
+    const startVal = fechaInicio || hoyStr;
+    const endVal = (fechaFin && fechaFin !== fechaInicio) ? fechaFin : '';
+
+    const opcionesColorHtml = PALETA_COLORES_CALENDARIO.map(c => 
+        `<option value="${c.valor}" ${c.valor === '#7b1b37' ? 'selected' : ''}>${c.nombre}</option>`
+    ).join('');
+
+    const { value: formValues } = await Swal.fire({
+        title: '<i class="bi bi-calendar-plus text-danger me-2"></i>Nuevo Evento Escolar',
+        html: `
+            <div class="text-start" style="font-size: 14px;">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Título del evento / actividad <span class="text-danger">*</span></label>
+                    <input id="swalEvtTitulo" class="form-control" placeholder="Ej. Inicio de Exámenes Parciales" autocomplete="off">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Fecha Inicio <span class="text-danger">*</span></label>
+                        <input id="swalEvtInicio" type="date" class="form-control" value="${startVal}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Fecha Fin</label>
+                        <input id="swalEvtFin" type="date" class="form-control" value="${endVal}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Categoría / Color</label>
+                    <select id="swalEvtColor" class="form-select">
+                        ${opcionesColorHtml}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción u Observaciones</label>
+                    <textarea id="swalEvtDesc" class="form-control" rows="2" placeholder="Detalles adicionales del evento..."></textarea>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="swalEvtAllDay" ${esTodoElDia ? 'checked' : ''}>
+                    <label class="form-check-label small" for="swalEvtAllDay">Evento de todo el día</label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-save me-1"></i> Guardar Evento',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#7b1b37',
+        cancelButtonColor: '#6c757d',
+        focusConfirm: false,
+        preConfirm: () => {
+            const title = document.getElementById('swalEvtTitulo').value.trim();
+            const start = document.getElementById('swalEvtInicio').value;
+            const end = document.getElementById('swalEvtFin').value;
+            const color = document.getElementById('swalEvtColor').value;
+            const descripcion = document.getElementById('swalEvtDesc').value.trim();
+            const allDay = document.getElementById('swalEvtAllDay').checked;
+
+            if (!title) {
+                Swal.showValidationMessage('Por favor ingresa un título para el evento');
+                return false;
+            }
+            if (!start) {
+                Swal.showValidationMessage('La fecha de inicio es obligatoria');
+                return false;
+            }
+
+            return { title, start, end: end || null, color, descripcion, allDay };
+        }
+    });
+
+    if (formValues) {
+        try {
+            Swal.fire({ title: 'Guardando evento...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const usuarioActual = localStorage.getItem('userName') || 'ADMIN';
+            
+            const res = await fetch('/api/calendario', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: 'EVT_' + Date.now(),
+                    ...formValues,
+                    creadoPor: usuarioActual
+                })
+            });
+
+            if (!res.ok) throw new Error("Error al guardar en el servidor");
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'Evento Registrado',
+                text: 'El evento se ha agregado a la agenda escolar con éxito.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+
+            if (calendarioInstancia) calendarioInstancia.refetchEvents();
+        } catch (e) {
+            Swal.fire("Error", "No se pudo guardar el evento: " + e.message, "error");
+        }
+    }
+}
+window.abrirModalNuevoEvento = abrirModalNuevoEvento;
+
+async function abrirModalDetalleEvento(eventObj, esAdmin) {
+    const props = eventObj.extendedProps || {};
+    const startStr = eventObj.startStr || (eventObj.start ? eventObj.start.toLocaleDateString('es-MX') : 'S/F');
+    const endStr = eventObj.endStr || (eventObj.end ? eventObj.end.toLocaleDateString('es-MX') : '');
+    const colorHex = eventObj.backgroundColor || '#7b1b37';
+    const categoriaMatch = PALETA_COLORES_CALENDARIO.find(c => c.valor.toLowerCase() === colorHex.toLowerCase());
+    const categoriaNombre = categoriaMatch ? categoriaMatch.nombre : 'Evento';
+
+    if (esAdmin) {
+        const result = await Swal.fire({
+            title: `<span style="color:${colorHex};"><i class="bi bi-calendar-event me-2"></i>${eventObj.title}</span>`,
+            html: `
+                <div class="text-start p-2" style="font-size: 14px;">
+                    <div class="mb-2">
+                        <span class="badge" style="background-color: ${colorHex}; font-size: 12px;">${categoriaNombre}</span>
+                        ${eventObj.allDay ? '<span class="badge bg-secondary ms-1">Todo el día</span>' : ''}
+                    </div>
+                    <p class="mb-1"><strong><i class="bi bi-clock me-1"></i>Periodo:</strong> ${startStr} ${endStr ? ' hasta ' + endStr : ''}</p>
+                    ${props.descripcion ? `<p class="mb-1"><strong><i class="bi bi-card-text me-1"></i>Detalles:</strong> ${props.descripcion}</p>` : ''}
+                    ${props.creadoPor ? `<p class="mb-0 text-muted x-small"><strong>Registrado por:</strong> ${props.creadoPor}</p>` : ''}
+                </div>
+            `,
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-pencil-square me-1"></i> Editar',
+            denyButtonText: '<i class="bi bi-trash3 me-1"></i> Eliminar',
+            cancelButtonText: 'Cerrar',
+            confirmButtonColor: '#0d6efd',
+            denyButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d'
+        });
+
+        if (result.isConfirmed) {
+            abrirModalEditarEvento(eventObj);
+        } else if (result.isDenied) {
+            confirmarEliminarEvento(eventObj);
+        }
+    } else {
+        Swal.fire({
+            title: `<span style="color:${colorHex};"><i class="bi bi-calendar-event me-2"></i>${eventObj.title}</span>`,
+            html: `
+                <div class="text-start p-2" style="font-size: 14px;">
+                    <div class="mb-2">
+                        <span class="badge" style="background-color: ${colorHex}; font-size: 12px;">${categoriaNombre}</span>
+                    </div>
+                    <p class="mb-1"><strong><i class="bi bi-clock me-1"></i>Periodo:</strong> ${startStr} ${endStr ? ' hasta ' + endStr : ''}</p>
+                    ${props.descripcion ? `<p class="mb-1"><strong><i class="bi bi-card-text me-1"></i>Detalles:</strong> ${props.descripcion}</p>` : ''}
+                </div>
+            `,
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#7b1b37'
+        });
+    }
+}
+
+async function abrirModalEditarEvento(eventObj) {
+    const props = eventObj.extendedProps || {};
+    const colorHex = eventObj.backgroundColor || '#7b1b37';
+    
+    const startVal = eventObj.startStr.split('T')[0];
+    const endVal = eventObj.endStr ? eventObj.endStr.split('T')[0] : '';
+
+    const opcionesColorHtml = PALETA_COLORES_CALENDARIO.map(c => 
+        `<option value="${c.valor}" ${c.valor.toLowerCase() === colorHex.toLowerCase() ? 'selected' : ''}>${c.nombre}</option>`
+    ).join('');
+
+    const { value: formValues } = await Swal.fire({
+        title: '<i class="bi bi-pencil-square text-primary me-2"></i>Editar Evento',
+        html: `
+            <div class="text-start" style="font-size: 14px;">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Título del evento / actividad <span class="text-danger">*</span></label>
+                    <input id="swalEditTitulo" class="form-control" value="${eventObj.title || ''}" autocomplete="off">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Fecha Inicio <span class="text-danger">*</span></label>
+                        <input id="swalEditInicio" type="date" class="form-control" value="${startVal}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold">Fecha Fin</label>
+                        <input id="swalEditFin" type="date" class="form-control" value="${endVal}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Categoría / Color</label>
+                    <select id="swalEditColor" class="form-select">
+                        ${opcionesColorHtml}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción u Observaciones</label>
+                    <textarea id="swalEditDesc" class="form-control" rows="2">${props.descripcion || ''}</textarea>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="swalEditAllDay" ${eventObj.allDay !== false ? 'checked' : ''}>
+                    <label class="form-check-label small" for="swalEditAllDay">Evento de todo el día</label>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-save me-1"></i> Actualizar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        focusConfirm: false,
+        preConfirm: () => {
+            const title = document.getElementById('swalEditTitulo').value.trim();
+            const start = document.getElementById('swalEditInicio').value;
+            const end = document.getElementById('swalEditFin').value;
+            const color = document.getElementById('swalEditColor').value;
+            const descripcion = document.getElementById('swalEditDesc').value.trim();
+            const allDay = document.getElementById('swalEditAllDay').checked;
+
+            if (!title) {
+                Swal.showValidationMessage('Por favor ingresa un título para el evento');
+                return false;
+            }
+            if (!start) {
+                Swal.showValidationMessage('La fecha de inicio es obligatoria');
+                return false;
+            }
+
+            return { title, start, end: end || null, color, descripcion, allDay };
+        }
+    });
+
+    if (formValues) {
+        try {
+            Swal.fire({ title: 'Actualizando evento...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            const res = await fetch(`/api/calendario/${eventObj.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: eventObj.id,
+                    ...formValues,
+                    creadoPor: props.creadoPor || 'ADMIN'
+                })
+            });
+
+            if (!res.ok) throw new Error("Error al actualizar en el servidor");
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'Evento Actualizado',
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            if (calendarioInstancia) calendarioInstancia.refetchEvents();
+        } catch (e) {
+            Swal.fire("Error", "No se pudo actualizar el evento: " + e.message, "error");
+        }
+    }
+}
+
+async function confirmarEliminarEvento(eventObj) {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Eliminar Evento?',
+        text: `¿Estás seguro de eliminar el evento "${eventObj.title}" de la agenda escolar?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (isConfirmed) {
+        try {
+            Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const res = await fetch(`/api/calendario/${eventObj.id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("No se pudo eliminar del servidor");
+
+            eventObj.remove();
+            Swal.fire({
+                icon: 'success',
+                title: 'Evento Eliminado',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } catch (e) {
+            Swal.fire("Error", "Error al eliminar el evento: " + e.message, "error");
+        }
+    }
+}
+
+async function actualizarFechasEvento(eventObj, revertFn) {
+    try {
+        const startStr = eventObj.startStr.split('T')[0];
+        const endStr = eventObj.endStr ? eventObj.endStr.split('T')[0] : null;
+        const props = eventObj.extendedProps || {};
+
+        const res = await fetch(`/api/calendario/${eventObj.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: eventObj.id,
+                title: eventObj.title,
+                start: startStr,
+                end: endStr,
+                allDay: eventObj.allDay !== false,
+                color: eventObj.backgroundColor || '#7b1b37',
+                descripcion: props.descripcion || '',
+                creadoPor: props.creadoPor || 'ADMIN'
+            })
+        });
+
+        if (!res.ok) throw new Error("No se pudo actualizar la fecha");
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true
+        });
+        Toast.fire({
+            icon: 'success',
+            title: 'Fecha de evento actualizada'
+        });
+    } catch (e) {
+        if (typeof revertFn === 'function') revertFn();
+        Swal.fire("Error", "No se pudo actualizar la fecha del evento.", "error");
+    }
 }
 
 async function inicializarSwitchSalida() {

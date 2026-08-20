@@ -20,10 +20,30 @@ public class CalendarioController {
         return eventoCalendarioRepository.findAll();
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<EventoCalendario> obtenerEventoPorId(@PathVariable String id) {
+        return eventoCalendarioRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<EventoCalendario> guardarEvento(@RequestBody EventoCalendario evento) {
+        if (evento.getId() == null || evento.getId().trim().isEmpty()) {
+            evento.setId("EVT_" + System.currentTimeMillis());
+        }
+        if (evento.getFechaRegistro() == null) {
+            evento.setFechaRegistro(new java.util.Date());
+        }
         EventoCalendario guardado = eventoCalendarioRepository.save(evento);
         return ResponseEntity.ok(guardado);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<EventoCalendario> actualizarEvento(@PathVariable String id, @RequestBody EventoCalendario evento) {
+        evento.setId(id);
+        EventoCalendario actualizado = eventoCalendarioRepository.save(evento);
+        return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{id}")
