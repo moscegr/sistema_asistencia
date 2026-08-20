@@ -102,12 +102,12 @@ async function abrirModalMiPerfil() {
                             </div>
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-dark">Correo Institucional</label>
-                                <input type="email" id="miPerfilCorreo" class="form-control" required>
+                                <input type="email" id="miPerfilCorreo" class="form-control no-uppercase" style="text-transform: none !important;" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-dark">Nueva Contraseña (Opcional)</label>
                                 <div class="input-group">
-                                    <input type="password" id="miPerfilPassword" class="form-control" placeholder="Dejar en blanco para conservar actual">
+                                    <input type="password" id="miPerfilPassword" class="form-control no-uppercase" placeholder="Dejar en blanco para conservar actual" style="text-transform: none !important;" autocomplete="new-password">
                                     <button class="btn btn-outline-secondary" type="button" onclick="const p=document.getElementById('miPerfilPassword'); p.type=p.type==='password'?'text':'password';">
                                         <i class="bi bi-eye"></i>
                                     </button>

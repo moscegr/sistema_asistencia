@@ -10,15 +10,24 @@ body {
     overflow-x: hidden;
 }
 
-/* CONVERSIÓN GLOBAL A MAYÚSCULAS PARA TODOS LOS FORMULARIOS */
-input[type="text"], input[type="search"], textarea, select {
+/* CONVERSIÓN GLOBAL A MAYÚSCULAS PARA CAMPOS DE TEXTO GENERALES (EXCEPTO CONTRASEÑAS, CORREOS Y CLASES EXCLUIDAS) */
+input[type="text"]:not(.no-uppercase):not([type="password"]), 
+input[type="search"]:not(.no-uppercase), 
+textarea:not(.no-uppercase), 
+select {
     text-transform: uppercase;
 }
-input[type="email"] {
-    text-transform: none;
+
+input[type="email"], 
+input[type="password"], 
+input.no-uppercase, 
+.no-uppercase {
+    text-transform: none !important;
 }
-input[type="text"]::placeholder, input[type="search"]::placeholder, textarea::placeholder {
-    text-transform: none;
+
+input::placeholder, 
+textarea::placeholder {
+    text-transform: none !important;
 }
 
 #wrapper {
