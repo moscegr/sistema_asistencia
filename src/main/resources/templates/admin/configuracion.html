@@ -338,20 +338,17 @@
 				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-guinda mb-4">
 				        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
 				            <h5 class="fw-bold text-guinda mb-0">
-				                <i class="bi bi-cloud-arrow-down-fill me-2"></i>Centro de Respaldos del Sistema
+				                <i class="bi bi-arrow-left-right me-2"></i>Centro de Migración y Respaldos (VPS / Local)
 				            </h5>
-				            <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Seguridad de Información</span>
+				            <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Base de Datos + Multimedia</span>
 				        </div>
-				        <p class="text-muted small mb-3">Genera y descarga copias de seguridad de la base de datos completa de MongoDB y de todas las fotografías, justificantes y archivos multimedia subidos al servidor.</p>
-				        <div class="d-flex flex-wrap gap-2">
-				            <button class="btn btn-guinda px-3 py-2 fw-bold shadow-sm" onclick="descargarRespaldoBaseDatos()">
-				                <i class="bi bi-filetype-json me-2"></i>Descargar Base de Datos (.JSON)
+				        <p class="text-muted small mb-3">Descarga un paquete consolidado (.ZIP) con todas las colecciones de MongoDB y archivos multimedia para migrar de servidor VPS, o importa un respaldo previo para restaurar el sistema en un clic.</p>
+				        <div class="d-flex flex-wrap gap-3">
+				            <button class="btn btn-guinda px-4 py-2 fw-bold shadow-sm" onclick="descargarRespaldoZipTotal()">
+				                <i class="bi bi-cloud-arrow-down-fill me-2"></i>Exportar Respaldo Total (.ZIP)
 				            </button>
-				            <button class="btn btn-outline-primary px-3 py-2 fw-bold shadow-sm" onclick="descargarRespaldoMultimedia()">
-				                <i class="bi bi-file-earmark-zip-fill me-2"></i>Descargar Multimedia (.ZIP)
-				            </button>
-				            <button class="btn btn-primary px-3 py-2 fw-bold shadow-sm" onclick="descargarRespaldoZipTotal()">
-				                <i class="bi bi-archive-fill me-2"></i>Descargar Paquete Total (.ZIP)
+				            <button class="btn btn-outline-success px-4 py-2 fw-bold shadow-sm" onclick="abrirModalImportarRespaldo()">
+				                <i class="bi bi-cloud-arrow-up-fill me-2"></i>Importar / Migrar Respaldo (.ZIP o .JSON)
 				            </button>
 				        </div>
 				    </div>

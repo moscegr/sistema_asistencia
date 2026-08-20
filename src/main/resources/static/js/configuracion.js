@@ -573,80 +573,8 @@ async function revertirCicloEscolar() {
 }
 window.revertirCicloEscolar = revertirCicloEscolar;
 
-async function descargarRespaldoBaseDatos() {
-    Swal.fire({ title: 'Generando respaldo total...', text: 'Empaquetando todas las colecciones de MongoDB...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    try {
-        const res = await fetch('/api/configuracion/backup');
-        if (!res.ok) throw new Error("Error HTTP " + res.status);
-        const data = await res.json();
-
-        const jsonStr = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        
-        const fechaHoy = new Date().toLocaleDateString('en-CA');
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Respaldo_BD_CBTis134_${fechaHoy}_${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        const totalAlumnos = (data.alumnos || []).length;
-        const totalPases = (data.pases_salida || []).length;
-        const totalJust = (data.justificantes || []).length;
-        const totalInc = (data.incidencias || []).length;
-
-        Swal.fire({
-            icon: 'success',
-            title: '¡Respaldo Descargado!',
-            html: `
-                <div class="text-start small p-2 bg-light border rounded">
-                    <p class="mb-1 text-success fw-bold"><i class="bi bi-check2-all me-1"></i>Archivo JSON generado y descargado correctamente.</p>
-                    <hr class="my-1">
-                    <ul class="mb-0 ps-3 x-small text-muted">
-                        <li><b>Alumnos:</b> ${totalAlumnos} registros</li>
-                        <li><b>Pases de Salida:</b> ${totalPases} registros</li>
-                        <li><b>Justificantes:</b> ${totalJust} registros</li>
-                        <li><b>Incidencias:</b> ${totalInc} registros</li>
-                        <li><b>Configuración, Calendario y Asistencias</b> incluidos</li>
-                    </ul>
-                </div>
-            `,
-            confirmButtonColor: '#7b1b37'
-        });
-    } catch(e) {
-        Swal.fire("Error", "No se pudo generar el respaldo: " + e.message, "error");
-    }
-}
-window.descargarRespaldoBaseDatos = descargarRespaldoBaseDatos;
-async function descargarRespaldoMultimedia() {
-    Swal.fire({ title: 'Empaquetando multimedia...', text: 'Generando archivo ZIP con las fotografías y documentos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    try {
-        const a = document.createElement('a');
-        a.href = '/api/configuracion/backup/multimedia';
-        a.download = `Respaldo_Multimedia_CBTis134_${new Date().toLocaleDateString('en-CA')}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        setTimeout(() => {
-            Swal.fire({
-                icon: 'success',
-                title: '¡Descarga Iniciada!',
-                text: 'El archivo ZIP con las carpetas de archivos multimedia se ha descargado a tu equipo.',
-                confirmButtonColor: '#7b1b37'
-            });
-        }, 1200);
-    } catch(e) {
-        Swal.fire("Error", "No se pudo descargar el ZIP de multimedia: " + e.message, "error");
-    }
-}
-window.descargarRespaldoMultimedia = descargarRespaldoMultimedia;
-
 async function descargarRespaldoZipTotal() {
-    Swal.fire({ title: 'Generando Respaldo Total...', text: 'Empaquetando Base de Datos completa + Carpeta Multimedia en un único archivo ZIP...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Respaldo Total...', text: 'Empaquetando Base de Datos completa + Carpeta Multimedia en un archivo ZIP...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const a = document.createElement('a');
         a.href = '/api/configuracion/backup/zip-completo';
@@ -678,6 +606,92 @@ async function descargarRespaldoZipTotal() {
     }
 }
 window.descargarRespaldoZipTotal = descargarRespaldoZipTotal;
+
+async function abrirModalImportarRespaldo() {
+    const { value: fileData } = await Swal.fire({
+        title: 'Importar / Migrar Respaldo',
+        html: `
+            <p class="small text-muted mb-3">Selecciona el archivo <b>.ZIP</b> (Respaldo Total con Base de Datos y Multimedia) o <b>.JSON</b> para restaurar el sistema en este servidor.</p>
+            <div class="mb-3 text-start">
+                <label class="form-label small fw-bold">Archivo de Respaldo (.zip o .json):</label>
+                <input type="file" id="swalInputRespaldoFile" class="form-control" accept=".zip,.json">
+            </div>
+            <div class="form-check text-start p-2 bg-light border rounded">
+                <input class="form-check-input ms-0 me-2" type="checkbox" id="swalCheckLimpiarAntes">
+                <label class="form-check-label small fw-bold text-danger" for="swalCheckLimpiarAntes">
+                    Reemplazar datos existentes (Limpiar colecciones antes de importar)
+                </label>
+                <div class="x-small text-muted ps-4">Si no se marca, los registros se fusionarán/actualizarán por ID sin borrar los no coincidentes.</div>
+            </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#7b1b37',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-cloud-arrow-up-fill me-1"></i> Iniciar Importación',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const input = document.getElementById('swalInputRespaldoFile');
+            const limpiar = document.getElementById('swalCheckLimpiarAntes').checked;
+            if (!input || !input.files || input.files.length === 0) {
+                Swal.showValidationMessage('Por favor selecciona un archivo .zip o .json');
+                return false;
+            }
+            return { file: input.files[0], limpiar };
+        }
+    });
+
+    if (fileData && fileData.file) {
+        Swal.fire({
+            title: 'Restaurando Respaldo...',
+            html: '<p class="small text-muted">Procesando colecciones de MongoDB y extrayendo archivos multimedia...</p><div class="spinner-border text-guinda my-2"></div>',
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
+
+        try {
+            const formData = new FormData();
+            formData.append('archivo', fileData.file);
+            formData.append('limpiarAntes', fileData.limpiar);
+
+            const res = await fetch('/api/configuracion/restore', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `Error HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            const cols = Object.entries(data.colecciones || {}).map(([k, v]) => `<li><b>${k}:</b> ${v} documentos</li>`).join('');
+
+            await Swal.fire({
+                icon: 'success',
+                title: '¡Migración y Restauración Exitosa!',
+                html: `
+                    <div class="text-start small p-3 bg-light border rounded">
+                        <p class="mb-2 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ${data.mensaje}</p>
+                        <hr class="my-1">
+                        <ul class="mb-2 ps-3 x-small">
+                            <li><b>Total Documentos Restaurados:</b> ${data.total_documentos || 0}</li>
+                            <li><b>Archivos Multimedia Extraídos:</b> ${data.archivos_multimedia || 0}</li>
+                        </ul>
+                        ${cols ? `<div class="x-small text-muted"><b>Detalle por colección:</b><ul class="mb-0 ps-3">${cols}</ul></div>` : ''}
+                    </div>
+                `,
+                confirmButtonColor: '#7b1b37'
+            });
+
+            location.reload();
+
+        } catch(e) {
+            Swal.fire("Error en Restauración", e.message, "error");
+        }
+    }
+}
+window.abrirModalImportarRespaldo = abrirModalImportarRespaldo;
 
 async function limpiarTodosLosPases() {
     const { isConfirmed } = await Swal.fire({

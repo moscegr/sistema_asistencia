@@ -140,47 +140,6 @@ public class ConfiguracionController {
         ));
     }
 
-    @GetMapping("/backup")
-    public ResponseEntity<Map<String, Object>> descargarBackupCompleto() {
-        return ResponseEntity.ok(construirMapaBackup());
-    }
-
-    @GetMapping(value = "/backup/multimedia", produces = "application/zip")
-    public ResponseEntity<StreamingResponseBody> descargarBackupMultimedia(HttpServletResponse response) {
-        String fechaHoy = java.time.LocalDate.now().toString();
-        response.setHeader("Content-Disposition", "attachment; filename=\"Respaldo_Multimedia_CBTis134_" + fechaHoy + ".zip\"");
-
-        return ResponseEntity.ok(outputStream -> {
-            try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
-                List<File> directorios = new ArrayList<>();
-                if (uploadDir != null && !uploadDir.isBlank()) directorios.add(new File(uploadDir));
-                directorios.add(new File("uploads"));
-                directorios.add(new File(System.getProperty("user.dir"), "uploads"));
-
-                Set<String> rutasProcesadas = new HashSet<>();
-                int archivosAgregados = 0;
-
-                for (File dir : directorios) {
-                    if (dir.exists() && dir.isDirectory()) {
-                        archivosAgregados += agregarCarpetaAZip(dir, "uploads", zos, rutasProcesadas);
-                    }
-                }
-
-                if (archivosAgregados == 0) {
-                    ZipEntry entry = new ZipEntry("info_multimedia.txt");
-                    zos.putNextEntry(entry);
-                    String info = "Respaldo Multimedia CBTis 134 - " + new java.util.Date() + "\nNo se encontraron archivos cargados en el directorio de almacenamiento.";
-                    zos.write(info.getBytes(StandardCharsets.UTF_8));
-                    zos.closeEntry();
-                }
-
-                zos.finish();
-            } catch (Exception e) {
-                System.err.println("Error al comprimir multimedia: " + e.getMessage());
-            }
-        });
-    }
-
     @GetMapping(value = "/backup/zip-completo", produces = "application/zip")
     public ResponseEntity<StreamingResponseBody> descargarBackupZipCompleto(HttpServletResponse response) {
         String fechaHoy = java.time.LocalDate.now().toString();
@@ -218,7 +177,8 @@ public class ConfiguracionController {
                                "========================================================\n\n" +
                                "Contenido de este paquete:\n" +
                                "1. base_de_datos_cbtis134.json -> Contiene todas las colecciones de MongoDB (Alumnos, Incidencias, Pases, Calendario, etc.)\n" +
-                               "2. multimedia/ -> Contiene todas las fotografías, documentos y archivos multimedia subidos al servidor.\n";
+                               "2. multimedia/ -> Contiene todas las fotografías, documentos y archivos multimedia subidos al servidor.\n\n" +
+                               "Para restaurar o migrar de VPS, simplemente sube este archivo .ZIP desde el panel de Configuración en el botón 'Importar / Migrar Respaldo'.\n";
                 zos.write(readme.getBytes(StandardCharsets.UTF_8));
                 zos.closeEntry();
 
@@ -227,6 +187,122 @@ public class ConfiguracionController {
                 System.err.println("Error al generar zip total: " + e.getMessage());
             }
         });
+    }
+
+    @PostMapping("/restore")
+    public ResponseEntity<Map<String, Object>> restaurarRespaldo(
+            @RequestParam("archivo") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "limpiarAntes", defaultValue = "false") boolean limpiarAntes) {
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No se seleccionó ningún archivo de respaldo."));
+        }
+
+        String filename = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
+        Map<String, Object> resultado = new LinkedHashMap<>();
+        int totalDocumentos = 0;
+        int archivosMultimediaRestaurados = 0;
+        Map<String, Integer> detalleColecciones = new LinkedHashMap<>();
+
+        try {
+            if (filename.endsWith(".zip")) {
+                // Procesar archivo ZIP
+                try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(file.getInputStream())) {
+                    java.util.zip.ZipEntry entry;
+                    while ((entry = zis.getNextEntry()) != null) {
+                        String entryName = entry.getName();
+
+                        if (entryName.endsWith(".json")) {
+                            // Leer JSON de base de datos
+                            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                            byte[] buffer = new byte[8192];
+                            int len;
+                            while ((len = zis.read(buffer)) > 0) {
+                                baos.write(buffer, 0, len);
+                            }
+                            String jsonContent = baos.toString(StandardCharsets.UTF_8);
+                            Map<String, Integer> importRes = importarJsonEnMongo(jsonContent, limpiarAntes);
+                            detalleColecciones.putAll(importRes);
+                            for (int cant : importRes.values()) {
+                                totalDocumentos += cant;
+                            }
+                        } else if (!entry.isDirectory() && (entryName.startsWith("multimedia/") || entryName.startsWith("uploads/"))) {
+                            // Extraer archivo multimedia en destino de uploads
+                            String subPath = entryName.replaceFirst("^(multimedia/|uploads/)", "");
+                            File destFile = new File(uploadDir, subPath);
+                            destFile.getParentFile().mkdirs();
+
+                            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile)) {
+                                byte[] buffer = new byte[8192];
+                                int len;
+                                while ((len = zis.read(buffer)) > 0) {
+                                    fos.write(buffer, 0, len);
+                                }
+                            }
+                            archivosMultimediaRestaurados++;
+                        }
+                        zis.closeEntry();
+                    }
+                }
+            } else if (filename.endsWith(".json")) {
+                // Procesar JSON directo
+                String jsonContent = new String(file.getBytes(), StandardCharsets.UTF_8);
+                Map<String, Integer> importRes = importarJsonEnMongo(jsonContent, limpiarAntes);
+                detalleColecciones.putAll(importRes);
+                for (int cant : importRes.values()) {
+                    totalDocumentos += cant;
+                }
+            } else {
+                return ResponseEntity.badRequest().body(Map.of("error", "Formato no válido. Debe ser un archivo .zip o .json."));
+            }
+
+            resultado.put("success", true);
+            resultado.put("mensaje", "Respaldo restaurado exitosamente.");
+            resultado.put("total_documentos", totalDocumentos);
+            resultado.put("archivos_multimedia", archivosMultimediaRestaurados);
+            resultado.put("colecciones", detalleColecciones);
+
+            return ResponseEntity.ok(resultado);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "Fallo al restaurar respaldo: " + e.getMessage()));
+        }
+    }
+
+    private Map<String, Integer> importarJsonEnMongo(String jsonContent, boolean limpiarAntes) {
+        Map<String, Integer> conteos = new LinkedHashMap<>();
+        try {
+            org.bson.Document rootDoc = org.bson.Document.parse(jsonContent);
+            List<String> coleccionesConocidas = List.of(
+                    "alumnos", "pases_salida", "justificantes", "incidencias",
+                    "incidencias_personal", "calendario", "configuracion",
+                    "registros_diarios", "usuarios"
+            );
+
+            for (String colName : coleccionesConocidas) {
+                if (rootDoc.containsKey(colName) && rootDoc.get(colName) instanceof List) {
+                    List<?> items = (List<?>) rootDoc.get(colName);
+                    if (limpiarAntes) {
+                        mongoTemplate.dropCollection(colName);
+                    }
+                    int c = 0;
+                    for (Object item : items) {
+                        if (item instanceof org.bson.Document) {
+                            mongoTemplate.save((org.bson.Document) item, colName);
+                            c++;
+                        } else if (item instanceof Map) {
+                            mongoTemplate.save(new org.bson.Document((Map<String, Object>) item), colName);
+                            c++;
+                        }
+                    }
+                    conteos.put(colName, c);
+                }
+            }
+        } catch(Exception e) {
+            System.err.println("Error al importar JSON en MongoDB: " + e.getMessage());
+        }
+        return conteos;
     }
 
     private Map<String, Object> construirMapaBackup() {
