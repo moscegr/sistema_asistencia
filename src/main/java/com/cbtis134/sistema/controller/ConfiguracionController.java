@@ -2,12 +2,20 @@ package com.cbtis134.sistema.controller;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.util.List;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/configuracion")
@@ -15,6 +23,9 @@ public class ConfiguracionController {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Value("${app.upload.dir:/app/uploads}")
+    private String uploadDir;
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> obtenerPorId(@PathVariable String id) {
@@ -131,6 +142,94 @@ public class ConfiguracionController {
 
     @GetMapping("/backup")
     public ResponseEntity<Map<String, Object>> descargarBackupCompleto() {
+        return ResponseEntity.ok(construirMapaBackup());
+    }
+
+    @GetMapping(value = "/backup/multimedia", produces = "application/zip")
+    public ResponseEntity<StreamingResponseBody> descargarBackupMultimedia(HttpServletResponse response) {
+        String fechaHoy = java.time.LocalDate.now().toString();
+        response.setHeader("Content-Disposition", "attachment; filename=\"Respaldo_Multimedia_CBTis134_" + fechaHoy + ".zip\"");
+
+        return ResponseEntity.ok(outputStream -> {
+            try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+                List<File> directorios = new ArrayList<>();
+                if (uploadDir != null && !uploadDir.isBlank()) directorios.add(new File(uploadDir));
+                directorios.add(new File("uploads"));
+                directorios.add(new File(System.getProperty("user.dir"), "uploads"));
+
+                Set<String> rutasProcesadas = new HashSet<>();
+                int archivosAgregados = 0;
+
+                for (File dir : directorios) {
+                    if (dir.exists() && dir.isDirectory()) {
+                        archivosAgregados += agregarCarpetaAZip(dir, "uploads", zos, rutasProcesadas);
+                    }
+                }
+
+                if (archivosAgregados == 0) {
+                    ZipEntry entry = new ZipEntry("info_multimedia.txt");
+                    zos.putNextEntry(entry);
+                    String info = "Respaldo Multimedia CBTis 134 - " + new java.util.Date() + "\nNo se encontraron archivos cargados en el directorio de almacenamiento.";
+                    zos.write(info.getBytes(StandardCharsets.UTF_8));
+                    zos.closeEntry();
+                }
+
+                zos.finish();
+            } catch (Exception e) {
+                System.err.println("Error al comprimir multimedia: " + e.getMessage());
+            }
+        });
+    }
+
+    @GetMapping(value = "/backup/zip-completo", produces = "application/zip")
+    public ResponseEntity<StreamingResponseBody> descargarBackupZipCompleto(HttpServletResponse response) {
+        String fechaHoy = java.time.LocalDate.now().toString();
+        response.setHeader("Content-Disposition", "attachment; filename=\"Respaldo_TOTAL_CBTis134_" + fechaHoy + ".zip\"");
+
+        return ResponseEntity.ok(outputStream -> {
+            try (ZipOutputStream zos = new ZipOutputStream(outputStream)) {
+                // 1. Agregar JSON de base de datos
+                Map<String, Object> data = construirMapaBackup();
+                String jsonStr = new org.bson.Document(data).toJson();
+                ZipEntry jsonEntry = new ZipEntry("base_de_datos_cbtis134.json");
+                zos.putNextEntry(jsonEntry);
+                zos.write(jsonStr.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+
+                // 2. Agregar archivos multimedia
+                List<File> directorios = new ArrayList<>();
+                if (uploadDir != null && !uploadDir.isBlank()) directorios.add(new File(uploadDir));
+                directorios.add(new File("uploads"));
+                directorios.add(new File(System.getProperty("user.dir"), "uploads"));
+
+                Set<String> rutasProcesadas = new HashSet<>();
+                for (File dir : directorios) {
+                    if (dir.exists() && dir.isDirectory()) {
+                        agregarCarpetaAZip(dir, "multimedia", zos, rutasProcesadas);
+                    }
+                }
+
+                // 3. Agregar Readme de restauración
+                ZipEntry readmeEntry = new ZipEntry("LEEME_RESPALDO.txt");
+                zos.putNextEntry(readmeEntry);
+                String readme = "========================================================\n" +
+                               "RESPALDO COMPLETO DEL SISTEMA CBTIS 134\n" +
+                               "Fecha de Generación: " + new java.util.Date() + "\n" +
+                               "========================================================\n\n" +
+                               "Contenido de este paquete:\n" +
+                               "1. base_de_datos_cbtis134.json -> Contiene todas las colecciones de MongoDB (Alumnos, Incidencias, Pases, Calendario, etc.)\n" +
+                               "2. multimedia/ -> Contiene todas las fotografías, documentos y archivos multimedia subidos al servidor.\n";
+                zos.write(readme.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+
+                zos.finish();
+            } catch (Exception e) {
+                System.err.println("Error al generar zip total: " + e.getMessage());
+            }
+        });
+    }
+
+    private Map<String, Object> construirMapaBackup() {
         Map<String, Object> backup = new java.util.LinkedHashMap<>();
         backup.put("version", "2.0");
         backup.put("sistema", "CBTis 134 - Residencia Escolar");
@@ -153,7 +252,36 @@ public class ConfiguracionController {
             return copy;
         }).toList();
         backup.put("usuarios", usuariosSeguros);
+        return backup;
+    }
 
-        return ResponseEntity.ok(backup);
+    private int agregarCarpetaAZip(File carpeta, String rutaBase, ZipOutputStream zos, Set<String> rutasProcesadas) throws IOException {
+        int total = 0;
+        File[] archivos = carpeta.listFiles();
+        if (archivos == null) return 0;
+
+        for (File archivo : archivos) {
+            if (archivo.isDirectory()) {
+                total += agregarCarpetaAZip(archivo, rutaBase + "/" + archivo.getName(), zos, rutasProcesadas);
+            } else {
+                String zipEntryPath = rutaBase + "/" + archivo.getName();
+                if (rutasProcesadas.add(archivo.getAbsolutePath())) {
+                    ZipEntry entry = new ZipEntry(zipEntryPath);
+                    entry.setSize(archivo.length());
+                    entry.setTime(archivo.lastModified());
+                    zos.putNextEntry(entry);
+                    try (FileInputStream fis = new FileInputStream(archivo)) {
+                        byte[] buffer = new byte[8192];
+                        int len;
+                        while ((len = fis.read(buffer)) > 0) {
+                            zos.write(buffer, 0, len);
+                        }
+                    }
+                    zos.closeEntry();
+                    total++;
+                }
+            }
+        }
+        return total;
     }
 }

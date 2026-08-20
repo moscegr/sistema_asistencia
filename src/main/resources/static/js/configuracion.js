@@ -621,6 +621,63 @@ async function descargarRespaldoBaseDatos() {
     }
 }
 window.descargarRespaldoBaseDatos = descargarRespaldoBaseDatos;
+async function descargarRespaldoMultimedia() {
+    Swal.fire({ title: 'Empaquetando multimedia...', text: 'Generando archivo ZIP con las fotografías y documentos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const a = document.createElement('a');
+        a.href = '/api/configuracion/backup/multimedia';
+        a.download = `Respaldo_Multimedia_CBTis134_${new Date().toLocaleDateString('en-CA')}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(() => {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Descarga Iniciada!',
+                text: 'El archivo ZIP con las carpetas de archivos multimedia se ha descargado a tu equipo.',
+                confirmButtonColor: '#7b1b37'
+            });
+        }, 1200);
+    } catch(e) {
+        Swal.fire("Error", "No se pudo descargar el ZIP de multimedia: " + e.message, "error");
+    }
+}
+window.descargarRespaldoMultimedia = descargarRespaldoMultimedia;
+
+async function descargarRespaldoZipTotal() {
+    Swal.fire({ title: 'Generando Respaldo Total...', text: 'Empaquetando Base de Datos completa + Carpeta Multimedia en un único archivo ZIP...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const a = document.createElement('a');
+        a.href = '/api/configuracion/backup/zip-completo';
+        a.download = `Respaldo_TOTAL_CBTis134_${new Date().toLocaleDateString('en-CA')}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        setTimeout(() => {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Respaldo Total Descargado!',
+                html: `
+                    <div class="text-start small p-2 bg-light border rounded">
+                        <p class="mb-1 text-success fw-bold"><i class="bi bi-file-earmark-zip-fill me-1"></i>Paquete ZIP Completo.</p>
+                        <hr class="my-1">
+                        <ul class="mb-0 ps-3 x-small text-muted">
+                            <li><b>base_de_datos_cbtis134.json:</b> Todas las colecciones de MongoDB</li>
+                            <li><b>multimedia/:</b> Fotografías, evidencias y archivos subidos</li>
+                            <li><b>LEEME_RESPALDO.txt:</b> Instrucciones del respaldo</li>
+                        </ul>
+                    </div>
+                `,
+                confirmButtonColor: '#7b1b37'
+            });
+        }, 1500);
+    } catch(e) {
+        Swal.fire("Error", "No se pudo descargar el paquete total: " + e.message, "error");
+    }
+}
+window.descargarRespaldoZipTotal = descargarRespaldoZipTotal;
 
 async function limpiarTodosLosPases() {
     const { isConfirmed } = await Swal.fire({
