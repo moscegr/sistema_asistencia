@@ -720,49 +720,207 @@ function cambiarScope(val) {
     if (colGpo) colGpo.style.display = (val === 'grupo') ? 'block' : 'none';
     if (colNuevaLetra) colNuevaLetra.style.display = (val === 'grupo') ? 'block' : 'none';
     if (btnEjecutar) btnEjecutar.disabled = !val;
+
+    previsualizarImpacto();
 }
 window.cambiarScope = cambiarScope;
 
 async function actualizarGruposPromocion(esp) {
     const selectGpo = document.getElementById('selectCicloGpo');
-    if (!selectGpo || !esp) return;
+    if (!selectGpo || !esp) {
+        previsualizarImpacto();
+        return;
+    }
 
     const alumnos = await safeFetchJson('/api/alumnos');
     if (alumnos) {
-        const grupos = [...new Set(alumnos.filter(a => a.especialidad === esp).map(a => `${a.grado}° "${a.grupo}"`))].sort();
+        const grupos = [...new Set(alumnos.filter(a => (a.especialidad || '').toUpperCase() === esp.toUpperCase() && (a.estatus_escolar || a.estatus || 'Activo') === 'Activo').map(a => `${a.grado}° "${a.grupo}"`))].sort();
         selectGpo.innerHTML = '<option value="">-- Seleccionar --</option>';
         grupos.forEach(g => {
             selectGpo.innerHTML += `<option value="${g}">${g}</option>`;
         });
     }
+    previsualizarImpacto();
 }
 window.actualizarGruposPromocion = actualizarGruposPromocion;
 
 async function previsualizarImpacto() {
+    const scope = document.getElementById('promocionScope')?.value;
     const prev = document.getElementById('previewImpacto');
     const det = document.getElementById('detalleImpacto');
-    if (prev && det) {
-        prev.style.display = 'block';
-        det.innerText = "Los alumnos seleccionados avanzarán un semestre.";
+    const btnEjecutar = document.getElementById('btnEjecutarCambio');
+    if (!prev || !det) return;
+
+    if (!scope) {
+        prev.style.display = 'none';
+        det.innerHTML = '';
+        if (btnEjecutar) btnEjecutar.disabled = true;
+        return;
+    }
+
+    prev.style.display = 'block';
+    det.innerHTML = `<div class="text-muted small"><div class="spinner-border spinner-border-sm text-guinda me-1" role="status"></div> Calculando impacto de promoción en tiempo real...</div>`;
+
+    try {
+        const alumnos = await safeFetchJson('/api/alumnos') || [];
+        const activos = alumnos.filter(a => (a.estatus_escolar || a.estatus || 'Activo') === 'Activo');
+
+        if (scope === 'general') {
+            let conteos = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            activos.forEach(a => {
+                const g = parseInt(a.grado);
+                if (g >= 1 && g <= 6) conteos[g]++;
+            });
+
+            const totalPromover = conteos[1] + conteos[2] + conteos[3] + conteos[4] + conteos[5];
+            const totalEgresados = conteos[6];
+
+            det.innerHTML = `
+                <div class="p-3 bg-white rounded border shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                        <span class="badge bg-guinda px-2 py-1"><i class="bi bi-buildings-fill me-1"></i>Promoción General</span>
+                        <span class="fw-bold text-dark small">${activos.length} Alumnos Activos</span>
+                    </div>
+                    <p class="mb-2 x-small text-secondary">Avanzarán de semestre todos los alumnos activos del plantel:</p>
+                    <div class="row g-2 text-center x-small">
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>1° &rarr; 2°</b><br><span class="text-guinda fw-bold">${conteos[1]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>2° &rarr; 3°</b><br><span class="text-guinda fw-bold">${conteos[2]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>3° &rarr; 4°</b><br><span class="text-guinda fw-bold">${conteos[3]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>4° &rarr; 5°</b><br><span class="text-guinda fw-bold">${conteos[4]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>5° &rarr; 6°</b><br><span class="text-guinda fw-bold">${conteos[5]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-warning bg-opacity-25 p-2 rounded border border-warning"><b>6° &rarr; EGRESADO</b><br><span class="text-danger fw-bold">${totalEgresados}</span></div></div>
+                    </div>
+                    <div class="mt-2 text-muted x-small">
+                        <i class="bi bi-info-circle me-1"></i> Se promoverán <b>${totalPromover}</b> alumnos de 1°-5° y <b>${totalEgresados}</b> de 6° pasarán a Egresados.
+                    </div>
+                </div>
+            `;
+            if (btnEjecutar) btnEjecutar.disabled = (activos.length === 0);
+
+        } else if (scope === 'especialidad') {
+            const esp = document.getElementById('selectCicloEsp')?.value;
+            if (!esp) {
+                det.innerHTML = `<div class="alert alert-warning py-2 px-3 x-small mb-0"><i class="bi bi-exclamation-circle me-1"></i> Selecciona una Carrera en el paso 2 para previsualizar los grupos.</div>`;
+                if (btnEjecutar) btnEjecutar.disabled = true;
+                return;
+            }
+
+            const deCarrera = activos.filter(a => (a.especialidad || '').toUpperCase() === esp.toUpperCase());
+            let conteos = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            deCarrera.forEach(a => {
+                const g = parseInt(a.grado);
+                if (g >= 1 && g <= 6) conteos[g]++;
+            });
+
+            const totalPromover = conteos[1] + conteos[2] + conteos[3] + conteos[4] + conteos[5];
+            const totalEgresados = conteos[6];
+
+            det.innerHTML = `
+                <div class="p-3 bg-white rounded border shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                        <span class="badge bg-guinda px-2 py-1"><i class="bi bi-collection-fill me-1"></i>${esp}</span>
+                        <span class="fw-bold text-dark small">${deCarrera.length} Alumnos en Carrera</span>
+                    </div>
+                    <div class="row g-2 text-center x-small">
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>1° &rarr; 2°</b><br><span class="text-guinda fw-bold">${conteos[1]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>2° &rarr; 3°</b><br><span class="text-guinda fw-bold">${conteos[2]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>3° &rarr; 4°</b><br><span class="text-guinda fw-bold">${conteos[3]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>4° &rarr; 5°</b><br><span class="text-guinda fw-bold">${conteos[4]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-light p-2 rounded border"><b>5° &rarr; 6°</b><br><span class="text-guinda fw-bold">${conteos[5]}</span></div></div>
+                        <div class="col-4 col-md-2 p-1"><div class="bg-warning bg-opacity-25 p-2 rounded border border-warning"><b>6° &rarr; EGRESADO</b><br><span class="text-danger fw-bold">${totalEgresados}</span></div></div>
+                    </div>
+                    <div class="mt-2 text-muted x-small">
+                        <i class="bi bi-info-circle me-1"></i> Se mantendrán las letras de grupo actuales para todos los alumnos de <b>${esp}</b>.
+                    </div>
+                </div>
+            `;
+            if (btnEjecutar) btnEjecutar.disabled = (deCarrera.length === 0);
+
+        } else if (scope === 'grupo') {
+            const esp = document.getElementById('selectCicloEsp')?.value;
+            const gpoStr = document.getElementById('selectCicloGpo')?.value;
+            const nuevaLetra = (document.getElementById('nuevaLetraGrupo')?.value || '').trim().toUpperCase();
+
+            if (!esp) {
+                det.innerHTML = `<div class="alert alert-warning py-2 px-3 x-small mb-0"><i class="bi bi-exclamation-circle me-1"></i> Selecciona una Carrera en el paso 2.</div>`;
+                if (btnEjecutar) btnEjecutar.disabled = true;
+                return;
+            }
+            if (!gpoStr) {
+                det.innerHTML = `<div class="alert alert-warning py-2 px-3 x-small mb-0"><i class="bi bi-exclamation-circle me-1"></i> Selecciona el Grupo Actual en el paso 3.</div>`;
+                if (btnEjecutar) btnEjecutar.disabled = true;
+                return;
+            }
+
+            const match = gpoStr.match(/(\d+)[°\s]*"([^"]+)"/);
+            const gradoActual = match ? parseInt(match[1]) : parseInt(gpoStr[0]);
+            const letraActual = match ? match[2] : gpoStr.replace(/[^a-zA-Z]/g, '');
+
+            const delGrupo = activos.filter(a => 
+                (a.especialidad || '').toUpperCase() === esp.toUpperCase() &&
+                parseInt(a.grado) === gradoActual &&
+                (a.grupo || '').toUpperCase() === letraActual.toUpperCase()
+            );
+
+            const letraDestino = nuevaLetra || letraActual;
+            let destinoTexto = "";
+            if (gradoActual < 6) {
+                destinoTexto = `<span class="badge bg-success fs-6">${gradoActual + 1}° "${letraDestino}"</span>`;
+            } else {
+                destinoTexto = `<span class="badge bg-danger fs-6">EGRESADO</span>`;
+            }
+
+            det.innerHTML = `
+                <div class="p-3 bg-white rounded border shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-guinda px-2 py-1"><i class="bi bi-person-badge-fill me-1"></i>Grupo Seleccionado</span>
+                        <span class="badge bg-light text-dark border">${delGrupo.length} Alumnos Registrados</span>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-center gap-3 p-3 bg-light rounded border text-center">
+                        <div>
+                            <span class="text-muted d-block x-small">ORIGEN ACTUAL</span>
+                            <span class="badge bg-secondary fs-6">${gradoActual}° "${letraActual}"</span>
+                            <div class="x-small text-muted mt-1">${esp}</div>
+                        </div>
+                        <i class="bi bi-arrow-right fs-4 text-guinda"></i>
+                        <div>
+                            <span class="text-muted d-block x-small">NUEVO DESTINO</span>
+                            ${destinoTexto}
+                            <div class="x-small text-muted mt-1">${gradoActual < 6 ? esp : 'Concluye Bachillerato'}</div>
+                        </div>
+                    </div>
+                    ${nuevaLetra && nuevaLetra !== letraActual ? `
+                        <div class="mt-2 alert alert-info py-1 px-2 x-small mb-0">
+                            <i class="bi bi-arrow-left-right me-1"></i> Se reasignará la letra de sección de <b>"${letraActual}"</b> a <b>"${nuevaLetra}"</b>.
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            if (btnEjecutar) btnEjecutar.disabled = (delGrupo.length === 0);
+        }
+    } catch(e) {
+        det.innerHTML = `<div class="text-danger x-small">Error al calcular previsualización: ${e.message}</div>`;
     }
 }
 window.previsualizarImpacto = previsualizarImpacto;
 
 async function confirmarCambioCiclo() {
-    const scope = document.getElementById('promocionScope').value;
-    if (!scope) return Swal.fire("Aviso", "Selecciona un alcance", "warning");
+    const scope = document.getElementById('promocionScope')?.value;
+    if (!scope) return Swal.fire("Aviso", "Selecciona un alcance para la promoción", "warning");
+
+    const cicloActual = (document.getElementById('displayCicloActual')?.innerText || "AGO-DIC 2026").trim();
 
     const { value: nuevoCiclo } = await Swal.fire({
         title: '¿Confirmar Cambio de Ciclo?',
         html: `
-            <p class="small text-muted mb-3">Los alumnos seleccionados avanzarán un semestre en MongoDB.</p>
+            <p class="small text-muted mb-3">Los alumnos seleccionados avanzarán de semestre en la base de datos.</p>
             <div class="alert alert-info py-2 px-3 text-start small mb-3" style="font-size: 0.8rem; border-radius: 8px;">
-                <i class="bi bi-info-circle-fill me-1"></i> <b>Sugerencia de Formato DGETI:</b><br>
+                <i class="bi bi-info-circle-fill me-1"></i> <b>Ciclo escolar sugerido:</b><br>
                 • <code>FEB-JUL AAAA</code> (Ej: FEB-JUL 2027)<br>
                 • <code>AGO-DIC AAAA</code> (Ej: AGO-DIC 2026)
             </div>
-            <label class="form-label small fw-bold text-start w-100 mb-1">Nombre del Nuevo Ciclo Escolar Activo:</label>
-            <input id="swalCicloNombre" class="form-control form-control-lg fw-bold text-guinda text-center border-guinda" list="datalistCiclosModal" placeholder="Ej: AGO-DIC 2026" value="AGO-DIC 2026" autocomplete="off" style="border-radius: 8px; font-size: 1.05rem;">
+            <label class="form-label small fw-bold text-start w-100 mb-1">Nombre del Ciclo Escolar:</label>
+            <input id="swalCicloNombre" class="form-control form-control-lg fw-bold text-guinda text-center border-guinda" list="datalistCiclosModal" placeholder="Ej: AGO-DIC 2026" value="${cicloActual}" autocomplete="off" style="border-radius: 8px; font-size: 1.05rem;">
             <datalist id="datalistCiclosModal">
                 <option value="AGO-DIC 2026"></option>
                 <option value="FEB-JUL 2027"></option>
@@ -782,14 +940,14 @@ async function confirmarCambioCiclo() {
         preConfirm: () => {
             const val = document.getElementById('swalCicloNombre').value.trim();
             if (!val) {
-                Swal.showValidationMessage('Ingresa el nombre del nuevo ciclo escolar.');
+                Swal.showValidationMessage('Ingresa el nombre del ciclo escolar.');
             }
             return val;
         }
     });
 
     if (nuevoCiclo) {
-        Swal.fire({ title: 'Aplicando cambios en MongoDB...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Aplicando cambios en base de datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
         try {
             await fetch('/api/configuracion/ciclo_escolar', {
                 method: 'POST',
@@ -797,9 +955,11 @@ async function confirmarCambioCiclo() {
                 body: JSON.stringify({ _id: 'ciclo_escolar', actual: nuevoCiclo })
             });
 
-            const alumnos = await safeFetchJson('/api/alumnos');
-            if (alumnos) {
-                for (const al of alumnos) {
+            const alumnos = await safeFetchJson('/api/alumnos') || [];
+            let alumnosModificados = [];
+
+            if (scope === 'general') {
+                alumnos.forEach(al => {
                     const est = al.estatus_escolar || al.estatus || 'Activo';
                     if (est === 'Activo') {
                         let g = parseInt(al.grado || '1');
@@ -808,15 +968,67 @@ async function confirmarCambioCiclo() {
                         } else {
                             al.estatus_escolar = "Egresado";
                         }
-                        await fetch('/api/alumnos', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(al)
-                        });
+                        alumnosModificados.push(al);
                     }
-                }
-                Swal.fire("Éxito", `Cambio de ciclo a "${nuevoCiclo}" ejecutado correctamente.`, "success").then(() => location.reload());
+                });
+            } else if (scope === 'especialidad') {
+                const esp = document.getElementById('selectCicloEsp')?.value || '';
+                alumnos.forEach(al => {
+                    const est = al.estatus_escolar || al.estatus || 'Activo';
+                    if (est === 'Activo' && (al.especialidad || '').toUpperCase() === esp.toUpperCase()) {
+                        let g = parseInt(al.grado || '1');
+                        if (g < 6) {
+                            al.grado = String(g + 1);
+                        } else {
+                            al.estatus_escolar = "Egresado";
+                        }
+                        alumnosModificados.push(al);
+                    }
+                });
+            } else if (scope === 'grupo') {
+                const esp = document.getElementById('selectCicloEsp')?.value || '';
+                const gpoStr = document.getElementById('selectCicloGpo')?.value || '';
+                const nuevaLetra = (document.getElementById('nuevaLetraGrupo')?.value || '').trim().toUpperCase();
+
+                const match = gpoStr.match(/(\d+)[°\s]*"([^"]+)"/);
+                const gradoActual = match ? parseInt(match[1]) : parseInt(gpoStr[0]);
+                const letraActual = match ? match[2] : gpoStr.replace(/[^a-zA-Z]/g, '');
+                const letraDestino = nuevaLetra || letraActual;
+
+                alumnos.forEach(al => {
+                    const est = al.estatus_escolar || al.estatus || 'Activo';
+                    if (est === 'Activo' &&
+                        (al.especialidad || '').toUpperCase() === esp.toUpperCase() &&
+                        parseInt(al.grado) === gradoActual &&
+                        (al.grupo || '').toUpperCase() === letraActual.toUpperCase()) {
+                        
+                        if (gradoActual < 6) {
+                            al.grado = String(gradoActual + 1);
+                            al.grupo = letraDestino;
+                        } else {
+                            al.estatus_escolar = "Egresado";
+                        }
+                        alumnosModificados.push(al);
+                    }
+                });
             }
+
+            // Guardar en bloques mediante /api/alumnos/bulk
+            if (alumnosModificados.length > 0) {
+                const CHUNK_SIZE = 50;
+                for (let i = 0; i < alumnosModificados.length; i += CHUNK_SIZE) {
+                    const batch = alumnosModificados.slice(i, i + CHUNK_SIZE);
+                    await fetch('/api/alumnos/bulk', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(batch)
+                    });
+                }
+            }
+
+            await Swal.fire("¡Promoción Aplicada!", `Se actualizaron ${alumnosModificados.length} alumnos al nuevo ciclo "${nuevoCiclo}".`, "success");
+            location.reload();
+
         } catch(e) {
             Swal.fire("Error", e.message, "error");
         }
@@ -873,38 +1085,137 @@ async function actualizarGraficaGrupos() {
 
     try {
         const incidencias = await safeFetchJson('/api/incidencias') || [];
-        const totalEsp = incidencias.filter(i => i.especialidad === esp).length;
+        const filtradas = esp ? incidencias.filter(i => (i.especialidad || '').toUpperCase() === esp.toUpperCase()) : incidencias;
+        const totalEsp = filtradas.length;
 
         const elTotal = document.getElementById('totalEvidenciasModulo');
         if (elTotal) elTotal.innerText = totalEsp;
+
+        let sem1 = 0, sem2 = 0, sem3 = 0, sem4 = 0, sem5 = 0, sem6 = 0;
+        filtradas.forEach(i => {
+            const g = parseInt(i.grado);
+            if (g === 1) sem1++;
+            else if (g === 2) sem2++;
+            else if (g === 3) sem3++;
+            else if (g === 4) sem4++;
+            else if (g === 5) sem5++;
+            else if (g === 6) sem6++;
+        });
 
         if (chartGpo) chartGpo.destroy();
         chartGpo = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['1° Semestre', '3° Semestre', '5° Semestre'],
+                labels: ['1° Sem', '2° Sem', '3° Sem', '4° Sem', '5° Sem', '6° Sem'],
                 datasets: [{
                     label: 'Incidencias por Semestre',
-                    data: [Math.ceil(totalEsp * 0.3), Math.ceil(totalEsp * 0.5), Math.floor(totalEsp * 0.2)],
-                    backgroundColor: '#0d6efd'
+                    data: [sem1, sem2, sem3, sem4, sem5, sem6],
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
         });
     } catch(e){}
 }
 window.actualizarGraficaGrupos = actualizarGraficaGrupos;
 
 async function generarExcelModulos() {
-    const esp = document.getElementById('selectFiltroModulo')?.value || 'General';
-    Swal.fire({ title: 'Generando evidencias...', didOpen: () => Swal.showLoading() });
+    const esp = document.getElementById('selectFiltroModulo')?.value || '';
+    Swal.fire({ title: 'Generando evidencias en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
     try {
-        const data = await safeFetchJson('/api/incidencias') || [];
-        const ws = XLSX.utils.json_to_sheet(data);
+        const [incidencias, alumnos] = await Promise.all([
+            safeFetchJson('/api/incidencias') || [],
+            safeFetchJson('/api/alumnos') || []
+        ]);
+
+        const alumnosMap = {};
+        alumnos.forEach(al => {
+            const mat = al.ncontrol || al.matricula;
+            if (mat) {
+                const pat = al.apepat || al.primerApellido || '';
+                const matApe = al.apemat || al.segundoApellido || '';
+                alumnosMap[mat] = `${al.nombre} ${pat} ${matApe}`.trim().toUpperCase();
+            }
+        });
+
+        const filtradas = esp 
+            ? incidencias.filter(i => (i.especialidad || '').toUpperCase() === esp.toUpperCase()) 
+            : incidencias;
+
+        if (filtradas.length === 0) {
+            return Swal.fire("Aviso", `No se encontraron incidencias/evidencias registradas para ${esp || 'la selección'}.`, "info");
+        }
+
+        const filasExcel = filtradas.map((i, index) => {
+            const mat = i.id_alumno || i.matricula || 'S/N';
+            const nomAlumno = alumnosMap[mat] || 'ALUMNO NO ENCONTRADO';
+            const faltasTexto = Array.isArray(i.faltas_checklist) 
+                ? i.faltas_checklist.join('; ') 
+                : (i.faltas_checklist || i.motivo || 'Sin detalle de falta');
+            
+            const fechaRaw = i.fecha || i.fecha_registro || i.fecharegistro;
+            let fechaFormateada = 'S/F';
+            if (fechaRaw) {
+                const d = new Date(fechaRaw);
+                fechaFormateada = isNaN(d.getTime()) ? String(fechaRaw) : d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+
+            return {
+                'No.': index + 1,
+                'Folio Incidencia': i.folio_incidencia || i._id || i.id || `INC-${index + 1}`,
+                'No. Control': mat,
+                'Nombre del Alumno': nomAlumno,
+                'Especialidad': i.especialidad || esp || 'N/A',
+                'Semestre': i.grado ? `${i.grado}°` : 'N/A',
+                'Grupo': i.grupo ? `"${i.grupo}"` : 'N/A',
+                'Faltas Incurridas': faltasTexto,
+                'Detalle / Observaciones': i.descripcion_detallada || i.descripcion || 'Sin observaciones adicionales',
+                'Fecha de Registro': fechaFormateada,
+                'Ciclo Escolar': i.ciclo || 'AGO-DIC 2026'
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(filasExcel);
+        
+        // Ajustar anchos de columna automáticos
+        ws['!cols'] = [
+            { wch: 6 },  // No.
+            { wch: 26 }, // Folio
+            { wch: 18 }, // No. Control
+            { wch: 35 }, // Nombre
+            { wch: 25 }, // Especialidad
+            { wch: 10 }, // Semestre
+            { wch: 8 },  // Grupo
+            { wch: 45 }, // Faltas
+            { wch: 40 }, // Observaciones
+            { wch: 18 }, // Fecha
+            { wch: 16 }  // Ciclo
+        ];
+
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Evidencias");
-        XLSX.writeFile(wb, `Reporte_Evidencias_${esp}.xlsx`);
-        Swal.fire("Éxito", "Reporte de evidencias generado.", "success");
-    } catch(e) { Swal.fire("Error", "Fallo al exportar evidencias.", "error"); }
+        const nombreArchivo = `Reporte_Evidencias_${esp ? esp.replace(/\s+/g, '_') : 'General'}_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+        XLSX.writeFile(wb, nombreArchivo);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Reporte Descargado',
+            text: `Se descargaron ${filasExcel.length} evidencias en "${nombreArchivo}".`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+
+    } catch(e) {
+        console.error("Error al exportar evidencias:", e);
+        Swal.fire("Error", "Fallo al exportar evidencias: " + e.message, "error");
+    }
 }
 window.generarExcelModulos = generarExcelModulos;
