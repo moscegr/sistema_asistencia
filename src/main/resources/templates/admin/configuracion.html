@@ -335,17 +335,34 @@
 				
 				
 				<div class="col-12 mb-4">
+				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-guinda mb-4">
+				        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+				            <h5 class="fw-bold text-guinda mb-0">
+				                <i class="bi bi-cloud-arrow-down-fill me-2"></i>Respaldo Total de Base de Datos
+				            </h5>
+				            <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Seguridad MongoDB</span>
+				        </div>
+				        <p class="text-muted small mb-3">Genera y descarga una instantánea completa (JSON estructurado) de todas las colecciones del sistema: Alumnos, Incidencias, Pases de Salida, Justificantes, Calendario Institucional, Registros Diarios y Configuración.</p>
+				        <div>
+				            <button class="btn btn-guinda px-4 py-2 fw-bold shadow-sm" onclick="descargarRespaldoBaseDatos()">
+				                <i class="bi bi-download me-2"></i>Descargar Respaldo Completo (.JSON)
+				            </button>
+				        </div>
+				    </div>
+
 				    <div class="card card-custom shadow-sm p-4 border-start border-5 border-danger">
 				        <h5 class="fw-bold mb-3 text-danger">
-				            <i class="bi bi-exclamation-triangle-fill me-2"></i>Configuraciones de Mantenimiento
+				            <i class="bi bi-exclamation-triangle-fill me-2"></i>Configuraciones de Mantenimiento Crítico
 				        </h5>
 				        <p class="text-muted small">Acciones avanzadas para el mantenimiento de la base de datos. <strong>Úselas con extrema precaución.</strong></p>
 				        
 				        <div class="row g-3 mt-2">
 				            <div class="col-md-4">
-				                <div class="p-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10 h-100">
-				                    <h6 class="fw-bold text-danger">Depuración de Alumnos</h6>
-				                    <p class="small mb-3">Elimina permanentemente a todos los alumnos con estatus "Baja" o "Egresado".</p>
+				                <div class="p-3 border border-danger border-opacity-25 rounded bg-danger bg-opacity-10 h-100 d-flex flex-column justify-content-between">
+				                    <div>
+				                        <h6 class="fw-bold text-danger"><i class="bi bi-person-x-fill me-1"></i>Depuración de Alumnos</h6>
+				                        <p class="small mb-3">Elimina permanentemente a todos los alumnos con estatus "Baja", "Egresado" o "Inactivo".</p>
+				                    </div>
 				                    <button class="btn btn-danger w-100" onclick="depurarAlumnosInactivos()">
 				                        <i class="bi bi-trash3-fill me-2"></i>Limpiar Base de Datos
 				                    </button>
@@ -353,9 +370,11 @@
 				            </div>
 				            
 				            <div class="col-md-4">
-							    <div class="p-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10 h-100">
-							        <h6 class="fw-bold text-dark">Restaurar Ciclo Escolar</h6>
-							        <p class="small text-dark mb-3">Revierte el ciclo global y <b>regresa a los alumnos a su grado/estatus anterior</b> (Deshace promociones y egresos).</p>
+							    <div class="p-3 border border-warning border-opacity-50 rounded bg-warning bg-opacity-10 h-100 d-flex flex-column justify-content-between">
+							        <div>
+							            <h6 class="fw-bold text-dark"><i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar Ciclo Escolar</h6>
+							            <p class="small text-dark mb-3">Revierte el ciclo global y <b>regresa a los alumnos a su grado/estatus anterior</b> (Deshace promociones y egresos).</p>
+							        </div>
 							        <button class="btn btn-warning w-100 fw-bold" onclick="revertirCicloEscolar()">
 							            <i class="bi bi-arrow-counterclockwise me-2"></i>Deshacer Último Cambio
 							        </button>
@@ -363,9 +382,11 @@
 							</div>
 
 				            <div class="col-md-4">
-							    <div class="p-3 border border-danger border-opacity-50 rounded bg-danger bg-opacity-10 h-100">
-							        <h6 class="fw-bold text-danger">Purga de Pases de Salida</h6>
-							        <p class="small text-dark mb-3">Elimina permanentemente <b>todos los pases de salida</b> (grupales e individuales) de MongoDB.</p>
+							    <div class="p-3 border border-danger border-opacity-50 rounded bg-danger bg-opacity-10 h-100 d-flex flex-column justify-content-between">
+							        <div>
+							            <h6 class="fw-bold text-danger"><i class="bi bi-file-earmark-x-fill me-1"></i>Purga de Pases de Salida</h6>
+							            <p class="small text-dark mb-3">Elimina permanentemente <b>todos los pases de salida</b> (grupales e individuales) de MongoDB.</p>
+							        </div>
 							        <button class="btn btn-outline-danger w-100 fw-bold" onclick="limpiarTodosLosPases()">
 							            <i class="bi bi-trash-fill me-2"></i>Borrar Todos los Pases
 							        </button>

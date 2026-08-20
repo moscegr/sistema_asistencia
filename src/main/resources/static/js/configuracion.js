@@ -493,6 +493,135 @@ async function probarEnvioWhatsApp() {
 }
 window.probarEnvioWhatsApp = probarEnvioWhatsApp;
 
+async function depurarAlumnosInactivos() {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Depurar Alumnos Inactivos / Egresados?',
+        html: `
+            <p class="small text-muted mb-2">Esta acción buscará y <b>eliminará permanentemente</b> de la base de datos a todos los alumnos que tengan estatus <code>Baja</code>, <code>Egresado</code> o <code>Inactivo</code>.</p>
+            <div class="alert alert-danger py-2 px-3 text-start small mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> <b>Atención:</b> Los alumnos activos no se verán afectados. Esta operación no se puede deshacer.
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i> Sí, depurar registros',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (isConfirmed) {
+        try {
+            Swal.fire({ title: 'Depurando base de datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const res = await fetch('/api/alumnos/depurar-inactivos', { method: 'DELETE' });
+            if (!res.ok) throw new Error("Error HTTP " + res.status);
+            const data = await res.json();
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'Depuración Completada',
+                text: data.mensaje || `Se eliminaron ${data.eliminados || 0} alumnos inactivos/egresados.`,
+                confirmButtonColor: '#7b1b37'
+            });
+        } catch(e) {
+            Swal.fire("Error", "No se pudo completar la depuración: " + e.message, "error");
+        }
+    }
+}
+window.depurarAlumnosInactivos = depurarAlumnosInactivos;
+
+async function revertirCicloEscolar() {
+    const { isConfirmed } = await Swal.fire({
+        title: '¿Revertir Ciclo y Deshacer Promoción?',
+        html: `
+            <p class="small text-muted mb-2">Esta acción <b>deshace el último cambio de ciclo</b>:</p>
+            <ul class="text-start small text-dark mb-3">
+                <li>Regresa a los alumnos activos a su grado anterior (ej. 3° &rarr; 2°, 2° &rarr; 1°).</li>
+                <li>Restaura a los alumnos con estatus <code>Egresado</code> de vuelta a <b>6° Semestre Activo</b>.</li>
+                <li>Restaura el nombre del ciclo escolar previo en la configuración general.</li>
+            </ul>
+            <div class="alert alert-warning py-2 px-3 text-start small mb-0">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Úsalo si aplicaste una promoción por error.
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-arrow-counterclockwise me-1"></i> Sí, deshacer cambios',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (isConfirmed) {
+        try {
+            Swal.fire({ title: 'Revirtiendo ciclo escolar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const res = await fetch('/api/configuracion/revertir-ciclo', { method: 'POST' });
+            if (!res.ok) throw new Error("Error HTTP " + res.status);
+            const data = await res.json();
+
+            await Swal.fire({
+                icon: 'success',
+                title: 'Ciclo Restaurado',
+                text: data.mensaje || `Ciclo revertido a "${data.ciclo_restaurado}".`,
+                confirmButtonColor: '#7b1b37'
+            });
+            location.reload();
+        } catch(e) {
+            Swal.fire("Error", "No se pudo revertir el ciclo: " + e.message, "error");
+        }
+    }
+}
+window.revertirCicloEscolar = revertirCicloEscolar;
+
+async function descargarRespaldoBaseDatos() {
+    Swal.fire({ title: 'Generando respaldo total...', text: 'Empaquetando todas las colecciones de MongoDB...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const res = await fetch('/api/configuracion/backup');
+        if (!res.ok) throw new Error("Error HTTP " + res.status);
+        const data = await res.json();
+
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const fechaHoy = new Date().toLocaleDateString('en-CA');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Respaldo_BD_CBTis134_${fechaHoy}_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        const totalAlumnos = (data.alumnos || []).length;
+        const totalPases = (data.pases_salida || []).length;
+        const totalJust = (data.justificantes || []).length;
+        const totalInc = (data.incidencias || []).length;
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Respaldo Descargado!',
+            html: `
+                <div class="text-start small p-2 bg-light border rounded">
+                    <p class="mb-1 text-success fw-bold"><i class="bi bi-check2-all me-1"></i>Archivo JSON generado y descargado correctamente.</p>
+                    <hr class="my-1">
+                    <ul class="mb-0 ps-3 x-small text-muted">
+                        <li><b>Alumnos:</b> ${totalAlumnos} registros</li>
+                        <li><b>Pases de Salida:</b> ${totalPases} registros</li>
+                        <li><b>Justificantes:</b> ${totalJust} registros</li>
+                        <li><b>Incidencias:</b> ${totalInc} registros</li>
+                        <li><b>Configuración, Calendario y Asistencias</b> incluidos</li>
+                    </ul>
+                </div>
+            `,
+            confirmButtonColor: '#7b1b37'
+        });
+    } catch(e) {
+        Swal.fire("Error", "No se pudo generar el respaldo: " + e.message, "error");
+    }
+}
+window.descargarRespaldoBaseDatos = descargarRespaldoBaseDatos;
+
 async function limpiarTodosLosPases() {
     const { isConfirmed } = await Swal.fire({
         title: '¿Purgar TODOS los pases de salida?',

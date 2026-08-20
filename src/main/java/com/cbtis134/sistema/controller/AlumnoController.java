@@ -79,6 +79,23 @@ public class AlumnoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/depurar-inactivos")
+    public ResponseEntity<java.util.Map<String, Object>> depurarAlumnosInactivos() {
+        List<Alumno> todos = alumnoRepository.findAll();
+        List<Alumno> aEliminar = todos.stream()
+                .filter(a -> {
+                    String est = a.getEstatus_escolar() != null ? a.getEstatus_escolar() : (a.getEstatus() != null ? a.getEstatus() : "Activo");
+                    return "BAJA".equalsIgnoreCase(est) || "EGRESADO".equalsIgnoreCase(est) || "INACTIVO".equalsIgnoreCase(est);
+                })
+                .toList();
+
+        alumnoRepository.deleteAll(aEliminar);
+        return ResponseEntity.ok(java.util.Map.of(
+                "eliminados", aEliminar.size(),
+                "mensaje", "Se eliminaron permanentemente " + aEliminar.size() + " alumnos con estatus Baja, Egresado o Inactivo."
+        ));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         if (alumnoRepository.existsById(id)) {
