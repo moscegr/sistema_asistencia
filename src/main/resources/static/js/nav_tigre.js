@@ -38,24 +38,72 @@ function confirmarCerrarSesion() {
     });
 }
 
-// 3. EL TOGGLE MAESTRO (Delegado)
+// 3. EL TOGGLE MAESTRO CON BACKDROP MÓVIL
+function asegurarBackdrop() {
+    let backdrop = document.getElementById("sidebar-backdrop");
+    if (!backdrop) {
+        backdrop = document.createElement("div");
+        backdrop.id = "sidebar-backdrop";
+        document.body.appendChild(backdrop);
+        backdrop.addEventListener("click", function() {
+            cerrarSidebarMovil();
+        });
+    }
+    return backdrop;
+}
+
+function abrirSidebarMovil() {
+    const wrapper = document.getElementById("wrapper");
+    const backdrop = asegurarBackdrop();
+    if (wrapper) wrapper.classList.add("toggled");
+    if (backdrop && window.innerWidth <= 991) backdrop.classList.add("show");
+}
+
+function cerrarSidebarMovil() {
+    const wrapper = document.getElementById("wrapper");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (wrapper) wrapper.classList.remove("toggled");
+    if (backdrop) backdrop.classList.remove("show");
+}
+
 document.addEventListener("click", function(e) {
     const toggleBtn = e.target.closest("#menu-toggle");
     if (toggleBtn) {
         e.preventDefault();
         const wrapper = document.getElementById("wrapper");
+        const backdrop = asegurarBackdrop();
         if (wrapper) {
-            wrapper.classList.toggle("toggled");
+            const isToggled = wrapper.classList.toggle("toggled");
+            if (window.innerWidth <= 991) {
+                if (isToggled) backdrop.classList.add("show");
+                else backdrop.classList.remove("show");
+            }
         }
+        return;
     }
     
+    // Si hace click en un enlace del sidebar en móvil, cerrar sidebar
+    const sbLink = e.target.closest("#sidebar-wrapper a.sb-item, #sidebar-wrapper a.sb-sub");
+    if (sbLink && window.innerWidth <= 991) {
+        cerrarSidebarMovil();
+        return;
+    }
+
     if (window.innerWidth <= 991 && !e.target.closest("#sidebar-wrapper") && !toggleBtn) {
-        document.getElementById("wrapper")?.classList.remove("toggled");
+        cerrarSidebarMovil();
+    }
+});
+
+window.addEventListener("resize", function() {
+    if (window.innerWidth > 991) {
+        const backdrop = document.getElementById("sidebar-backdrop");
+        if (backdrop) backdrop.classList.remove("show");
     }
 });
 
 // 4. NAVEGACIÓN INTELIGENTE (Marcar enlace activo automáticamente)
 document.addEventListener("DOMContentLoaded", function() {
+    asegurarBackdrop();
     const currentPath = window.location.pathname;
 
     document.querySelectorAll('.sb-item, .sb-sub').forEach(el => {

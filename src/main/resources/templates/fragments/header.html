@@ -121,22 +121,22 @@
 
     <div class="d-flex align-items-center w-100" style="overflow: visible !important;">
 
-        <i class="bi bi-list fs-3 me-3 nav-text-white" id="menu-toggle"></i>
+        <i class="bi bi-list fs-3 me-2 me-md-3 nav-text-white" id="menu-toggle" role="button" aria-label="Abrir Menú"></i>
 
-        <div class="d-none d-md-block nav-text-white">
-            <h5 class="fw-bold" th:text="${titulo}">Título</h5>
-            <p class="small opacity-75" th:text="${subtitulo}">Subtítulo</p>
+        <div class="nav-text-white text-truncate me-2" style="max-width: calc(100vw - 230px);">
+            <h5 class="fw-bold mb-0 text-truncate fs-6 fs-md-5" th:text="${titulo}">Título</h5>
+            <p class="small opacity-75 d-none d-sm-block mb-0 text-truncate" style="font-size: 0.75rem;" th:text="${subtitulo}">Subtítulo</p>
         </div>
 
         <div class="tigre-menu-container ms-auto" style="overflow: visible !important;">
 
             <img th:src="@{/img/tigres.png}"
                  alt="Tigre 134"
-                 class="tigre-img">
+                 class="tigre-img d-none d-sm-block">
 
             <div class="tigre-options">
 
-                <button class="tigre-btn btn-profile" onclick="abrirModalMiPerfil()">
+                <button class="tigre-btn btn-profile" onclick="abrirModalMiPerfil()" title="Mi Perfil">
                     <i class="bi bi-person-gear"></i>
                     <span class="label-tigre">
                         Mi Perfil
@@ -146,7 +146,7 @@
 
                 <div class="tigre-divider"></div>
 
-                <button class="tigre-btn btn-back" onclick="window.history.back()">
+                <button class="tigre-btn btn-back" onclick="window.history.back()" title="Regresar">
                     <i class="bi bi-arrow-left"></i>
                     <span class="label-tigre">
                         Regresar
@@ -156,7 +156,7 @@
 
                 <div class="tigre-divider"></div>
 
-                <button class="tigre-btn btn-home" onclick="redirigirAlInicio()">
+                <button class="tigre-btn btn-home" onclick="redirigirAlInicio()" title="Escritorio">
                     <i class="bi bi-house-door-fill"></i>
                     <span class="label-tigre">
                         Escritorio
@@ -166,7 +166,7 @@
 
                 <div class="tigre-divider"></div>
 
-                <button class="tigre-btn btn-logout" onclick="confirmarCerrarSesion()">
+                <button class="tigre-btn btn-logout" onclick="confirmarCerrarSesion()" title="Cerrar Sesión">
                     <i class="bi bi-box-arrow-right"></i>
                     <span class="label-tigre">
                         Cerrar sesión
