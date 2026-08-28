@@ -111,17 +111,17 @@ async function cargarAlumnosActivos() {
 
 function limpiarVistaPrevia() {
     const ids = [
-        'btnDescargarGafeteIndPDF', 'btnDescargarGafeteIndPNG',
+        'btnDescargarGafeteIndPDF',
         'btnDescargarGafetesPDF', 'btnDescargarGafetesPNG',
-        'btnDescargarCredencialIndPlanilla', 'btnDescargarCredencialIndTermico', 'btnDescargarCredencialPNG',
-        'btnDescargarCredencialMasivaPlanilla', 'btnDescargarCredencialMasivaTermica', 'btnDescargarCredencialMasivaZIP'
+        'btnDescargarCredencialIndTermico',
+        'btnDescargarCredencialMasivaPlanilla', 'btnDescargarCredencialMasivaTermica'
     ];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = true;
     });
 
-    document.querySelectorAll('.infoConteo').forEach(el => el.innerText = "");
+    document.querySelectorAll('.infoConteo, .infoConteoCred').forEach(el => el.innerText = "");
     document.querySelectorAll('.msgSeleccion').forEach(el => el.classList.remove('d-none'));
 
     const contGafete = document.getElementById('gafeteMuestra');
@@ -187,7 +187,6 @@ function renderizarAlumnosGrupo() {
     const btnPngGaf = document.getElementById('btnDescargarGafetesPNG');
     const btnPlanillaCred = document.getElementById('btnDescargarCredencialMasivaPlanilla');
     const btnTermicaCred = document.getElementById('btnDescargarCredencialMasivaTermica');
-    const btnZipCred = document.getElementById('btnDescargarCredencialMasivaZIP');
 
     if (!grupoSelect) {
         tbody.innerHTML = '<tr><td colspan="3" class="text-muted py-4">Seleccione un grupo para ver a los alumnos.</td></tr>';
@@ -229,19 +228,18 @@ function renderizarAlumnosGrupo() {
     }
     if (btnPlanillaCred) {
         btnPlanillaCred.disabled = false;
-        btnPlanillaCred.innerHTML = `<i class="bi bi-grid-3x3-gap-fill me-2"></i>Descargar ${total} Credenciales (PDF Carta 1:1)`;
+        btnPlanillaCred.innerHTML = `<i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar Planilla Doble Cara (${total} Credenciales)`;
     }
     if (btnTermicaCred) {
         btnTermicaCred.disabled = false;
-        btnTermicaCred.innerHTML = `<i class="bi bi-collection-fill me-1"></i>Térmico CR80 (${total})`;
-    }
-    if (btnZipCred) {
-        btnZipCred.disabled = false;
-        btnZipCred.innerHTML = `<i class="bi bi-file-zip-fill text-warning me-1"></i>Grupo PNGs (${total} ZIP)`;
+        btnTermicaCred.innerHTML = `<i class="bi bi-collection-fill me-2"></i>Descargar Grupo Térmico (${total} PDF CR80)`;
     }
 
     document.querySelectorAll('.infoConteo').forEach(el => {
-        el.innerText = `Total Alumnos: ${total} • Hojas Carta estimadas: ${Math.ceil(total / 4)} para Gafetes / ${Math.ceil(total / 6)} para Credenciales`;
+        el.innerText = `Total Alumnos: ${total} • Hojas Carta estimadas: ${Math.ceil(total / 4)} hojas`;
+    });
+    document.querySelectorAll('.infoConteoCred').forEach(el => {
+        el.innerText = `Total Alumnos: ${total} • Hojas Doble Cara: ${Math.ceil(total / 6)} hojas Carta (Frentes y Reversos)`;
     });
 
     const primerMat = alumnosDelGrupoSeleccionado[0].ncontrol || alumnosDelGrupoSeleccionado[0].matricula;
@@ -307,9 +305,9 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
         if (recuadroFoto) {
             const fotoReal = fotoTemporalAlumno || al.fotoUrl || al.foto_url || al.foto || '/img/logo-256.png';
             recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
-            recuadroFoto.style.backgroundSize = 'contain';
-            recuadroFoto.style.backgroundRepeat = 'no-repeat';
             recuadroFoto.style.backgroundPosition = 'center';
+            recuadroFoto.style.backgroundRepeat = 'no-repeat';
+            recuadroFoto.style.backgroundSize = 'contain';
         }
 
         // Reverso
@@ -330,8 +328,8 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
 
     // Habilitar botones individuales
     const indIds = [
-        'btnDescargarGafeteIndPDF', 'btnDescargarGafeteIndPNG',
-        'btnDescargarCredencialIndPlanilla', 'btnDescargarCredencialIndTermico', 'btnDescargarCredencialPNG'
+        'btnDescargarGafeteIndPDF',
+        'btnDescargarCredencialIndTermico'
     ];
     indIds.forEach(id => {
         const el = document.getElementById(id);
@@ -501,14 +499,14 @@ async function generarImagenGafete(alumno) {
 
 async function descargarGafeteIndividualPDF() {
     if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
-    Swal.fire({ title: 'Generando Gafete Individual...', text: 'Preparando PDF Tamaño Carta a Escala Real 1:1', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Gafete Individual...', text: 'Preparando PDF con medidas estándar...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
         const imgData = await generarImagenGafete(alumnoSeleccionadoInd);
 
-        const widthGafete = 85;
+        const widthGafete = 90;
         const heightGafete = 120;
         const x = (215.9 - widthGafete) / 2;
         const y = (279.4 - heightGafete) / 2;
@@ -521,18 +519,18 @@ async function descargarGafeteIndividualPDF() {
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
-        pdf.text("Imprimir en Hoja Carta al 100% de Escala (Tamaño Real) • Recortar por las líneas punteadas", 107.95, 51, { align: "center" });
+        pdf.text("Imprimir en Hoja Carta al 100% de Escala • Recortar por las líneas punteadas", 107.95, 51, { align: "center" });
 
         // Líneas guía de corte alrededor del gafete
         pdf.setDrawColor(180, 180, 180);
         pdf.setLineDashPattern([2, 2], 0);
-        pdf.rect(x - 1, y - 1, widthGafete + 2, heightGafete + 2);
+        pdf.rect(x - 0.5, y - 0.5, widthGafete + 1, heightGafete + 1);
 
         // Imagen del gafete
         pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
 
         const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
-        pdf.save(`Gafete_Carta_${mat}.pdf`);
+        pdf.save(`Gafete_${mat}.pdf`);
         Swal.close();
     } catch (e) {
         console.error(e);
@@ -540,29 +538,6 @@ async function descargarGafeteIndividualPDF() {
     }
 }
 window.descargarGafeteIndividualPDF = descargarGafeteIndividualPDF;
-
-async function descargarGafeteIndividualPNG() {
-    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
-    Swal.fire({ title: 'Generando Imagen PNG...', text: 'Por favor espere un momento', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    try {
-        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
-        const imgData = await generarImagenGafete(alumnoSeleccionadoInd);
-
-        const a = document.createElement('a');
-        a.href = imgData;
-        a.download = `Gafete_${mat}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        Swal.close();
-    } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudo descargar la imagen del gafete.", "error");
-    }
-}
-window.descargarGafeteIndividualPNG = descargarGafeteIndividualPNG;
 
 async function descargarGafetesDelGrupo() {
     if (alumnosDelGrupoSeleccionado.length === 0) return;
@@ -756,69 +731,7 @@ async function generarCanvasCredencialReverso(alumno) {
     });
 }
 
-// 1. CREDENCIAL INDIVIDUAL - PLANILLA HOJA CARTA 1:1 (Medidas exactas 54x85.6mm)
-async function generarCredencialIndividualPlanillaCarta() {
-    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
-    Swal.fire({ title: 'Generando PDF en Hoja Carta...', text: 'Acomodando Frente y Reverso a tamaño real CR-80 (54 x 85.6 mm)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
-
-        const imgFrente = await generarCanvasCredencialFrente(alumnoSeleccionadoInd);
-        const imgReverso = await generarCanvasCredencialReverso(alumnoSeleccionadoInd);
-
-        const w = 54.0;
-        const h = 85.6;
-        const y = (279.4 - h) / 2;
-        const xFrente = 48.0;
-        const xReverso = 113.9;
-
-        // Encabezado
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.setTextColor(123, 27, 55);
-        pdf.text("CBTis No. 134 • CREDENCIAL PVC ESTÁNDAR CR-80 (54 × 85.6 mm)", 107.95, 45, { align: "center" });
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(8);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text("Imprimir en Hoja Carta al 100% de Escala (Tamaño Real / Sin Ajustar) • Recortar por las líneas punteadas", 107.95, 52, { align: "center" });
-
-        // Títulos Frente y Reverso
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(8.5);
-        pdf.setTextColor(60, 60, 60);
-        pdf.text("FRENTE", xFrente + (w / 2), y - 4, { align: "center" });
-        pdf.text("REVERSO", xReverso + (w / 2), y - 4, { align: "center" });
-
-        // Guías de corte
-        pdf.setDrawColor(180, 180, 180);
-        pdf.setLineDashPattern([2, 2], 0);
-        pdf.rect(xFrente - 0.5, y - 0.5, w + 1, h + 1);
-        pdf.rect(xReverso - 0.5, y - 0.5, w + 1, h + 1);
-
-        // Renderizado de imágenes
-        pdf.addImage(imgFrente, 'PNG', xFrente, y, w, h);
-        pdf.addImage(imgReverso, 'PNG', xReverso, y, w, h);
-
-        // Pie de página con instrucciones
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(130, 130, 130);
-        pdf.text("Instrucciones: Recortar por las guías punteadas. Para mica térmica o porta-gafete, doblar o unir frente y reverso.", 107.95, y + h + 18, { align: "center" });
-
-        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
-        pdf.save(`Credencial_Carta_1a1_${mat}.pdf`);
-        Swal.close();
-    } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudo generar el PDF en hoja carta.", "error");
-    }
-}
-window.generarCredencialIndividualPlanillaCarta = generarCredencialIndividualPlanillaCarta;
-
-// 2. CREDENCIALES INDIVIDUAL / GRUPO - MODO TÉRMICO CR80 (54 x 85.6 mm por página)
+// 1. CREDENCIALES INDIVIDUAL / GRUPO - MODO TÉRMICO CR80 (54 x 85.6 mm por página)
 async function generarCredencialPDF(esMasivo) {
     const listaAlumnos = esMasivo ? alumnosDelGrupoSeleccionado : (alumnoSeleccionadoInd ? [alumnoSeleccionadoInd] : []);
     if (listaAlumnos.length === 0) return Swal.fire("Aviso", "Seleccione al menos un alumno para generar la credencial.", "warning");
@@ -851,10 +764,10 @@ async function generarCredencialPDF(esMasivo) {
 }
 window.generarCredencialPDF = generarCredencialPDF;
 
-// 3. CREDENCIALES GRUPO - PLANILLA HOJA CARTA 1:1 (6 credenciales por hoja con guías de corte)
+// 2. CREDENCIALES GRUPO - PLANILLA HOJA CARTA DOBLE CARA (6 credenciales por hoja con guías de corte)
 async function generarCredencialesPlanillaCartaGrupo() {
     if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para generar la planilla.", "warning");
-    Swal.fire({ title: 'Generando Planilla Masiva en Hoja Carta...', text: 'Acomodando frentes y reversos a tamaño real 1:1 (54 x 85.6 mm)...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Planilla Doble Cara...', text: 'Acomodando frentes y reversos a tamaño estándar (54 x 85.6 mm)...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const { jsPDF } = window.jspdf;
@@ -875,7 +788,7 @@ async function generarCredencialesPlanillaCartaGrupo() {
             const lote = alumnos.slice(p * porPagina, (p + 1) * porPagina);
             if (p > 0) pdf.addPage();
 
-            // PÁGINA DE FRENTES
+            // PÁGINA 1: FRENTES
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
                 const col = i % 2;
@@ -893,7 +806,7 @@ async function generarCredencialesPlanillaCartaGrupo() {
                 pdf.addImage(imgFrente, 'PNG', x, y, w, h);
             }
 
-            // PÁGINA DE REVERSOS (en posición espejo para impresión a doble cara perfecta)
+            // PÁGINA 2: REVERSOS (en posición espejo para impresión a doble cara perfecta)
             pdf.addPage();
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
@@ -916,7 +829,7 @@ async function generarCredencialesPlanillaCartaGrupo() {
 
         const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
         const gpo = document.getElementById('filtroGpoCred').value || '';
-        pdf.save(`Planilla_Credenciales_Carta_${esp}_${gpo}.pdf`);
+        pdf.save(`Planilla_Credenciales_DobleCara_${esp}_${gpo}.pdf`);
         Swal.close();
     } catch (e) {
         console.error(e);
@@ -924,63 +837,3 @@ async function generarCredencialesPlanillaCartaGrupo() {
     }
 }
 window.generarCredencialesPlanillaCartaGrupo = generarCredencialesPlanillaCartaGrupo;
-
-// 4. CREDENCIAL INDIVIDUAL - PNG ZIP
-async function descargarCredencialIndividualPNG() {
-    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
-    Swal.fire({ title: 'Generando Imágenes PNG...', text: 'Empaquetando Frente y Reverso en archivo ZIP', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    try {
-        const zip = new JSZip();
-        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
-        
-        const imgFrente = await generarCanvasCredencialFrente(alumnoSeleccionadoInd);
-        const imgReverso = await generarCanvasCredencialReverso(alumnoSeleccionadoInd);
-
-        zip.file(`Credencial_Frente_${mat}.png`, imgFrente.replace(/^data:image\/png;base64,/, ""), { base64: true });
-        zip.file(`Credencial_Reverso_${mat}.png`, imgReverso.replace(/^data:image\/png;base64,/, ""), { base64: true });
-
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `Credencial_PVC_${mat}.zip`);
-        Swal.close();
-    } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudieron generar las imágenes PNG.", "error");
-    }
-}
-window.descargarCredencialIndividualPNG = descargarCredencialIndividualPNG;
-
-// 5. CREDENCIALES GRUPO - PNG ZIP COMPLETO
-async function descargarCredencialesGrupoPNGZIP() {
-    if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para descargar las imágenes.", "warning");
-    Swal.fire({ title: 'Generando Imágenes PNG del Grupo...', text: 'Empaquetando frentes y reversos en alta resolución...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-    try {
-        const zip = new JSZip();
-        const folderFrente = zip.folder("Frentes");
-        const folderReverso = zip.folder("Reversos");
-
-        for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
-            const al = alumnosDelGrupoSeleccionado[i];
-            const mat = al.ncontrol || al.matricula || `ALUMNO_${i}`;
-            const pat = al.apepat || al.primerApellido || '';
-            const nombreArchivo = `${mat}_${pat}_${al.nombre}`.replace(/\s+/g, "_");
-
-            const imgFrente = await generarCanvasCredencialFrente(al);
-            const imgReverso = await generarCanvasCredencialReverso(al);
-
-            folderFrente.file(`Frente_${nombreArchivo}.png`, imgFrente.replace(/^data:image\/png;base64,/, ""), { base64: true });
-            folderReverso.file(`Reverso_${nombreArchivo}.png`, imgReverso.replace(/^data:image\/png;base64,/, ""), { base64: true });
-        }
-
-        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
-        const gpo = document.getElementById('filtroGpoCred').value || '';
-        const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `Credenciales_PVC_PNG_${esp}_${gpo}.zip`);
-        Swal.close();
-    } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudo empaquetar el archivo ZIP de credenciales.", "error");
-    }
-}
-window.descargarCredencialesGrupoPNGZIP = descargarCredencialesGrupoPNGZIP;
