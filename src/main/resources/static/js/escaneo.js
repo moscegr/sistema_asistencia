@@ -78,27 +78,102 @@ async function cargarConfiguracionInicial() {
     }
 }
 
-function inicializarLectorQR() {
-    if (typeof Html5QrcodeScanner === 'undefined') return;
+// Audio feedback sintetizado de alta velocidad (Web Audio API)
+const audioCtx = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) ? new (window.AudioContext || window.webkitAudioContext)() : null;
 
-    const qrboxCalc = (viewfinderWidth, viewfinderHeight) => {
-        const minDim = Math.min(viewfinderWidth, viewfinderHeight);
-        const size = Math.max(160, Math.floor(minDim * 0.8));
-        return { width: size, height: size };
-    };
+function reproducirBeepExito() {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // Tono agradable A5
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e) {}
+}
 
-    const config = {
-        fps: 30,
-        qrbox: qrboxCalc,
-        aspectRatio: 1.0
-    };
+function reproducirBeepError() {
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+    } catch(e) {}
+}
 
-    if (html5QrcodeScanner) {
-        try { html5QrcodeScanner.clear(); } catch(e) {}
+let html5QrCode = null;
+
+async function inicializarLectorQR() {
+    if (typeof Html5Qrcode === 'undefined') return;
+
+    if (html5QrCode) {
+        try {
+            if (html5QrCode.isScanning) await html5QrCode.stop();
+            html5QrCode.clear();
+        } catch(e) {}
     }
 
-    html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
-    html5QrcodeScanner.render((text) => onScanSuccess(text, false), (err) => {});
+    const readerEl = document.getElementById('reader');
+    if (!readerEl) return;
+    readerEl.innerHTML = "";
+
+    // Motor QR optimizado con aceleración nativa por GPU (BarcodeDetector API)
+    html5QrCode = new Html5Qrcode("reader", {
+        formatsToSupport: [ 0 ], // 0 = QR_CODE únicamente (máxima velocidad de decodificación)
+        experimentalFeatures: {
+            useBarCodeDetectorIfSupported: true // Decodificación nativa por hardware en Chrome/Android/iOS/Edge
+        },
+        verbose: false
+    });
+
+    const config = {
+        fps: 30, // 30 cuadros por segundo para escaneo continuo
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minDim = Math.min(viewfinderWidth, viewfinderHeight);
+            const size = Math.max(160, Math.floor(minDim * 0.75));
+            return { width: size, height: size };
+        },
+        aspectRatio: 1.0,
+        disableFlip: false
+    };
+
+    try {
+        await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => onScanSuccess(decodedText, false),
+            (errorMessage) => {}
+        );
+    } catch (err) {
+        console.warn("Intentando cámaras disponibles para lector QR...", err);
+        try {
+            const cameras = await Html5Qrcode.getCameras();
+            if (cameras && cameras.length > 0) {
+                await html5QrCode.start(
+                    cameras[0].id,
+                    config,
+                    (decodedText) => onScanSuccess(decodedText, false),
+                    (errorMessage) => {}
+                );
+            }
+        } catch (e2) {
+            console.error("Error al iniciar cámara QR:", e2);
+        }
+    }
 }
 
 async function onScanSuccess(decodedText, parametroExtra = false) {
@@ -111,7 +186,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
     const matricula = textoCrudo.includes('|') ? textoCrudo.split('|')[0].trim() : textoCrudo;
     const ahora = Date.now();
 
-    if (!esManual && ultimoEscaneo.matricula === matricula && (ahora - ultimoEscaneo.tiempo) < 3000) {
+    // Cooldown inteligente: 1.8 segundos para el mismo alumno, pero 0 segundos si pasa otro alumno inmediatamente
+    if (!esManual && ultimoEscaneo.matricula === matricula && (ahora - ultimoEscaneo.tiempo) < 1800) {
         return;
     }
 
@@ -134,7 +210,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
         }
 
         if (!al) {
-            if (typeof sonidoError !== 'undefined') sonidoError.play();
+            reproducirBeepError();
             Swal.fire({
                 icon: 'error', 
                 title: 'Estudiante No Encontrado', 
@@ -147,7 +223,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
         const estatusNormalizado = String(al.estatus || al.estatus_escolar || 'ACTIVO').toUpperCase();
         if (estatusNormalizado === 'INACTIVO' || estatusNormalizado === 'BAJA') {
-            if (typeof sonidoError !== 'undefined') sonidoError.play();
+            reproducirBeepError();
             Swal.fire({
                 icon: 'error', 
                 title: 'Estudiante Inactivo', 
@@ -189,18 +265,19 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             nuevoReg.hora_entrada = horaEntrada;
             nuevoReg.estatus_actual = "DENTRO";
 
-            await fetch('/api/registros-diarios', {
+            // Guardar registro asíncronamente
+            fetch('/api/registros-diarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(nuevoReg)
-            });
+            }).catch(e => console.error("Error guardando registro:", e));
 
             al.estado = "DENTRO";
-            await fetch('/api/alumnos', {
+            fetch('/api/alumnos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(al)
-            });
+            }).catch(e => console.error("Error actualizando estado alumno:", e));
             
             mostrarResultado(al, "ENTRADA");
             enviarNotificacionTutor(al, "ENTRADA");
@@ -209,28 +286,30 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             await validarSalida(al, regExistente, salidaGeneralActiva, hoy);
         }
 
-        await cargarConfiguracionInicial();
+        // Actualizar interfaz en tiempo real sin recargas bloqueantes
+        renderizarListaFiltrada(document.getElementById('filtroRapido')?.value || "");
 
     } catch (e) { 
         console.error("Error en onScanSuccess:", e); 
     } finally {
         setTimeout(() => {
             procesandoEscaneo = false;
-        }, 1000);
+        }, 800);
     }
 }
 
 async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
     const mat = String(al.ncontrol || al.matricula || '').trim();
     const gpoKey = `${al.grado}${al.grupo}-${al.especialidad}`;
-    const tienePase = pasesIndividualesHoy.some(p => igualMatricula(p, mat)) || gruposAutorizadosHoy.includes(gpoKey);
+    const tienePase = pasesIndividualesHoy.includes(mat) || gruposAutorizadosHoy.includes(gpoKey);
 
     if (tienePase || salidaGeneralActiva) {
-        let motivo = tienePase ? "PASE AUTORIZADO" : "MODO CONTINGENCIA (SALIDA LIBRE)";
-        let colorBanda = tienePase ? "#198754" : "#dc3545";
-
         const horaSalida = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
+        let motivo = "AUTORIZADO";
+        if (salidaGeneralActiva) motivo = "CONTINGENCIA";
+        else if (pasesIndividualesHoy.includes(mat)) motivo = "PASE_INDIVIDUAL";
+        else if (gruposAutorizadosHoy.includes(gpoKey)) motivo = "PASE_GRUPAL";
+
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
         const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
@@ -248,28 +327,24 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
         regSalida.estatus_actual = "FUERA";
         regSalida.tipo_salida = motivo;
 
-        await fetch('/api/registros-diarios', {
+        fetch('/api/registros-diarios', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(regSalida)
-        });
+        }).catch(e => console.error("Error guardando salida:", e));
 
         al.estado = "FUERA";
-        await fetch('/api/alumnos', {
+        fetch('/api/alumnos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(al)
-        });
+        }).catch(e => console.error("Error actualizando estado alumno:", e));
 
         mostrarResultado(al, "SALIDA");
-        
-        const banda = document.getElementById('bandaEstatus');
-        if (banda) banda.style.backgroundColor = colorBanda;
-        
         enviarNotificacionTutor(al, "SALIDA");
 
     } else {
-        if (typeof sonidoError !== 'undefined') sonidoError.play();
+        reproducirBeepError();
         
         const banda = document.getElementById('bandaEstatus');
         if (banda) banda.style.backgroundColor = "#dc3545";
@@ -288,7 +363,7 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
 }
 
 function mostrarResultado(al, accion) {
-    if (typeof sonidoExito !== 'undefined') sonidoExito.play();
+    reproducirBeepExito();
 
     // Verde para ENTRADA (#198754), Rojo para SALIDA (#dc3545)
     const colorBanda = accion === "ENTRADA" ? "#198754" : "#dc3545";
@@ -648,8 +723,16 @@ async function toggleReconocimientoFacial() {
         }
         if (textoIns) textoIns.innerHTML = '<i class="bi bi-camera me-1"></i> Posicione el código frente a la cámara';
 
+        // Reanudar lector QR optimizado
+        inicializarLectorQR();
+
     } else {
         try {
+            // Detener cámara QR para liberar el hardware de video
+            if (html5QrCode && html5QrCode.isScanning) {
+                try { await html5QrCode.stop(); } catch(e) {}
+            }
+
             // Activación instantánea (sin bloqueos ni esperas)
             if (!motorFacialListo) {
                 await precargarMotorFacialSilencioso();
