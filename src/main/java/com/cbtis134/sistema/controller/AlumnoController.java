@@ -96,6 +96,17 @@ public class AlumnoController {
         ));
     }
 
+    @PatchMapping("/{matricula}/descriptor-facial")
+    public ResponseEntity<?> actualizarDescriptorFacial(@PathVariable String matricula, @RequestBody List<Double> descriptor) {
+        return alumnoRepository.findFirstByNcontrolOrMatricula(matricula, matricula)
+                .map(alumno -> {
+                    alumno.setDescriptor_facial(descriptor);
+                    alumnoRepository.save(alumno);
+                    return ResponseEntity.ok(java.util.Map.of("status", "ok", "matricula", matricula));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         if (alumnoRepository.existsById(id)) {

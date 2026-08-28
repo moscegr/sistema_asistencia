@@ -32,5 +32,9 @@ public class FileStorageConfig implements WebMvcConfigurer {
         String location = "file:" + uploadDir + (uploadDir.endsWith("/") ? "" : "/");
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(location);
+
+        registry.addResourceHandler("/models/**")
+                .addResourceLocations("classpath:/static/models/")
+                .setCachePeriod(31536000); // 1 year cache
     }
 }

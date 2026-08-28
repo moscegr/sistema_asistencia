@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await cargarConfiguracionInicial();
     inicializarLectorQR();
     
+    // Precalentamiento silencioso en segundo plano de la IA Facial (Enterprise Edge Warm-up)
+    precargarMotorFacialSilencioso();
+
     const filtroInput = document.getElementById('filtroRapido');
     if (filtroInput) {
         filtroInput.addEventListener('input', (e) => {
@@ -456,26 +459,63 @@ function renderizarListaFiltrada(filtro) {
     });
 }
 
-// ── RECONOCIMIENTO FACIAL ──
+// ── RECONOCIMIENTO FACIAL EMPRESARIAL (EDGE-CACHE & BACKGROUND AUTO-VECTORIZATION) ──
+const DB_BIOMETRIA_NAME = 'cbtis134_biometrics_db';
+const DB_BIOMETRIA_VERSION = 1;
+const STORE_DESCRIPTORES = 'face_descriptors';
+
 let faceMatcher = null;
 let escaneoFacialActivo = false;
 let streamReconocimiento = null;
 let modoEscaneoFacial = 'AMBOS'; 
+let motorFacialListo = false;
+let descriptoresCargados = new Map(); // matricula -> Array(128)
 
-async function cambiarModoFacial(modo) {
-    modoEscaneoFacial = modo;
-
-    if (document.getElementById('btnModoAmbos')) document.getElementById('btnModoAmbos').className = (modo === 'AMBOS') ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
-    if (document.getElementById('btnModoEntrada')) document.getElementById('btnModoEntrada').className = (modo === 'ENTRADA') ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
-    if (document.getElementById('btnModoSalida')) document.getElementById('btnModoSalida').className = (modo === 'SALIDA') ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary';
-
-    await inicializarMotorFacial();
+function abrirDBBiometria() {
+    return new Promise((resolve) => {
+        if (!window.indexedDB) return resolve(null);
+        try {
+            const req = indexedDB.open(DB_BIOMETRIA_NAME, DB_BIOMETRIA_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_DESCRIPTORES)) {
+                    db.createObjectStore(STORE_DESCRIPTORES, { keyPath: 'matricula' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        } catch(e) { resolve(null); }
+    });
 }
 
-async function inicializarMotorFacial() {
+async function obtenerDescriptorLocal(matricula) {
     try {
-        if (typeof faceapi === 'undefined') return;
+        const db = await abrirDBBiometria();
+        if (!db) return null;
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_DESCRIPTORES, 'readonly');
+            const store = tx.objectStore(STORE_DESCRIPTORES);
+            const req = store.get(matricula);
+            req.onsuccess = () => resolve(req.result ? req.result.descriptor : null);
+            req.onerror = () => resolve(null);
+        });
+    } catch(e) { return null; }
+}
 
+async function guardarDescriptorLocal(matricula, descriptor) {
+    try {
+        const db = await abrirDBBiometria();
+        if (!db) return;
+        const tx = db.transaction(STORE_DESCRIPTORES, 'readwrite');
+        const store = tx.objectStore(STORE_DESCRIPTORES);
+        store.put({ matricula, descriptor, actualizado: Date.now() });
+    } catch(e) {}
+}
+
+async function precargarMotorFacialSilencioso() {
+    if (typeof faceapi === 'undefined') return;
+    try {
+        // 1. Cargar pesos de la red neuronal en memoria RAM/WebGL silenciosamente
         if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
             const rutaModelos = window.location.origin + '/models';
             await Promise.all([
@@ -485,49 +525,101 @@ async function inicializarMotorFacial() {
             ]);
         }
 
-        const descriptoresEtiquetados = [];
-
+        // 2. Extraer descriptores matemáticos (vector de 128 floats) de MongoDB o de IndexedDB
         for (const al of alumnosCache) {
             const mat = String(al.ncontrol || al.matricula || '').trim();
             if (!mat) continue;
 
-            if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') continue;
-            if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') continue;
-
             let desc = al.descriptor_facial || al.descriptorFacial;
-
-            // Extracción dinámica en segundo plano si la foto existe pero el descriptor no fue guardado previamente
-            if ((!desc || desc.length !== 128) && (al.fotoUrl || al.foto_url || al.foto)) {
-                try {
-                    const src = al.fotoUrl || al.foto_url || al.foto;
-                    const img = await faceapi.fetchImage(src);
-                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    if (deteccion) {
-                        desc = Array.from(deteccion.descriptor);
-                        al.descriptor_facial = desc;
-                    }
-                } catch(e) {
-                    console.warn("No se pudo procesar la foto guardada de:", mat);
+            if (!desc || desc.length !== 128) {
+                desc = await obtenerDescriptorLocal(mat);
+                if (desc && desc.length === 128) {
+                    al.descriptor_facial = desc;
                 }
             }
 
             if (desc && desc.length === 128) {
-                const floatArray = new Float32Array(desc);
-                descriptoresEtiquetados.push(
-                    new faceapi.LabeledFaceDescriptors(mat, [floatArray])
-                );
+                descriptoresCargados.set(mat, desc);
             }
         }
 
-        if (descriptoresEtiquetados.length > 0) {
-            faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.58);
-        } else {
-            faceMatcher = null;
-        }
+        actualizarFaceMatcher();
+        motorFacialListo = true;
 
-    } catch (error) {
-        console.error("Error iniciando motor facial:", error);
+        // 3. Proceso en segundo plano: Auto-vectorizar fotos pendientes sin congelar la interfaz
+        setTimeout(procesarFotosFaltantesSegundoPlano, 1500);
+
+    } catch (e) {
+        console.warn("[FaceID Enterprise] Precalentamiento de IA omitido:", e);
     }
+}
+
+function actualizarFaceMatcher() {
+    const descriptoresEtiquetados = [];
+    for (const [mat, desc] of descriptoresCargados.entries()) {
+        const al = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, mat));
+        if (!al) continue;
+
+        if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') continue;
+        if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') continue;
+
+        descriptoresEtiquetados.push(
+            new faceapi.LabeledFaceDescriptors(mat, [new Float32Array(desc)])
+        );
+    }
+
+    if (descriptoresEtiquetados.length > 0) {
+        faceMatcher = new faceapi.FaceMatcher(descriptoresEtiquetados, 0.58);
+    } else {
+        faceMatcher = null;
+    }
+}
+
+async function procesarFotosFaltantesSegundoPlano() {
+    if (typeof faceapi === 'undefined' || !faceapi.nets.ssdMobilenetv1.isLoaded) return;
+
+    const pendientes = alumnosCache.filter(al => {
+        const mat = String(al.ncontrol || al.matricula || '').trim();
+        return mat && !descriptoresCargados.has(mat) && (al.fotoUrl || al.foto_url || al.foto);
+    });
+
+    if (pendientes.length === 0) return;
+
+    for (const al of pendientes) {
+        const mat = String(al.ncontrol || al.matricula || '').trim();
+        try {
+            const src = al.fotoUrl || al.foto_url || al.foto;
+            const img = await faceapi.fetchImage(src);
+            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+            if (deteccion) {
+                const desc = Array.from(deteccion.descriptor);
+                al.descriptor_facial = desc;
+                descriptoresCargados.set(mat, desc);
+                await guardarDescriptorLocal(mat, desc);
+
+                // Auto-sanar base de datos: persistir descriptor permanentemente en MongoDB
+                fetch(`/api/alumnos/${encodeURIComponent(mat)}/descriptor-facial`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(desc)
+                }).catch(() => {});
+
+                actualizarFaceMatcher();
+            }
+        } catch(e) {}
+        // Pequeño retardo de 40ms entre fotos para mantener el navegador 100% fluido
+        await new Promise(r => setTimeout(r, 40));
+    }
+}
+
+async function cambiarModoFacial(modo) {
+    modoEscaneoFacial = modo;
+
+    if (document.getElementById('btnModoAmbos')) document.getElementById('btnModoAmbos').className = (modo === 'AMBOS') ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
+    if (document.getElementById('btnModoEntrada')) document.getElementById('btnModoEntrada').className = (modo === 'ENTRADA') ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
+    if (document.getElementById('btnModoSalida')) document.getElementById('btnModoSalida').className = (modo === 'SALIDA') ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary';
+
+    actualizarFaceMatcher();
 }
 
 async function toggleReconocimientoFacial() {
@@ -557,11 +649,16 @@ async function toggleReconocimientoFacial() {
 
     } else {
         try {
-            await cambiarModoFacial('AMBOS');
+            // Activación instantánea (sin bloqueos ni esperas)
+            if (!motorFacialListo) {
+                await precargarMotorFacialSilencioso();
+            }
+            actualizarFaceMatcher();
 
             streamReconocimiento = await navigator.mediaDevices.getUserMedia({ video: {
                 width: { ideal: 640 },
-                height: { ideal: 480 }
+                height: { ideal: 480 },
+                facingMode: 'user'
             } });
             video.srcObject = streamReconocimiento;
             escaneoFacialActivo = true;
@@ -610,7 +707,6 @@ async function procesarFotogramasFaciales() {
             const bestMatch = faceMatcher.findBestMatch(resizedDeteccion.descriptor);
             
             const box = resizedDeteccion.detection.box;
-            
             const xEspejo = displaySize.width - box.x - box.width;
 
             ctx.strokeStyle = (bestMatch.label !== 'unknown') ? '#198754' : '#dc3545';
@@ -644,6 +740,6 @@ async function procesarFotogramasFaciales() {
     }
 
     if (escaneoFacialActivo) {
-        setTimeout(procesarFotogramasFaciales, 250);
+        setTimeout(procesarFotogramasFaciales, 200);
     }
 }
