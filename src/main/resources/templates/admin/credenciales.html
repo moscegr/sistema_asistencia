@@ -133,24 +133,51 @@
 					
 					        <div class="tab-content" id="pills-tabContent">
 					            
+					            <!-- PESTAÑA 1: GAFETES -->
 					            <div class="tab-pane fade show active" id="tab-gafetes" role="tabpanel">
-					                <h6 class="fw-bold mb-3 text-center text-secondary">Vista Previa Gafete</h6>
-					                <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3 mb-4" style="min-height: 300px;">
-					                    <p class="text-muted small text-center mb-0 msgSeleccion">Seleccione un grupo para previsualizar.</p>
+					                <div class="d-flex justify-content-between align-items-center mb-2">
+					                    <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-eye me-1"></i> Vista Previa Gafete</h6>
+					                    <span class="badge bg-secondary">Tamaño Estándar</span>
+					                </div>
+					                
+					                <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3 mb-3" style="min-height: 260px;">
+					                    <p class="text-muted small text-center mb-0 msgSeleccion">Seleccione un alumno o grupo para previsualizar.</p>
 					                    <div id="gafeteMuestra" class="d-none w-100 text-center"></div>
 					                </div>
-					
-					                <div class="d-grid gap-2">
-					                    <button id="btnDescargarGafetesPDF" class="btn bg-guinda text-white rounded-pill shadow-sm fw-bold py-2 btn-accion-grupo" disabled onclick="descargarGafetesDelGrupo()">
-					                        <i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar PDF (Planilla)
-					                    </button>
-					                    <button id="btnDescargarGafetesPNG" class="btn btn-outline-secondary rounded-pill shadow-sm fw-bold py-2 btn-accion-grupo" disabled onclick="descargarPNGsDelGrupo()">
-					                        <i class="bi bi-file-zip-fill me-2"></i>Descargar PNGs (ZIP)
-					                    </button>
+
+					                <!-- SECCIÓN INDIVIDUAL GAFETES -->
+					                <div class="border rounded p-3 mb-3 bg-white shadow-sm">
+					                    <div class="d-flex align-items-center justify-content-between mb-2">
+					                        <span class="small fw-bold text-dark"><i class="bi bi-person-fill text-guinda me-1"></i> MODO INDIVIDUAL (Alumno)</span>
+					                    </div>
+					                    <div class="d-grid gap-2">
+					                        <button id="btnDescargarGafeteIndPDF" class="btn btn-sm btn-guinda text-white rounded-pill shadow-sm fw-bold py-2 btn-accion-ind" disabled onclick="descargarGafeteIndividualPDF()">
+					                            <i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar Individual (PDF Carta 1:1)
+					                        </button>
+					                        <button id="btnDescargarGafeteIndPNG" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm fw-bold py-1 btn-accion-ind" disabled onclick="descargarGafeteIndividualPNG()">
+					                            <i class="bi bi-image text-primary me-2"></i>Descargar Individual (PNG)
+					                        </button>
+					                    </div>
 					                </div>
-					                <p class="infoConteo text-center text-muted x-small mt-2 mb-0"></p>
+
+					                <!-- SECCIÓN MASIVA GAFETES -->
+					                <div class="border rounded p-3 bg-white shadow-sm">
+					                    <div class="d-flex align-items-center justify-content-between mb-2">
+					                        <span class="small fw-bold text-dark"><i class="bi bi-people-fill text-primary me-1"></i> MODO MASIVO (Grupo Completo)</span>
+					                    </div>
+					                    <div class="d-grid gap-2">
+					                        <button id="btnDescargarGafetesPDF" class="btn btn-sm btn-outline-guinda rounded-pill shadow-sm fw-bold py-2 btn-accion-grupo" disabled onclick="descargarGafetesDelGrupo()">
+					                            <i class="bi bi-grid-fill me-2"></i>Descargar Planilla Masiva (PDF Carta)
+					                        </button>
+					                        <button id="btnDescargarGafetesPNG" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm fw-bold py-1 btn-accion-grupo" disabled onclick="descargarPNGsDelGrupo()">
+					                            <i class="bi bi-file-zip-fill text-warning me-2"></i>Descargar Grupo en ZIP (PNGs)
+					                        </button>
+					                    </div>
+					                    <p class="infoConteo text-center text-muted x-small mt-2 mb-0"></p>
+					                </div>
 					            </div>
 					
+					            <!-- PESTAÑA 2: CREDENCIALES PVC -->
 					            <div class="tab-pane fade" id="tab-credenciales" role="tabpanel">
     
 								    <div class="accordion mb-3 shadow-sm" id="accPlantillas">
@@ -161,7 +188,7 @@
 								                </button>
 								            </h2>
 								            <div id="collapsePlantillas" class="accordion-collapse collapse p-3 bg-white">
-								                <p class="x-small text-muted mb-2">Suba imágenes de 54x86mm. El sistema imprimirá los datos encima.</p>
+								                <p class="x-small text-muted mb-2">Suba imágenes de 54x85.6mm (CR80). El sistema imprimirá los datos encima.</p>
 								                <div class="mb-2">
 								                    <label class="x-small fw-bold text-dark">Frente (PNG/JPG)</label>
 								                    <input type="file" class="form-control form-control-sm" id="inputBgFrente" accept="image/png, image/jpeg">
@@ -179,51 +206,117 @@
 								
 								    <div class="mb-3 p-2 bg-white rounded border border-warning shadow-sm">
 								        <label class="form-label x-small fw-bold text-dark mb-1"><i class="bi bi-camera-fill text-warning me-1"></i> Fotografía del Alumno</label>
-								        <p class="x-small text-muted mb-1" style="line-height: 1;">Se usará solo para la impresión actual. No se guarda en la base de datos.</p>
+								        <p class="x-small text-muted mb-1" style="line-height: 1;">Se usará solo para la impresión actual. No altera la base de datos.</p>
 								        <input type="file" class="form-control form-control-sm border-warning" id="inputFotoTemporal" accept="image/png, image/jpeg">
 								    </div>
+
+								    <div class="d-flex justify-content-between align-items-center mb-1">
+								        <h6 class="fw-bold text-secondary mb-0"><i class="bi bi-person-vcard me-1"></i> Vista Previa (CR-80)</h6>
+								        <div class="btn-group btn-group-sm" role="group">
+								            <button type="button" class="btn btn-sm btn-outline-secondary active py-0 px-2 fw-bold" id="btnVerFrentePVC" onclick="cambiarCaraPreviaPVC('frente')">Frente</button>
+								            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" id="btnVerReversoPVC" onclick="cambiarCaraPreviaPVC('reverso')">Reverso</button>
+								        </div>
+								    </div>
 								
-								    <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3 mb-4" style="min-height: 320px; flex-direction: column;">
+								    <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3 mb-3" style="min-height: 310px; flex-direction: column;">
 								        <p class="text-muted small text-center mb-0 msgSeleccion">Seleccione un alumno de la tabla.</p>
 								        
 								        <div id="credencialMuestraPVC" class="d-none w-100 text-center">
-								            <div style="width: 58mm; height: 88mm; background: white; border: 2px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 6px 12px rgba(0,0,0,0.15); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left;">
-								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 6px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-								                    <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+								            <!-- Frente -->
+								            <div id="vistaPreviaPvcFrente" style="width: 54mm; height: 85.6mm; background: white; border: 2px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 6px 14px rgba(0,0,0,0.15); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left; box-sizing: border-box;">
+								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 5px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
+								                    <img src="/img/logo_aniversario.jpg" style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
 								                    <div style="text-align: center; flex: 1;">
-								                        <div style="font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
-								                        <div style="font-size: 5.5px; background: rgba(255,255,255,0.15); padding: 1px 4px; border-radius: 10px; display: inline-block; color: #ffe699;">CREDENCIAL DE ESTUDIANTE</div>
+								                        <div style="font-size: 8px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
+								                        <div style="font-size: 5px; background: rgba(255,255,255,0.15); padding: 1px 3px; border-radius: 8px; display: inline-block; color: #ffe699;">CREDENCIAL DE ESTUDIANTE</div>
 								                    </div>
-								                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+								                    <img src="/img/tigres.png" style="width: 22px; height: 22px; object-fit: contain;">
 								                </div>
-								                <div style="padding: 6px 6px;">
-								                    <div id="pvcFoto" style="width: 26mm; height: 32mm; background: #eee; border: 2px solid var(--guinda); margin: 0 auto 4px auto; background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"></div>
-								                    <div id="pvcNombre" style="font-size: 9px; font-weight: bold; color: #111; text-transform: uppercase; line-height: 1.1; margin-bottom: 4px; text-align: center;">NOMBRE APELLIDOS</div>
+								                <div style="padding: 5px 5px;">
+								                    <div id="pvcFoto" style="width: 24mm; height: 30mm; background: #eee; border: 2px solid var(--guinda); margin: 0 auto 3px auto; background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);"></div>
+								                    <div id="pvcNombre" style="font-size: 8.5px; font-weight: bold; color: #111; text-transform: uppercase; line-height: 1.1; margin-bottom: 3px; text-align: center;">NOMBRE APELLIDOS</div>
 								                    
-								                    <div style="background: #f8f9fa; border-radius: 8px; padding: 6px 8px; font-size: 6.5px; color: #333; margin: 0 auto; border: 1px solid rgba(123, 27, 55, 0.15); line-height: 1.5; text-align: center;">
-								                        <div><strong>MATRÍCULA:</strong> <span id="pvcMatricula" class="text-guinda fw-bold" style="font-size: 7.5px;">1234567890</span></div>
+								                    <div style="background: #f8f9fa; border-radius: 6px; padding: 4px 6px; font-size: 6px; color: #333; margin: 0 auto; border: 1px solid rgba(123, 27, 55, 0.15); line-height: 1.4; text-align: center;">
+								                        <div><strong>MATRÍCULA:</strong> <span id="pvcMatricula" class="text-guinda fw-bold" style="font-size: 7px;">1234567890</span></div>
 								                        <div><strong>CARRERA:</strong> <span id="pvcEspecialidad">PROGRAMACIÓN</span></div>
 								                        <div><strong>GRUPO:</strong> <span id="pvcGradoGrupo">4° "D" Matutino</span></div>
 								                        <div><strong>CURP:</strong> <span id="pvcCurp">CGPP900101...</span></div>
 								                        <div><strong>VIGENCIA:</strong> <span id="pvcVigencia">AGOSTO 2026 - JULIO 2027</span></div>
 								                    </div>
 								                </div>
-								                <div style="position: absolute; bottom: 0; width: 100%; background: var(--guinda); font-size: 5.5px; color: white; font-weight: bold; padding: 3px 0; text-align: center; letter-spacing: 0.3px;">CBTIS 134 • SISTEMA DE CONTROL ESCOLAR Y ACCESOS</div>
+								                <div style="position: absolute; bottom: 0; width: 100%; background: var(--guinda); font-size: 5px; color: white; font-weight: bold; padding: 2px 0; text-align: center; letter-spacing: 0.3px;">CBTIS 134 • SISTEMA DE CONTROL ESCOLAR</div>
+								            </div>
+
+								            <!-- Reverso -->
+								            <div id="vistaPreviaPvcReverso" class="d-none" style="width: 54mm; height: 85.6mm; background: white; border: 2px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 6px 14px rgba(0,0,0,0.15); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box;">
+								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 5px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
+								                    <img src="/img/logo_aniversario.jpg" style="width: 18px; height: 18px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+								                    <div style="font-size: 7px; font-weight: bold; letter-spacing: 0.5px; flex: 1;">CONTROL Y ACCESO VIGILANTE</div>
+								                    <img src="/img/tigres.png" style="width: 18px; height: 18px; object-fit: contain;">
+								                </div>
+								                <div style="padding: 6px 5px;">
+								                    <div id="pvcQrContainer" style="width: 28mm; height: 28mm; margin: 3px auto 4px auto;">
+								                        <img id="pvcQrImg" src="" style="width: 100%; height: 100%; object-fit: contain;">
+								                    </div>
+								                    <div style="font-size: 5.5px; color: #444; line-height: 1.2; margin-bottom: 6px; padding: 0 2px;">
+								                        Esta credencial es personal e intransferible. Acredita al portador como estudiante activo del plantel CBTis No. 134.
+								                    </div>
+								                    
+								                    <div style="width: 30mm; border-bottom: 1px solid #333; margin: 20px auto 2px auto;"></div>
+								                    <div id="pvcDirector" style="font-size: 7px; font-weight: bold; color: #000;">JOSE MARTÍN RODEA ZUÑIGA</div>
+								                    <div style="font-size: 5.5px; color: #666;">Director del Plantel CBTis No. 134</div>
+								                </div>
+								                <div style="position: absolute; bottom: 0; width: 100%; background: var(--guinda); font-size: 5px; color: white; font-weight: bold; padding: 2px 0; text-align: center; letter-spacing: 0.3px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GRO.</div>
 								            </div>
 								        </div>
 								    </div>
 								
-								    <div class="d-grid gap-2">
-								        <button id="btnDescargarCredencialInd" class="btn bg-guinda text-white rounded-pill shadow-sm fw-bold py-2 btn-accion-ind" disabled onclick="generarCredencialPDF(false)">
-								            <i class="bi bi-person-vcard-fill me-2"></i>Descargar Individual (PDF)
-								        </button>
-								        <button id="btnDescargarCredencialPNG" class="btn btn-outline-secondary rounded-pill shadow-sm fw-bold py-2 btn-accion-ind" disabled onclick="descargarCredencialIndividualPNG()">
-								            <i class="bi bi-images text-primary me-2"></i>Descargar Individual (PNG ZIP)
-								        </button>
-								        
-								        <button id="btnDescargarCredencialMasiva" class="btn btn-outline-guinda rounded-pill shadow-sm fw-bold py-2 mt-2 btn-accion-grupo" disabled onclick="generarCredencialPDF(true)">
-								            <i class="bi bi-collection-fill me-2"></i>Descargar Grupo Completo (PDF)
-								        </button>
+								    <!-- SECCIÓN INDIVIDUAL PVC -->
+								    <div class="border rounded p-3 mb-3 bg-white shadow-sm">
+								        <div class="d-flex align-items-center justify-content-between mb-2">
+								            <span class="small fw-bold text-dark"><i class="bi bi-person-fill text-guinda me-1"></i> MODO INDIVIDUAL (Alumno)</span>
+								        </div>
+								        <div class="d-grid gap-2">
+								            <button id="btnDescargarCredencialIndPlanilla" class="btn btn-sm btn-guinda text-white rounded-pill shadow-sm fw-bold py-2 btn-accion-ind" disabled onclick="generarCredencialIndividualPlanillaCarta()">
+								                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar Individual (PDF Carta 1:1)
+								            </button>
+								            <div class="row g-2">
+								                <div class="col-6">
+								                    <button id="btnDescargarCredencialIndTermico" class="btn btn-sm btn-outline-guinda rounded-pill shadow-sm fw-bold w-100 py-1 btn-accion-ind" disabled onclick="generarCredencialPDF(false)">
+								                        <i class="bi bi-person-vcard me-1"></i>Térmico CR80 (PDF)
+								                    </button>
+								                </div>
+								                <div class="col-6">
+								                    <button id="btnDescargarCredencialPNG" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm fw-bold w-100 py-1 btn-accion-ind" disabled onclick="descargarCredencialIndividualPNG()">
+								                        <i class="bi bi-images text-primary me-1"></i>PNGs (ZIP)
+								                    </button>
+								                </div>
+								            </div>
+								        </div>
+								    </div>
+
+								    <!-- SECCIÓN MASIVA PVC -->
+								    <div class="border rounded p-3 bg-white shadow-sm">
+								        <div class="d-flex align-items-center justify-content-between mb-2">
+								            <span class="small fw-bold text-dark"><i class="bi bi-people-fill text-primary me-1"></i> MODO MASIVO (Grupo Completo)</span>
+								        </div>
+								        <div class="d-grid gap-2">
+								            <button id="btnDescargarCredencialMasivaPlanilla" class="btn btn-sm btn-guinda rounded-pill shadow-sm fw-bold py-2 btn-accion-grupo" disabled onclick="generarCredencialesPlanillaCartaGrupo()">
+								                <i class="bi bi-grid-3x3-gap-fill me-2"></i>Descargar Planilla Masiva (PDF Carta 1:1)
+								            </button>
+								            <div class="row g-2">
+								                <div class="col-6">
+								                    <button id="btnDescargarCredencialMasivaTermica" class="btn btn-sm btn-outline-guinda rounded-pill shadow-sm fw-bold w-100 py-1 btn-accion-grupo" disabled onclick="generarCredencialPDF(true)">
+								                        <i class="bi bi-collection-fill me-1"></i>Térmico CR80 (PDF)
+								                    </button>
+								                </div>
+								                <div class="col-6">
+								                    <button id="btnDescargarCredencialMasivaZIP" class="btn btn-sm btn-outline-secondary rounded-pill shadow-sm fw-bold w-100 py-1 btn-accion-grupo" disabled onclick="descargarCredencialesGrupoPNGZIP()">
+								                        <i class="bi bi-file-zip-fill text-warning me-1"></i>Grupo PNGs (ZIP)
+								                    </button>
+								                </div>
+								            </div>
+								        </div>
 								    </div>
 								</div>
 					

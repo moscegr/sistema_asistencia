@@ -110,11 +110,16 @@ async function cargarAlumnosActivos() {
 }
 
 function limpiarVistaPrevia() {
-    if (document.getElementById('btnDescargarGafetesPDF')) document.getElementById('btnDescargarGafetesPDF').disabled = true;
-    if (document.getElementById('btnDescargarGafetesPNG')) document.getElementById('btnDescargarGafetesPNG').disabled = true;
-    if (document.getElementById('btnDescargarCredencialMasiva')) document.getElementById('btnDescargarCredencialMasiva').disabled = true;
-    if (document.getElementById('btnDescargarCredencialInd')) document.getElementById('btnDescargarCredencialInd').disabled = true;
-    if (document.getElementById('btnDescargarCredencialPNG')) document.getElementById('btnDescargarCredencialPNG').disabled = true;
+    const ids = [
+        'btnDescargarGafeteIndPDF', 'btnDescargarGafeteIndPNG',
+        'btnDescargarGafetesPDF', 'btnDescargarGafetesPNG',
+        'btnDescargarCredencialIndPlanilla', 'btnDescargarCredencialIndTermico', 'btnDescargarCredencialPNG',
+        'btnDescargarCredencialMasivaPlanilla', 'btnDescargarCredencialMasivaTermica', 'btnDescargarCredencialMasivaZIP'
+    ];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
 
     document.querySelectorAll('.infoConteo').forEach(el => el.innerText = "");
     document.querySelectorAll('.msgSeleccion').forEach(el => el.classList.remove('d-none'));
@@ -180,7 +185,9 @@ function renderizarAlumnosGrupo() {
 
     const btnPdfGaf = document.getElementById('btnDescargarGafetesPDF');
     const btnPngGaf = document.getElementById('btnDescargarGafetesPNG');
-    const btnPdfCred = document.getElementById('btnDescargarCredencialMasiva');
+    const btnPlanillaCred = document.getElementById('btnDescargarCredencialMasivaPlanilla');
+    const btnTermicaCred = document.getElementById('btnDescargarCredencialMasivaTermica');
+    const btnZipCred = document.getElementById('btnDescargarCredencialMasivaZIP');
 
     if (!grupoSelect) {
         tbody.innerHTML = '<tr><td colspan="3" class="text-muted py-4">Seleccione un grupo para ver a los alumnos.</td></tr>';
@@ -211,25 +218,53 @@ function renderizarAlumnosGrupo() {
             </tr>`;
     });
 
+    const total = alumnosDelGrupoSeleccionado.length;
     if (btnPdfGaf) {
         btnPdfGaf.disabled = false;
-        btnPdfGaf.innerHTML = `<i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar ${alumnosDelGrupoSeleccionado.length} Gafetes (PDF)`;
+        btnPdfGaf.innerHTML = `<i class="bi bi-grid-fill me-2"></i>Descargar ${total} Gafetes (PDF Carta)`;
     }
     if (btnPngGaf) {
         btnPngGaf.disabled = false;
-        btnPngGaf.innerHTML = `<i class="bi bi-file-zip-fill text-warning me-2"></i>Descargar ${alumnosDelGrupoSeleccionado.length} PNGs (ZIP)`;
+        btnPngGaf.innerHTML = `<i class="bi bi-file-zip-fill text-warning me-2"></i>Descargar ${total} Gafetes (ZIP)`;
     }
-    if (btnPdfCred) {
-        btnPdfCred.disabled = false;
-        btnPdfCred.innerHTML = `<i class="bi bi-collection-fill text-primary me-2"></i>Descargar Grupo (${alumnosDelGrupoSeleccionado.length} Credenciales PDF)`;
+    if (btnPlanillaCred) {
+        btnPlanillaCred.disabled = false;
+        btnPlanillaCred.innerHTML = `<i class="bi bi-grid-3x3-gap-fill me-2"></i>Descargar ${total} Credenciales (PDF Carta 1:1)`;
+    }
+    if (btnTermicaCred) {
+        btnTermicaCred.disabled = false;
+        btnTermicaCred.innerHTML = `<i class="bi bi-collection-fill me-1"></i>Térmico CR80 (${total})`;
+    }
+    if (btnZipCred) {
+        btnZipCred.disabled = false;
+        btnZipCred.innerHTML = `<i class="bi bi-file-zip-fill text-warning me-1"></i>Grupo PNGs (${total} ZIP)`;
     }
 
     document.querySelectorAll('.infoConteo').forEach(el => {
-        el.innerText = `Hojas estimadas (PDF): ${Math.ceil(alumnosDelGrupoSeleccionado.length / 8)}`;
+        el.innerText = `Total Alumnos: ${total} • Hojas Carta estimadas: ${Math.ceil(total / 4)} para Gafetes / ${Math.ceil(total / 6)} para Credenciales`;
     });
 
     const primerMat = alumnosDelGrupoSeleccionado[0].ncontrol || alumnosDelGrupoSeleccionado[0].matricula;
     seleccionarAlumnoCredencial(primerMat, tbody.firstElementChild);
+}
+
+function cambiarCaraPreviaPVC(cara) {
+    const btnFrente = document.getElementById('btnVerFrentePVC');
+    const btnReverso = document.getElementById('btnVerReversoPVC');
+    const vistaFrente = document.getElementById('vistaPreviaPvcFrente');
+    const vistaReverso = document.getElementById('vistaPreviaPvcReverso');
+
+    if (cara === 'frente') {
+        btnFrente?.classList.add('active');
+        btnReverso?.classList.remove('active');
+        vistaFrente?.classList.remove('d-none');
+        vistaReverso?.classList.add('d-none');
+    } else {
+        btnReverso?.classList.add('active');
+        btnFrente?.classList.remove('active');
+        vistaReverso?.classList.remove('d-none');
+        vistaFrente?.classList.add('d-none');
+    }
 }
 
 function seleccionarAlumnoCredencial(matricula, filaHtml) {
@@ -241,15 +276,17 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
 
     document.querySelectorAll('.msgSeleccion').forEach(el => el.classList.add('d-none'));
 
+    // 1. Vista Previa Gafete
     const contGafete = document.getElementById('gafeteMuestra');
     if (contGafete) {
         contGafete.classList.remove('d-none');
         contGafete.innerHTML = `<div class="spinner-border text-secondary" role="status"></div>`;
         generarImagenGafete(alumnoSeleccionadoInd).then(img => {
-            contGafete.innerHTML = `<img src="${img}" class="img-fluid border rounded shadow-sm" style="max-height: 250px;">`;
+            contGafete.innerHTML = `<img src="${img}" class="img-fluid border rounded shadow-sm" style="max-height: 230px;">`;
         });
     }
 
+    // 2. Vista Previa PVC Frente y Reverso
     const contCred = document.getElementById('credencialMuestraPVC');
     if (contCred) {
         contCred.classList.remove('d-none');
@@ -258,12 +295,13 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
         const matApe = al.apemat || al.segundoApellido || '';
         const mat = al.ncontrol || al.matricula || '';
 
+        // Frente
         if (document.getElementById('pvcNombre')) document.getElementById('pvcNombre').innerText = `${al.nombre} ${pat} ${matApe}`.trim().toUpperCase();
         if (document.getElementById('pvcMatricula')) document.getElementById('pvcMatricula').innerText = mat;
         if (document.getElementById('pvcEspecialidad')) document.getElementById('pvcEspecialidad').innerText = al.especialidad || 'N/A';
         if (document.getElementById('pvcGradoGrupo')) document.getElementById('pvcGradoGrupo').innerText = `${al.grado || ''}° "${al.grupo || ''}" ${al.turno || 'Matutino'}`;
         if (document.getElementById('pvcCurp')) document.getElementById('pvcCurp').innerText = al.curp || 'N/A';
-        if (document.getElementById('pvcVigencia')) document.getElementById('pvcVigencia').innerText = cfgSistema.vigencia_actual || 'Agosto 2027';
+        if (document.getElementById('pvcVigencia')) document.getElementById('pvcVigencia').innerText = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
 
         const recuadroFoto = document.getElementById('pvcFoto');
         if (recuadroFoto) {
@@ -274,13 +312,31 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
             recuadroFoto.style.backgroundPosition = 'center';
         }
 
+        // Reverso
+        const textoQR = (al.qrCode || al.qr_texto || `${mat}|${al.nombre}`).substring(0, 60);
+        generarQRConTigre(textoQR).then(qrImg => {
+            const qrEl = document.getElementById('pvcQrImg');
+            if (qrEl) qrEl.src = qrImg;
+        });
+
+        if (document.getElementById('pvcDirector')) {
+            document.getElementById('pvcDirector').innerText = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
+        }
+
         const inputFoto = document.getElementById('inputFotoTemporal');
         if(inputFoto) inputFoto.value = '';
         fotoTemporalAlumno = null;
     }
 
-    if (document.getElementById('btnDescargarCredencialInd')) document.getElementById('btnDescargarCredencialInd').disabled = false;
-    if (document.getElementById('btnDescargarCredencialPNG')) document.getElementById('btnDescargarCredencialPNG').disabled = false;
+    // Habilitar botones individuales
+    const indIds = [
+        'btnDescargarGafeteIndPDF', 'btnDescargarGafeteIndPNG',
+        'btnDescargarCredencialIndPlanilla', 'btnDescargarCredencialIndTermico', 'btnDescargarCredencialPNG'
+    ];
+    indIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = false;
+    });
 }
 
 async function generarQRConTigre(texto) {
@@ -441,17 +497,85 @@ async function generarImagenGafete(alumno) {
 
 // --- DESCARGA DE GAFETES Y CREDENCIALES (PDF Y PNG ZIP) ---
 
+// --- DESCARGA DE GAFETES (INDIVIDUAL Y MASIVO) ---
+
+async function descargarGafeteIndividualPDF() {
+    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
+    Swal.fire({ title: 'Generando Gafete Individual...', text: 'Preparando PDF Tamaño Carta a Escala Real 1:1', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
+        const imgData = await generarImagenGafete(alumnoSeleccionadoInd);
+
+        const widthGafete = 85;
+        const heightGafete = 120;
+        const x = (215.9 - widthGafete) / 2;
+        const y = (279.4 - heightGafete) / 2;
+
+        // Encabezado informativo en la hoja
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(123, 27, 55);
+        pdf.text("CBTis No. 134 • GAFETE OFICIAL DE ESTUDIANTE", 107.95, 45, { align: "center" });
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("Imprimir en Hoja Carta al 100% de Escala (Tamaño Real) • Recortar por las líneas punteadas", 107.95, 51, { align: "center" });
+
+        // Líneas guía de corte alrededor del gafete
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.rect(x - 1, y - 1, widthGafete + 2, heightGafete + 2);
+
+        // Imagen del gafete
+        pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
+
+        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
+        pdf.save(`Gafete_Carta_${mat}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar el PDF del gafete.", "error");
+    }
+}
+window.descargarGafeteIndividualPDF = descargarGafeteIndividualPDF;
+
+async function descargarGafeteIndividualPNG() {
+    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
+    Swal.fire({ title: 'Generando Imagen PNG...', text: 'Por favor espere un momento', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
+        const imgData = await generarImagenGafete(alumnoSeleccionadoInd);
+
+        const a = document.createElement('a');
+        a.href = imgData;
+        a.download = `Gafete_${mat}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo descargar la imagen del gafete.", "error");
+    }
+}
+window.descargarGafeteIndividualPNG = descargarGafeteIndividualPNG;
+
 async function descargarGafetesDelGrupo() {
     if (alumnosDelGrupoSeleccionado.length === 0) return;
-    Swal.fire({ title: 'Generando PDF de Gafetes...', text: 'Por favor espere unos segundos', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Planilla de Gafetes...', text: 'Acomodando gafetes en hojas tamaño Carta con guías de corte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('portrait', 'mm', 'letter');
         
         let col = 0, row = 0;
-        const widthGafete = 90, heightGafete = 120;
-        const marginX = 15, marginY = 15;
+        const widthGafete = 85, heightGafete = 118;
+        const marginX = 16, marginY = 16;
+        const gapX = 13.9, gapY = 11.4;
 
         for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
             const al = alumnosDelGrupoSeleccionado[i];
@@ -466,20 +590,27 @@ async function descargarGafetesDelGrupo() {
                 col++;
             }
 
-            const x = marginX + (col * (widthGafete + 10));
-            const y = marginY + (row * (heightGafete + 10));
+            const x = marginX + (col * (widthGafete + gapX));
+            const y = marginY + (row * (heightGafete + gapY));
+
+            // Guías de corte
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineDashPattern([2, 2], 0);
+            pdf.rect(x - 0.5, y - 0.5, widthGafete + 1, heightGafete + 1);
+
             pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
         }
 
         const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
         const gpo = document.getElementById('filtroGpoCred').value || '';
-        pdf.save(`Gafetes_${esp}_${gpo}.pdf`);
+        pdf.save(`Planilla_Gafetes_${esp}_${gpo}.pdf`);
         Swal.close();
     } catch (e) {
         console.error(e);
         Swal.fire("Error", "No se pudo generar el PDF de gafetes.", "error");
     }
 }
+window.descargarGafetesDelGrupo = descargarGafetesDelGrupo;
 
 async function descargarPNGsDelGrupo() {
     if (alumnosDelGrupoSeleccionado.length === 0) return;
@@ -490,9 +621,10 @@ async function descargarPNGsDelGrupo() {
         for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
             const al = alumnosDelGrupoSeleccionado[i];
             const mat = al.ncontrol || al.matricula || `ALUMNO_${i}`;
+            const pat = al.apepat || al.primerApellido || '';
             const imgData = await generarImagenGafete(al);
             const base64Data = imgData.replace(/^data:image\/png;base64,/, "");
-            zip.file(`Gafete_${mat}.png`, base64Data, { base64: true });
+            zip.file(`Gafete_${mat}_${pat}_${al.nombre}.png`, base64Data, { base64: true });
         }
 
         const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
@@ -505,8 +637,9 @@ async function descargarPNGsDelGrupo() {
         Swal.fire("Error", "No se pudo empaquetar el archivo ZIP.", "error");
     }
 }
+window.descargarPNGsDelGrupo = descargarPNGsDelGrupo;
 
-// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES VIA HTML2CANVAS (DISENO MINIMALISTA DUAL-LOGO) ---
+// --- GENERACIÓN DE IMÁGENES DE CREDENCIALES PVC (CR-80 EXACTO 54 x 85.6 mm) ---
 
 async function generarCanvasCredencialFrente(alumno) {
     return new Promise(async (resolve) => {
@@ -528,29 +661,31 @@ async function generarCanvasCredencialFrente(alumno) {
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo_aniversario.jpg';
 
+        const estiloFondoCustom = plantillaFrente ? `background-image: url('${plantillaFrente}'); background-size: cover; background-position: center;` : `background: white;`;
+
         container.innerHTML = `
-            <div id="cardFrenteTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left; box-sizing: border-box;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 6px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+            <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left; box-sizing: border-box;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 5px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
+                    <img src="${logoEscuelaSrc}" style="width: 22px; height: 22px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
                     <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 8.5px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
-                        <div style="font-size: 5.5px; background: rgba(255,255,255,0.15); padding: 1px 4px; border-radius: 10px; display: inline-block; color: #ffe699;">CREDENCIAL DE ESTUDIANTE</div>
+                        <div style="font-size: 8px; font-weight: bold; letter-spacing: 0.5px;">CBTis No. 134</div>
+                        <div style="font-size: 5px; background: rgba(255,255,255,0.15); padding: 1px 3px; border-radius: 8px; display: inline-block; color: #ffe699;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
-                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+                    <img src="/img/tigres.png" style="width: 22px; height: 22px; object-fit: contain;">
                 </div>
-                <div style="padding: 6px 6px;">
-                    <div style="width: 26mm; height: 32mm; background: #eee; border: 2px solid #7b1b37; margin: 0 auto 4px auto; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"></div>
-                    <div style="font-size: 9px; font-weight: bold; color: #111; text-transform: uppercase; line-height: 1.1; margin-bottom: 4px; text-align: center;">${nombreCompleto}</div>
+                <div style="padding: 5px 5px;">
+                    <div style="width: 24mm; height: 30mm; background: #eee; border: 2px solid #7b1b37; margin: 0 auto 3px auto; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);"></div>
+                    <div style="font-size: 8.5px; font-weight: bold; color: #111; text-transform: uppercase; line-height: 1.1; margin-bottom: 3px; text-align: center;">${nombreCompleto}</div>
                     
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 6px 8px; font-size: 6.5px; color: #333; margin: 0 auto; border: 1px solid rgba(123, 27, 55, 0.15); line-height: 1.5; text-align: center;">
-                        <div><strong>MATRÍCULA:</strong> <span style="color: #7b1b37; font-weight: bold; font-size: 7.5px;">${mat}</span></div>
+                    <div style="background: rgba(248, 249, 250, 0.92); border-radius: 6px; padding: 4px 6px; font-size: 6px; color: #333; margin: 0 auto; border: 1px solid rgba(123, 27, 55, 0.15); line-height: 1.4; text-align: center;">
+                        <div><strong>MATRÍCULA:</strong> <span style="color: #7b1b37; font-weight: bold; font-size: 7px;">${mat}</span></div>
                         <div><strong>CARRERA:</strong> <span>${alumno.especialidad || 'N/A'}</span></div>
                         <div><strong>GRUPO:</strong> <span>${alumno.grado || ''}° "${alumno.grupo || ''}" ${alumno.turno || 'Matutino'}</span></div>
                         <div><strong>CURP:</strong> <span>${alumno.curp || 'N/A'}</span></div>
                         <div><strong>VIGENCIA:</strong> <span>${vigencia}</span></div>
                     </div>
                 </div>
-                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5.5px; color: white; font-weight: bold; padding: 3px 0; text-align: center; letter-spacing: 0.3px;">CBTIS 134 • SISTEMA DE CONTROL ESCOLAR Y ACCESOS</div>
+                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5px; color: white; font-weight: bold; padding: 2px 0; text-align: center; letter-spacing: 0.3px;">CBTIS 134 • SISTEMA DE CONTROL ESCOLAR</div>
             </div>
         `;
 
@@ -584,26 +719,28 @@ async function generarCanvasCredencialReverso(alumno) {
         const director = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo_aniversario.jpg';
 
+        const estiloFondoCustom = plantillaReverso ? `background-image: url('${plantillaReverso}'); background-size: cover; background-position: center;` : `background: white;`;
+
         container.innerHTML = `
-            <div id="cardReversoTemp" style="width: 58mm; height: 88mm; background: white; border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 6px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
-                    <div style="font-size: 7.5px; font-weight: bold; letter-spacing: 0.5px; flex: 1;">CONTROL Y ACCESO VIGILANTE</div>
-                    <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
+            <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #5a1228 100%); padding: 5px 4px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
+                    <img src="${logoEscuelaSrc}" style="width: 18px; height: 18px; border-radius: 50%; border: 1px solid #fff; object-fit: cover;">
+                    <div style="font-size: 7px; font-weight: bold; letter-spacing: 0.5px; flex: 1;">CONTROL Y ACCESO VIGILANTE</div>
+                    <img src="/img/tigres.png" style="width: 18px; height: 18px; object-fit: contain;">
                 </div>
-                <div style="padding: 8px 6px;">
-                    <div style="width: 32mm; height: 32mm; margin: 4px auto 6px auto;">
+                <div style="padding: 6px 5px;">
+                    <div style="width: 28mm; height: 28mm; margin: 3px auto 4px auto;">
                         <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
                     </div>
-                    <div style="font-size: 6px; color: #444; line-height: 1.3; margin-bottom: 12px; padding: 0 4px;">
+                    <div style="font-size: 5.5px; color: #444; line-height: 1.2; margin-bottom: 6px; padding: 0 2px;">
                         Esta credencial es personal e intransferible. Acredita al portador como estudiante activo del plantel CBTis No. 134.
                     </div>
                     
-                    <div style="width: 38mm; border-bottom: 1px solid #333; margin: 40px auto 3px auto;"></div>
-                    <div style="font-size: 7.5px; font-weight: bold; color: #000;">${director}</div>
-                    <div style="font-size: 6px; color: #666;">Director del Plantel CBTis No. 134</div>
+                    <div style="width: 30mm; border-bottom: 1px solid #333; margin: 20px auto 2px auto;"></div>
+                    <div style="font-size: 7px; font-weight: bold; color: #000;">${director}</div>
+                    <div style="font-size: 5.5px; color: #666;">Director del Plantel CBTis No. 134</div>
                 </div>
-                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5.5px; color: white; font-weight: bold; padding: 3px 0; text-align: center; letter-spacing: 0.3px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GRO.</div>
+                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5px; color: white; font-weight: bold; padding: 2px 0; text-align: center; letter-spacing: 0.3px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GRO.</div>
             </div>
         `;
 
@@ -619,11 +756,74 @@ async function generarCanvasCredencialReverso(alumno) {
     });
 }
 
+// 1. CREDENCIAL INDIVIDUAL - PLANILLA HOJA CARTA 1:1 (Medidas exactas 54x85.6mm)
+async function generarCredencialIndividualPlanillaCarta() {
+    if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
+    Swal.fire({ title: 'Generando PDF en Hoja Carta...', text: 'Acomodando Frente y Reverso a tamaño real CR-80 (54 x 85.6 mm)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
+
+        const imgFrente = await generarCanvasCredencialFrente(alumnoSeleccionadoInd);
+        const imgReverso = await generarCanvasCredencialReverso(alumnoSeleccionadoInd);
+
+        const w = 54.0;
+        const h = 85.6;
+        const y = (279.4 - h) / 2;
+        const xFrente = 48.0;
+        const xReverso = 113.9;
+
+        // Encabezado
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(123, 27, 55);
+        pdf.text("CBTis No. 134 • CREDENCIAL PVC ESTÁNDAR CR-80 (54 × 85.6 mm)", 107.95, 45, { align: "center" });
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("Imprimir en Hoja Carta al 100% de Escala (Tamaño Real / Sin Ajustar) • Recortar por las líneas punteadas", 107.95, 52, { align: "center" });
+
+        // Títulos Frente y Reverso
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8.5);
+        pdf.setTextColor(60, 60, 60);
+        pdf.text("FRENTE", xFrente + (w / 2), y - 4, { align: "center" });
+        pdf.text("REVERSO", xReverso + (w / 2), y - 4, { align: "center" });
+
+        // Guías de corte
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.rect(xFrente - 0.5, y - 0.5, w + 1, h + 1);
+        pdf.rect(xReverso - 0.5, y - 0.5, w + 1, h + 1);
+
+        // Renderizado de imágenes
+        pdf.addImage(imgFrente, 'PNG', xFrente, y, w, h);
+        pdf.addImage(imgReverso, 'PNG', xReverso, y, w, h);
+
+        // Pie de página con instrucciones
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(130, 130, 130);
+        pdf.text("Instrucciones: Recortar por las guías punteadas. Para mica térmica o porta-gafete, doblar o unir frente y reverso.", 107.95, y + h + 18, { align: "center" });
+
+        const mat = alumnoSeleccionadoInd.ncontrol || alumnoSeleccionadoInd.matricula || 'ALUMNO';
+        pdf.save(`Credencial_Carta_1a1_${mat}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar el PDF en hoja carta.", "error");
+    }
+}
+window.generarCredencialIndividualPlanillaCarta = generarCredencialIndividualPlanillaCarta;
+
+// 2. CREDENCIALES INDIVIDUAL / GRUPO - MODO TÉRMICO CR80 (54 x 85.6 mm por página)
 async function generarCredencialPDF(esMasivo) {
     const listaAlumnos = esMasivo ? alumnosDelGrupoSeleccionado : (alumnoSeleccionadoInd ? [alumnoSeleccionadoInd] : []);
     if (listaAlumnos.length === 0) return Swal.fire("Aviso", "Seleccione al menos un alumno para generar la credencial.", "warning");
 
-    Swal.fire({ title: 'Generando Credenciales PDF...', text: 'Procesando diseño en alta definición (CR80)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Credenciales Térmicas...', text: 'Formato directo para impresoras PVC (CR-80 54 x 85.6 mm)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const { jsPDF } = window.jspdf;
@@ -642,18 +842,93 @@ async function generarCredencialPDF(esMasivo) {
         }
 
         const matOrGpo = esMasivo ? `Grupo_${document.getElementById('filtroGpoCred').value}` : (listaAlumnos[0].ncontrol || listaAlumnos[0].matricula);
-        pdf.save(`Credencial_PVC_${matOrGpo}.pdf`);
+        pdf.save(`Credenciales_Termicas_CR80_${matOrGpo}.pdf`);
         Swal.close();
     } catch (e) {
         console.error(e);
-        Swal.fire("Error", "No se pudieron generar las credenciales PDF.", "error");
+        Swal.fire("Error", "No se pudieron generar las credenciales térmicas.", "error");
     }
 }
+window.generarCredencialPDF = generarCredencialPDF;
 
+// 3. CREDENCIALES GRUPO - PLANILLA HOJA CARTA 1:1 (6 credenciales por hoja con guías de corte)
+async function generarCredencialesPlanillaCartaGrupo() {
+    if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para generar la planilla.", "warning");
+    Swal.fire({ title: 'Generando Planilla Masiva en Hoja Carta...', text: 'Acomodando frentes y reversos a tamaño real 1:1 (54 x 85.6 mm)...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
+
+        const w = 54.0;
+        const h = 85.6;
+        const marginX = 35.0;
+        const gapX = 37.9; // col 0: 35.0, col 1: 126.9
+        const marginY = 8.0;
+        const gapY = 3.3;  // row 0: 8, row 1: 96.9, row 2: 185.8
+
+        const alumnos = alumnosDelGrupoSeleccionado;
+        const porPagina = 6;
+        const totalPaginasLote = Math.ceil(alumnos.length / porPagina);
+
+        for (let p = 0; p < totalPaginasLote; p++) {
+            const lote = alumnos.slice(p * porPagina, (p + 1) * porPagina);
+            if (p > 0) pdf.addPage();
+
+            // PÁGINA DE FRENTES
+            for (let i = 0; i < lote.length; i++) {
+                const al = lote[i];
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const x = marginX + (col * (w + gapX));
+                const y = marginY + (row * (h + gapY));
+
+                const imgFrente = await generarCanvasCredencialFrente(al);
+
+                // Guías de corte
+                pdf.setDrawColor(200, 200, 200);
+                pdf.setLineDashPattern([2, 2], 0);
+                pdf.rect(x - 0.5, y - 0.5, w + 1, h + 1);
+
+                pdf.addImage(imgFrente, 'PNG', x, y, w, h);
+            }
+
+            // PÁGINA DE REVERSOS (en posición espejo para impresión a doble cara perfecta)
+            pdf.addPage();
+            for (let i = 0; i < lote.length; i++) {
+                const al = lote[i];
+                const col = i % 2;
+                const colEspejo = (col === 0) ? 1 : 0; // Columna espejo
+                const row = Math.floor(i / 2);
+                const x = marginX + (colEspejo * (w + gapX));
+                const y = marginY + (row * (h + gapY));
+
+                const imgReverso = await generarCanvasCredencialReverso(al);
+
+                // Guías de corte
+                pdf.setDrawColor(200, 200, 200);
+                pdf.setLineDashPattern([2, 2], 0);
+                pdf.rect(x - 0.5, y - 0.5, w + 1, h + 1);
+
+                pdf.addImage(imgReverso, 'PNG', x, y, w, h);
+            }
+        }
+
+        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
+        const gpo = document.getElementById('filtroGpoCred').value || '';
+        pdf.save(`Planilla_Credenciales_Carta_${esp}_${gpo}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar la planilla masiva en PDF.", "error");
+    }
+}
+window.generarCredencialesPlanillaCartaGrupo = generarCredencialesPlanillaCartaGrupo;
+
+// 4. CREDENCIAL INDIVIDUAL - PNG ZIP
 async function descargarCredencialIndividualPNG() {
     if (!alumnoSeleccionadoInd) return Swal.fire("Aviso", "Seleccione un alumno de la tabla.", "warning");
-
-    Swal.fire({ title: 'Generando PNGs...', text: 'Empaquetando en ZIP', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Imágenes PNG...', text: 'Empaquetando Frente y Reverso en archivo ZIP', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const zip = new JSZip();
@@ -666,10 +941,46 @@ async function descargarCredencialIndividualPNG() {
         zip.file(`Credencial_Reverso_${mat}.png`, imgReverso.replace(/^data:image\/png;base64,/, ""), { base64: true });
 
         const content = await zip.generateAsync({ type: "blob" });
-        saveAs(content, `Credencial_${mat}.zip`);
+        saveAs(content, `Credencial_PVC_${mat}.zip`);
         Swal.close();
     } catch (e) {
         console.error(e);
         Swal.fire("Error", "No se pudieron generar las imágenes PNG.", "error");
     }
 }
+window.descargarCredencialIndividualPNG = descargarCredencialIndividualPNG;
+
+// 5. CREDENCIALES GRUPO - PNG ZIP COMPLETO
+async function descargarCredencialesGrupoPNGZIP() {
+    if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para descargar las imágenes.", "warning");
+    Swal.fire({ title: 'Generando Imágenes PNG del Grupo...', text: 'Empaquetando frentes y reversos en alta resolución...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const zip = new JSZip();
+        const folderFrente = zip.folder("Frentes");
+        const folderReverso = zip.folder("Reversos");
+
+        for (let i = 0; i < alumnosDelGrupoSeleccionado.length; i++) {
+            const al = alumnosDelGrupoSeleccionado[i];
+            const mat = al.ncontrol || al.matricula || `ALUMNO_${i}`;
+            const pat = al.apepat || al.primerApellido || '';
+            const nombreArchivo = `${mat}_${pat}_${al.nombre}`.replace(/\s+/g, "_");
+
+            const imgFrente = await generarCanvasCredencialFrente(al);
+            const imgReverso = await generarCanvasCredencialReverso(al);
+
+            folderFrente.file(`Frente_${nombreArchivo}.png`, imgFrente.replace(/^data:image\/png;base64,/, ""), { base64: true });
+            folderReverso.file(`Reverso_${nombreArchivo}.png`, imgReverso.replace(/^data:image\/png;base64,/, ""), { base64: true });
+        }
+
+        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
+        const gpo = document.getElementById('filtroGpoCred').value || '';
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, `Credenciales_PVC_PNG_${esp}_${gpo}.zip`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo empaquetar el archivo ZIP de credenciales.", "error");
+    }
+}
+window.descargarCredencialesGrupoPNGZIP = descargarCredencialesGrupoPNGZIP;
