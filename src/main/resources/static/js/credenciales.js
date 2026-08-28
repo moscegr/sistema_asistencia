@@ -639,28 +639,54 @@ async function generarCanvasCredencialFrente(alumno) {
         const estiloFondoCustom = plantillaFrente ? `background-image: url('${plantillaFrente}'); background-size: cover; background-position: center;` : `background: #ffffff;`;
 
         container.innerHTML = `
-            <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: left; box-sizing: border-box;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #500f22 100%); padding: 5px 6px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="${logoEscuelaSrc}" style="width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #d4af37; object-fit: cover;">
-                    <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 8.5px; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase;">CBTis No. 134</div>
-                        <div style="font-size: 6px; font-weight: 800; background: rgba(255,255,255,0.18); padding: 1px 5px; border-radius: 6px; display: inline-block; color: #ffe699; letter-spacing: 0.3px;">CREDENCIAL DE ESTUDIANTE</div>
+            <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+                    <div style="text-align: center; flex: 1; margin: 0 4px;">
+                        <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis No. 134</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
-                    <img src="/img/tigres.png" style="width: 22px; height: 22px; object-fit: contain;">
+                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
                 </div>
-                <div style="padding: 4px 6px;">
-                    <div style="width: 24mm; height: 28mm; background: #eee; border: 2px solid #7b1b37; margin: 2px auto 2px auto; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.18);"></div>
-                    <div style="font-size: 9.5px; font-weight: 900; color: #111; text-transform: uppercase; line-height: 1.15; margin: 2px 0 3px 0; text-align: center; padding: 0 2px;">${nombreCompleto}</div>
+                
+                <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
+                    <div style="margin: 0 auto;">
+                        <div style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid #7b1b37; border-radius: 8px; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
+                    </div>
                     
-                    <div style="background: rgba(248, 249, 250, 0.95); border-radius: 6px; padding: 4px 6px; font-size: 7px; color: #222; margin: 0 auto; border: 1.2px solid rgba(123, 27, 55, 0.25); line-height: 1.45; text-align: left;">
-                        <div><strong style="color: #555;">MATRÍCULA:</strong> <span style="color: #7b1b37; font-weight: 900; font-size: 8.5px; letter-spacing: 0.5px;">${mat}</span></div>
-                        <div><strong style="color: #555;">CARRERA:</strong> <span style="font-weight: 800; color: #111;">${alumno.especialidad || 'N/A'}</span></div>
-                        <div><strong style="color: #555;">GRUPO:</strong> <span style="font-weight: 700; color: #222;">${alumno.grado || ''}° "${alumno.grupo || ''}" • ${alumno.turno || 'Matutino'}</span></div>
-                        <div><strong style="color: #555;">CURP:</strong> <span style="font-weight: 700; font-family: monospace; font-size: 7px; color: #333;">${alumno.curp || 'N/A'}</span></div>
-                        <div><strong style="color: #555;">VIGENCIA:</strong> <span style="font-weight: 800; color: #7b1b37;">${vigencia}</span></div>
+                    <div style="margin: 1px 0;">
+                        <div style="font-size: 9.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; line-height: 1.15; padding: 0 2px;">${nombreCompleto}</div>
+                        <div style="margin-top: 1.5px;">
+                            <span style="background: #7b1b37; color: #ffffff; font-size: 6px; font-weight: 800; padding: 1.5px 8px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;">ALUMNO ACTIVO</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 7px; text-align: left; font-size: 6.5px; line-height: 1.45; box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                            <span style="color: #64748b; font-weight: 700;">MATRÍCULA:</span>
+                            <span style="color: #7b1b37; font-weight: 900; font-size: 8px; letter-spacing: 0.5px;">${mat}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                            <span style="color: #64748b; font-weight: 700;">CARRERA:</span>
+                            <span style="color: #0f172a; font-weight: 800; text-align: right; max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${alumno.especialidad || 'N/A'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                            <span style="color: #64748b; font-weight: 700;">GRUPO / TURNO:</span>
+                            <span style="color: #334155; font-weight: 800;">${alumno.grado || ''}° "${alumno.grupo || ''}" • ${alumno.turno || 'Matutino'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #64748b; font-weight: 700;">CURP:</span>
+                            <span style="color: #334155; font-weight: 700; font-family: monospace; font-size: 6.5px;">${alumno.curp || 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
-                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5.5px; color: white; font-weight: 800; padding: 2.5px 0; text-align: center; letter-spacing: 0.4px;">CBTIS 134 • CONTROL ESCOLAR Y ACCESOS</div>
+                
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px;">
+                        <span>VIGENCIA: <strong style="color: #ffe699;">${vigencia}</strong></span>
+                        <span>CBTIS 134</span>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -697,25 +723,35 @@ async function generarCanvasCredencialReverso(alumno) {
         const estiloFondoCustom = plantillaReverso ? `background-image: url('${plantillaReverso}'); background-size: cover; background-position: center;` : `background: #ffffff;`;
 
         container.innerHTML = `
-            <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 2px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #500f22 100%); padding: 5px 6px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4af37;">
-                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #d4af37; object-fit: cover;">
-                    <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1;">CONTROL Y ACCESO VIGILANTE</div>
+            <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+                    <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
                     <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
                 </div>
-                <div style="padding: 5px 6px;">
-                    <div style="width: 32mm; height: 32mm; margin: 3px auto 3px auto;">
-                        <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
-                    </div>
-                    <div style="font-size: 6.5px; font-weight: 600; color: #333; line-height: 1.3; margin-bottom: 4px; padding: 0 3px;">
-                        Esta credencial es personal e intransferible. Acredita al portador como estudiante activo del plantel CBTis No. 134.
+                
+                <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
+                    <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 10px; padding: 4px; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.15);">
+                        <div style="width: 32mm; height: 32mm; margin: 0 auto;">
+                            <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <div style="font-size: 5.5px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 2px;">ESCANEAME PARA ACCESO</div>
                     </div>
                     
-                    <div style="width: 32mm; border-bottom: 1.5px solid #222; margin: 16px auto 2px auto;"></div>
-                    <div style="font-size: 8px; font-weight: 900; color: #000;">${director}</div>
-                    <div style="font-size: 6.5px; color: #555; font-weight: 600;">Director del Plantel CBTis No. 134</div>
+                    <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
+                        Esta credencial es personal e intransferible. Acredita al portador como alumno regular inscrito en el plantel CBTis No. 134.
+                    </div>
+                    
+                    <div style="width: 100%; margin-top: 2px;">
+                        <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                        <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>
+                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel CBTis No. 134</div>
+                    </div>
                 </div>
-                <div style="position: absolute; bottom: 0; width: 100%; background: #7b1b37; font-size: 5.5px; color: white; font-weight: 800; padding: 2.5px 0; text-align: center; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GRO.</div>
+                
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                </div>
             </div>
         `;
 
