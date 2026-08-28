@@ -41,28 +41,63 @@
         .nav-pills-guinda .nav-link { color: #6c757d; }
     	.nav-pills-guinda .nav-link.active { background-color: var(--guinda) !important; color: white !important; }
     
-    	.btn-outline-guinda { border-color: var(--guinda); color: var(--guinda); }
-    	.btn-outline-guinda:hover { background-color: var(--guinda); color: white; }
+    	.btn-guinda {
+    	    background-color: var(--guinda) !important;
+    	    border-color: var(--guinda) !important;
+    	    color: #ffffff !important;
+    	    transition: all 0.2s ease-in-out;
+    	}
+    	.btn-guinda:hover {
+    	    background-color: #5a1228 !important;
+    	    border-color: #5a1228 !important;
+    	    color: #ffffff !important;
+    	    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    	}
+    	.btn-guinda:disabled, .btn-guinda[disabled] {
+    	    background-color: #7b1b37 !important;
+    	    border-color: #7b1b37 !important;
+    	    color: rgba(255, 255, 255, 0.75) !important;
+    	    opacity: 0.65;
+    	    cursor: not-allowed;
+    	}
     
-	.bg-guinda {
-	    background-color: var(--guinda) !important;
-	    border: 1px solid var(--guinda) !important;
-	    transition: all 0.3s ease;
-	}
-	
-	.bg-guinda:hover {
-	    background-color: #5a1228 !important;
-	    color: white !important;
-	    border-color: #5a1228 !important;
-	    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-	}
-	
-	.bg-guinda:disabled {
-	    background-color: #9d5d6f !important;
-	    border-color: #9d5d6f !important;
-	    opacity: 0.65;
-	    cursor: not-allowed;
-	}
+    	.btn-outline-guinda { 
+    	    border-color: var(--guinda) !important; 
+    	    color: var(--guinda) !important; 
+    	    background-color: transparent !important;
+    	    transition: all 0.2s ease-in-out;
+    	}
+    	.btn-outline-guinda:hover { 
+    	    background-color: var(--guinda) !important; 
+    	    color: #ffffff !important; 
+    	}
+    	.btn-outline-guinda:disabled, .btn-outline-guinda[disabled] {
+    	    border-color: #9d5d6f !important;
+    	    color: #9d5d6f !important;
+    	    background-color: transparent !important;
+    	    opacity: 0.65;
+    	    cursor: not-allowed;
+    	}
+    
+    	.bg-guinda {
+    	    background-color: var(--guinda) !important;
+    	    border: 1px solid var(--guinda) !important;
+    	    color: #ffffff !important;
+    	    transition: all 0.3s ease;
+    	}
+    	.bg-guinda:hover {
+    	    background-color: #5a1228 !important;
+    	    color: white !important;
+    	    border-color: #5a1228 !important;
+    	    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    	}
+    	.bg-guinda:disabled {
+    	    background-color: #9d5d6f !important;
+    	    border-color: #9d5d6f !important;
+    	    color: rgba(255, 255, 255, 0.75) !important;
+    	    opacity: 0.65;
+    	    cursor: not-allowed;
+    	}
     </style>
 </head>
 <body class="bg-light">
@@ -296,8 +331,6 @@
 								        <p class="infoConteoCred text-center text-muted x-small mt-2 mb-0"></p>
 								    </div>
 								</div>
-					
-					        </div>
 					
 					        </div>
 					    </div>
