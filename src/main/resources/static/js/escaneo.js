@@ -290,7 +290,8 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
 function mostrarResultado(al, accion) {
     if (typeof sonidoExito !== 'undefined') sonidoExito.play();
 
-    const colorBanda = accion === "ENTRADA" ? "#198754" : "#0d6efd";
+    // Verde para ENTRADA (#198754), Rojo para SALIDA (#dc3545)
+    const colorBanda = accion === "ENTRADA" ? "#198754" : "#dc3545";
     const titulo = accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA";
     const pat = al.apepat || al.primerApellido || '';
     const matApe = al.apemat || al.segundoApellido || '';
@@ -439,7 +440,7 @@ function renderizarListaFiltrada(filtro) {
         const tr = document.createElement('tr');
         tr.className = "table-active-hover";
         const pat = al.apepat || al.primerApellido || '';
-        const estadoLabel = al.estado === "DENTRO" ? '<span class="badge bg-success">DENTRO</span>' : '<span class="badge bg-secondary">FUERA</span>';
+        const estadoLabel = al.estado === "DENTRO" ? '<span class="badge bg-success">DENTRO</span>' : '<span class="badge bg-danger">FUERA</span>';
 
         tr.innerHTML = `
             <td>
@@ -617,7 +618,7 @@ async function cambiarModoFacial(modo) {
 
     if (document.getElementById('btnModoAmbos')) document.getElementById('btnModoAmbos').className = (modo === 'AMBOS') ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
     if (document.getElementById('btnModoEntrada')) document.getElementById('btnModoEntrada').className = (modo === 'ENTRADA') ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
-    if (document.getElementById('btnModoSalida')) document.getElementById('btnModoSalida').className = (modo === 'SALIDA') ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary';
+    if (document.getElementById('btnModoSalida')) document.getElementById('btnModoSalida').className = (modo === 'SALIDA') ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-outline-danger';
 
     actualizarFaceMatcher();
 }
@@ -709,23 +710,27 @@ async function procesarFotogramasFaciales() {
             const box = resizedDeteccion.detection.box;
             const xEspejo = displaySize.width - box.x - box.width;
 
-            ctx.strokeStyle = (bestMatch.label !== 'unknown') ? '#198754' : '#dc3545';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(xEspejo, box.y, box.width, box.height);
-
             let etiquetaTexto = "DESCONOCIDO";
+            let colorBox = '#dc3545'; // Rojo por defecto para desconocido / salida
+
             if (bestMatch.label !== 'unknown') {
                 const alumnoEncontrado = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, bestMatch.label));
                 if (alumnoEncontrado) {
                     const pat = alumnoEncontrado.apepat || alumnoEncontrado.primerApellido || '';
-                    etiquetaTexto = `${alumnoEncontrado.nombre} ${pat}`.toUpperCase();
+                    const accion = (alumnoEncontrado.estado === 'DENTRO') ? 'SALIDA' : 'ENTRADA';
+                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545'; // Verde para Entrada, Rojo para Salida
+                    etiquetaTexto = `${alumnoEncontrado.nombre} ${pat} (${accion})`.toUpperCase();
                 } else {
                     etiquetaTexto = bestMatch.label;
                 }
             }
 
-            ctx.fillStyle = (bestMatch.label !== 'unknown') ? '#198754' : '#dc3545';
-            ctx.font = 'bold 16px sans-serif';
+            ctx.strokeStyle = colorBox;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(xEspejo, box.y, box.width, box.height);
+
+            ctx.fillStyle = colorBox;
+            ctx.font = 'bold 15px sans-serif';
             const textWidth = ctx.measureText(etiquetaTexto).width;
             ctx.fillRect(xEspejo, Math.max(0, box.y - 25), textWidth + 10, 25);
             ctx.fillStyle = '#ffffff';
