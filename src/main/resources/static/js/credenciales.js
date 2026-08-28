@@ -239,7 +239,7 @@ function renderizarAlumnosGrupo() {
         el.innerText = `Total Alumnos: ${total} • Hojas Carta estimadas: ${Math.ceil(total / 4)} hojas`;
     });
     document.querySelectorAll('.infoConteoCred').forEach(el => {
-        el.innerText = `Total Alumnos: ${total} • Hojas Carta (4 por hilera / Doble Cara): ${Math.ceil(total / 8)} hojas`;
+        el.innerText = `Total Alumnos: ${total} • Hojas Carta Vertical (9 por hoja / Doble Cara): ${Math.ceil(total / 9)} hojas`;
     });
 
     const primerMat = alumnosDelGrupoSeleccionado[0].ncontrol || alumnosDelGrupoSeleccionado[0].matricula;
@@ -800,40 +800,40 @@ async function generarCredencialPDF(esMasivo) {
 }
 window.generarCredencialPDF = generarCredencialPDF;
 
-// 2. CREDENCIALES GRUPO - PLANILLA HOJA CARTA DOBLE CARA (4 credenciales por hilera = 8 por hoja Carta en horizontal con alineación espejo exacta)
+// 2. CREDENCIALES GRUPO - PLANILLA HOJA CARTA DOBLE CARA (Vertical / Portrait con 3 columnas x 3 filas = 9 credenciales por hoja y alineación espejo exacta)
 async function generarCredencialesPlanillaCartaGrupo() {
     if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para generar la planilla.", "warning");
-    Swal.fire({ title: 'Generando Planilla Doble Cara...', text: 'Acomodando 4 credenciales por hilera (54 x 85.6 mm) con alineación espejo para recorte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Planilla Doble Cara...', text: 'Acomodando credenciales en Hoja Carta Vertical con alineación espejo para recorte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
         const { jsPDF } = window.jspdf;
-        // Hoja Carta Apaisada / Landscape: 279.4 mm de ancho x 215.9 mm de alto
-        const pdf = new jsPDF('landscape', 'mm', 'letter');
+        // Hoja Carta Vertical / Portrait: 215.9 mm de ancho x 279.4 mm de alto
+        const pdf = new jsPDF('portrait', 'mm', 'letter');
 
         const w = 54.0;
         const h = 85.6;
 
-        // 4 columnas perfectamente distribuidas en 279.4 mm de ancho
-        // Margen lateral de 10.0 mm y espacio uniforme entre columnas de 14.47 mm
-        const xCoords = [10.00, 78.47, 146.93, 215.40];
+        // 3 columnas perfectamente simétricas en 215.9 mm de ancho
+        // Margen lateral de 13.95 mm y separación uniforme entre columnas de 13.0 mm
+        const xCoords = [13.95, 80.95, 147.95];
 
-        // 2 filas perfectamente distribuidas en 215.9 mm de alto
-        // Margen superior/inferior de 12.0 mm y espacio vertical de 20.7 mm
-        const yCoords = [12.00, 118.30];
+        // 3 filas perfectamente simétricas en 279.4 mm de alto
+        // Margen superior/inferior de 8.0 mm y separación vertical de 3.3 mm
+        const yCoords = [8.00, 96.90, 185.80];
 
         const alumnos = alumnosDelGrupoSeleccionado;
-        const porPagina = 8; // 4 columnas x 2 filas
+        const porPagina = 9; // 3 columnas x 3 filas = 9 credenciales por hoja
         const totalPaginasLote = Math.ceil(alumnos.length / porPagina);
 
         for (let p = 0; p < totalPaginasLote; p++) {
             const lote = alumnos.slice(p * porPagina, (p + 1) * porPagina);
-            if (p > 0) pdf.addPage('letter', 'landscape');
+            if (p > 0) pdf.addPage('letter', 'portrait');
 
             // PÁGINA 1: FRENTES (Hoja delantera)
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
-                const col = i % 4;
-                const row = Math.floor(i / 4);
+                const col = i % 3;
+                const row = Math.floor(i / 3);
                 const x = xCoords[col];
                 const y = yCoords[row];
 
@@ -847,13 +847,13 @@ async function generarCredencialesPlanillaCartaGrupo() {
                 pdf.addImage(imgFrente, 'PNG', x, y, w, h);
             }
 
-            // PÁGINA 2: REVERSOS (Hoja trasera en posición espejo horizontal exacta para impresión a doble cara / volteo)
-            pdf.addPage('letter', 'landscape');
+            // PÁGINA 2: REVERSOS (Hoja trasera en posición espejo horizontal exacta para impresión dúplex / volteo)
+            pdf.addPage('letter', 'portrait');
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
-                const col = i % 4;
-                const colEspejo = 3 - col; // La columna 0 corresponde a la columna 3 del reverso, 1 a 2, etc.
-                const row = Math.floor(i / 4);
+                const col = i % 3;
+                const colEspejo = 2 - col; // Columna 0 -> Columna 2, Columna 1 -> Columna 1, Columna 2 -> Columna 0
+                const row = Math.floor(i / 3);
                 const x = xCoords[colEspejo];
                 const y = yCoords[row];
 
@@ -870,7 +870,7 @@ async function generarCredencialesPlanillaCartaGrupo() {
 
         const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
         const gpo = document.getElementById('filtroGpoCred').value || '';
-        pdf.save(`Planilla_Credenciales_4xHilera_DobleCara_${esp}_${gpo}.pdf`);
+        pdf.save(`Planilla_Credenciales_Vertical_DobleCara_${esp}_${gpo}.pdf`);
         Swal.close();
     } catch (e) {
         console.error(e);
