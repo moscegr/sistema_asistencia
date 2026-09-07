@@ -6,6 +6,7 @@ let personalCache = [];
 let especialidadesConfig = [];
 let pasesIndividualesHoy = [];
 let gruposAutorizadosHoy = [];
+let registrosDiariosHoy = [];
 let procesandoEscaneo = false;
 let ultimoEscaneo = { matricula: "", tiempo: 0 };
 
@@ -21,6 +22,26 @@ function obtenerFechaLocal() {
     const d = new Date();
     const pad = (n) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function estaDentroHoy(idKey) {
+    if (!idKey) return false;
+    const reg = registrosDiariosHoy.find(r => 
+        igualMatricula(r.matricula, idKey) || 
+        igualMatricula(r.ncontrol, idKey)
+    );
+    if (!reg) return false;
+    return String(reg.estatus_actual || '').toUpperCase() === 'DENTRO';
+}
+
+function actualizarRegistroLocalHoy(nuevoReg) {
+    const key = nuevoReg.matricula || nuevoReg.ncontrol;
+    const idx = registrosDiariosHoy.findIndex(r => igualMatricula(r.matricula, key) || igualMatricula(r.ncontrol, key));
+    if (idx >= 0) {
+        registrosDiariosHoy[idx] = { ...registrosDiariosHoy[idx], ...nuevoReg };
+    } else {
+        registrosDiariosHoy.push(nuevoReg);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -45,25 +66,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function cargarConfiguracionInicial() {
     try {
-        const [resAlumnos, resPersonal, resConfig, resPases, resContingencia] = await Promise.all([
+        const hoy = obtenerFechaLocal();
+        const [resAlumnos, resPersonal, resConfig, resPases, resContingencia, resRegs] = await Promise.all([
             fetch('/api/alumnos').then(r => r.ok ? r.json() : []),
             fetch('/api/usuarios').then(r => r.ok ? r.json() : []),
             fetch('/api/configuracion/escolar').then(r => r.ok ? r.json() : {}),
             fetch('/api/pases').then(r => r.ok ? r.json() : []),
-            fetch('/api/configuracion/modo_contingencia').then(r => r.ok ? r.json() : {})
+            fetch('/api/configuracion/modo_contingencia').then(r => r.ok ? r.json() : {}),
+            fetch(`/api/registros-diarios/fecha/${hoy}`).then(r => r.ok ? r.json() : [])
         ]);
 
         alumnosCache = resAlumnos;
         personalCache = resPersonal;
         especialidadesConfig = resConfig.especialidades || [];
+        registrosDiariosHoy = resRegs;
 
         const modoContingenciaActivo = (resContingencia?.activo === true);
         const bannerCont = document.getElementById('bannerContingencia');
         if (bannerCont) {
             bannerCont.style.display = modoContingenciaActivo ? 'block' : 'none';
         }
-        
-        const hoy = obtenerFechaLocal();
 
         pasesIndividualesHoy = resPases
             .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.matricula || p.id_alumno))
@@ -189,7 +211,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
     const matricula = textoCrudo.includes('|') ? textoCrudo.split('|')[0].trim() : textoCrudo;
     const ahora = Date.now();
 
-    // Cooldown inteligente: 1.8 segundos para el mismo alumno, pero 0 segundos si pasa otro alumno inmediatamente
+    // Cooldown inteligente: 1.8 segundos para el mismo alumno, pero 0 segundos si pasa otro inmediatamente
     if (!esManual && ultimoEscaneo.matricula === matricula && (ahora - ultimoEscaneo.tiempo) < 1800) {
         return;
     }
@@ -211,7 +233,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
         if (!al) {
             persona = personalCache.find(p => 
                 igualMatricula(p.rfc, matricula) || 
-                igualMatricula(p.uid, matricula) ||
+                igualMatricula(p.uid, matricula) || 
                 igualMatricula(p.qrCode, matricula) ||
                 igualMatricula(p.id, matricula) ||
                 igualMatricula(p.correo, matricula) ||
@@ -244,19 +266,18 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                     icon: 'error',
                     title: 'Personal Inactivo',
                     text: `El docente/personal ${persona.nombre} se encuentra inactivo.`,
-                    position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
+                    position: 'center', width: '480px', timer: 3000, showConfirmButton: false
                 });
                 procesandoEscaneo = false;
                 return;
             }
 
             const horaActual = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const estaDentro = (String(persona.estado || '').toUpperCase() === 'DENTRO');
-
-            const resRegs = await fetch(`/api/registros-diarios/fecha/${hoy}`);
-            const registrosHoy = resRegs.ok ? await resRegs.json() : [];
             const rfcKey = persona.rfc || persona.uid || persona.id;
-            const regExistente = registrosHoy.find(r => igualMatricula(r.matricula, rfcKey));
+            
+            // Estado basado estrictamente en el día de hoy
+            const estaDentro = estaDentroHoy(rfcKey);
+            const regExistente = registrosDiariosHoy.find(r => igualMatricula(r.matricula, rfcKey));
 
             if (!estaDentro) {
                 // Registrar ENTRADA de Docente / Personal
@@ -278,6 +299,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 }).catch(e => console.error("Error guardando registro docente:", e));
 
                 persona.estado = "DENTRO";
+                actualizarRegistroLocalHoy(nuevoReg);
+
                 fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -307,6 +330,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 }).catch(e => console.error("Error guardando salida docente:", e));
 
                 persona.estado = "FUERA";
+                actualizarRegistroLocalHoy(regSalida);
+
                 fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -316,6 +341,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 mostrarResultadoPersonal(persona, "SALIDA");
             }
 
+            actualizarFaceMatcher();
             setTimeout(() => {
                 procesandoEscaneo = false;
             }, 800);
@@ -329,9 +355,9 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             reproducirBeepError();
             Swal.fire({
                 icon: 'error', 
-                title: 'Estudiante / Personal No Encontrado', 
-                text: `No se encontró ningún registro con la matrícula o RFC: ${matricula}`,
-                position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
+                title: 'No Encontrado', 
+                text: `No se encontró ningún alumno o personal con: ${matricula}`,
+                position: 'center', width: '480px', timer: 3000, showConfirmButton: false
             });
             procesandoEscaneo = false; 
             return;
@@ -344,25 +370,26 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 icon: 'error', 
                 title: 'Estudiante Inactivo', 
                 text: `El alumno ${al.nombre} se encuentra inactivo.`,
-                position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
+                position: 'center', width: '480px', timer: 3000, showConfirmButton: false
             });
             procesandoEscaneo = false; 
             return;
         }
 
-        const resRegs = await fetch(`/api/registros-diarios/fecha/${hoy}`);
-        const registrosHoy = resRegs.ok ? await resRegs.json() : [];
-        const regExistente = registrosHoy.find(r => 
-            igualMatricula(r.matricula, matricula) || igualMatricula(r.ncontrol, matricula)
+        const matKey = al.ncontrol || al.matricula;
+        const regExistente = registrosDiariosHoy.find(r => 
+            igualMatricula(r.matricula, matKey) || igualMatricula(r.ncontrol, matKey)
         );
 
         const resContingencia = await fetch('/api/configuracion/modo_contingencia');
         const dataContingencia = resContingencia.ok ? await resContingencia.json() : {};
         const salidaGeneralActiva = (dataContingencia?.activo === true);
 
-        const estaFuera = (!al.estado || String(al.estado).toUpperCase() === "FUERA" || !regExistente || !regExistente.estatus_actual || String(regExistente.estatus_actual).toUpperCase() === "FUERA");
+        // Determinación ESTRICTA de presencia basada en hoy (Reinicio diario)
+        const estaDentro = estaDentroHoy(matKey);
 
-        if (estaFuera) {
+        if (!estaDentro) {
+            // ENTRADA de Alumno
             const horaEntrada = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
             const pat = al.apepat || al.primerApellido || '';
@@ -370,7 +397,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
 
             const nuevoReg = regExistente || {
-                matricula: matricula,
+                matricula: matKey,
                 nombre: nombreCompleto,
                 especialidad: al.especialidad,
                 grado: String(al.grado || ''),
@@ -389,6 +416,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             }).catch(e => console.error("Error guardando registro:", e));
 
             al.estado = "DENTRO";
+            actualizarRegistroLocalHoy(nuevoReg);
+
             fetch('/api/alumnos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -399,9 +428,11 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             enviarNotificacionTutor(al, "ENTRADA");
 
         } else {
+            // SALIDA de Alumno (Validación de pases / contingencia)
             await validarSalida(al, regExistente, salidaGeneralActiva, hoy);
         }
 
+        actualizarFaceMatcher();
         // Actualizar interfaz en tiempo real sin recargas bloqueantes
         renderizarListaFiltrada(document.getElementById('filtroRapido')?.value || "");
 
@@ -450,6 +481,8 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
         }).catch(e => console.error("Error guardando salida:", e));
 
         al.estado = "FUERA";
+        actualizarRegistroLocalHoy(regSalida);
+
         fetch('/api/alumnos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -462,17 +495,18 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
     } else {
         reproducirBeepError();
         
-        const banda = document.getElementById('bandaEstatus');
-        if (banda) banda.style.backgroundColor = "#dc3545";
-
         Swal.fire({
             icon: 'error',
-            title: '<span style="font-size: 1.6rem; font-weight: bold;">SALIDA DENEGADA</span>',
-            html: '<span style="font-size: 1.2rem;">El alumno no cuenta con pases de salida vigentes.</span>',
-            position: 'bottom-end',
-            toast: true,
-            width: '600px',
-            timer: 4000,
+            title: '<span style="font-size: 1.5rem; font-weight: 800; color: #dc3545;">SALIDA DENEGADA</span>',
+            html: `
+                <div class="p-2 text-center">
+                    <p class="mb-1 fw-bold fs-5">${al.nombre} ${al.apepat || al.primerApellido || ''}</p>
+                    <p class="text-muted mb-0">El alumno no cuenta con pases de salida individuales ni grupales vigentes hoy.</p>
+                </div>
+            `,
+            position: 'center',
+            width: '480px',
+            timer: 3500,
             showConfirmButton: false
         });
     }
@@ -482,30 +516,43 @@ function mostrarResultadoPersonal(persona, accion) {
     reproducirBeepExito();
     const colorBanda = accion === "ENTRADA" ? "#198754" : "#dc3545";
     const rol = (persona.rol || "DOCENTE").toUpperCase();
-    const titulo = `${rol} - ${accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA"}`;
+    const titulo = accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA";
     const foto = persona.fotoUrl || '/img/logo_aniversario.jpg';
     const rfc = persona.rfc || persona.uid || 'N/A';
     const turno = persona.turno || 'Matutino';
+    const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     Swal.fire({
-        position: 'bottom-end',
-        toast: true,
-        width: '600px',
+        position: 'center',
+        width: '480px',
         timer: 3500,
         showConfirmButton: false,
         background: '#ffffff',
+        customClass: {
+            popup: 'shadow-lg border-0 rounded-4 overflow-hidden p-0'
+        },
         html: `
-            <div id="bandaEstatus" style="background-color: ${colorBanda}; color: white; padding: 10px; font-weight: bold; font-size: 1.4rem; border-radius: 8px 8px 0 0; text-align: center;">
-                ${titulo}
+            <div style="background-color: ${colorBanda}; color: white; padding: 14px 16px; font-weight: 800; font-size: 1.3rem; letter-spacing: 0.5px; text-align: center;">
+                <i class="bi ${accion === 'ENTRADA' ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right'} me-2"></i>${titulo}
             </div>
-            <div class="d-flex align-items-center p-3">
-                <img src="${foto}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid ${colorBanda};">
-                <div class="ms-3 text-start">
-                    <h4 class="fw-bold mb-1" style="color: #212529;">${persona.nombre}</h4>
-                    <p class="mb-0 text-muted" style="font-size: 1.1rem;">
-                        <strong>RFC:</strong> <span class="font-monospace fw-bold text-dark">${rfc}</span> <br>
-                        <strong>Rol:</strong> <span class="badge ${rol === 'DOCENTE' ? 'bg-purple' : 'bg-primary'} text-white" style="${rol === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : ''}">${rol}</span> | <strong>Turno:</strong> ${turno}
-                    </p>
+            <div class="p-4 text-center">
+                <div class="d-flex justify-content-center mb-3">
+                    <img src="${foto}" 
+                         style="width: 140px; height: 140px; object-fit: cover; border-radius: 50%; border: 4px solid ${colorBanda}; box-shadow: 0 6px 16px rgba(0,0,0,0.15);"
+                         onerror="this.src='/img/logo_aniversario.jpg'">
+                </div>
+                <h4 class="fw-bold mb-1 text-dark">${persona.nombre}</h4>
+                <div class="mb-2">
+                    <span class="badge text-white px-3 py-1 fs-6" style="${rol === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${rol}</span>
+                </div>
+                <div class="p-2 bg-light rounded-3 text-secondary mt-3">
+                    <div class="row g-1 text-center small">
+                        <div class="col-6"><strong>RFC:</strong> <span class="text-dark font-monospace fw-bold">${rfc}</span></div>
+                        <div class="col-6"><strong>Turno:</strong> <span class="text-dark fw-bold">${turno}</span></div>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted x-small">
+                    <i class="bi bi-clock me-1"></i>${hora}
                 </div>
             </div>
         `
@@ -521,26 +568,38 @@ function mostrarResultado(al, accion) {
     const pat = al.apepat || al.primerApellido || '';
     const matApe = al.apemat || al.segundoApellido || '';
     const foto = al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg';
+    const mat = al.ncontrol || al.matricula || '';
+    const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     Swal.fire({
-        position: 'bottom-end',
-        toast: true,
-        width: '600px',
+        position: 'center',
+        width: '480px',
         timer: 3500,
         showConfirmButton: false,
         background: '#ffffff',
+        customClass: {
+            popup: 'shadow-lg border-0 rounded-4 overflow-hidden p-0'
+        },
         html: `
-            <div id="bandaEstatus" style="background-color: ${colorBanda}; color: white; padding: 10px; font-weight: bold; font-size: 1.4rem; border-radius: 8px 8px 0 0; text-align: center;">
-                ${titulo}
+            <div style="background-color: ${colorBanda}; color: white; padding: 14px 16px; font-weight: 800; font-size: 1.3rem; letter-spacing: 0.5px; text-align: center;">
+                <i class="bi ${accion === 'ENTRADA' ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right'} me-2"></i>${titulo}
             </div>
-            <div class="d-flex align-items-center p-3">
-                <img src="${foto}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid ${colorBanda};">
-                <div class="ms-3 text-start">
-                    <h4 class="fw-bold mb-1" style="color: #212529;">${al.nombre} ${pat} ${matApe}</h4>
-                    <p class="mb-0 text-muted" style="font-size: 1.1rem;">
-                        <strong>Matrícula:</strong> ${al.ncontrol || al.matricula} <br>
-                        <strong>Carrera:</strong> ${al.especialidad} (${al.grado}° "${al.grupo}")
-                    </p>
+            <div class="p-4 text-center">
+                <div class="d-flex justify-content-center mb-3">
+                    <img src="${foto}" 
+                         style="width: 140px; height: 140px; object-fit: cover; border-radius: 50%; border: 4px solid ${colorBanda}; box-shadow: 0 6px 16px rgba(0,0,0,0.15);"
+                         onerror="this.src='/img/logo_aniversario.jpg'">
+                </div>
+                <h4 class="fw-bold mb-1 text-dark">${al.nombre} ${pat} ${matApe}</h4>
+                <div class="mb-2">
+                    <span class="badge bg-secondary px-3 py-1 fs-6 font-monospace">${mat}</span>
+                </div>
+                <div class="p-2 bg-light rounded-3 text-secondary mt-3">
+                    <p class="mb-0 fw-bold text-dark">${al.especialidad || 'Tronco Común'}</p>
+                    <small class="text-muted">${al.grado || ''}° Grupo "${al.grupo || ''}" | ${al.turno || 'Matutino'}</small>
+                </div>
+                <div class="mt-2 text-muted x-small">
+                    <i class="bi bi-clock me-1"></i>${hora}
                 </div>
             </div>
         `
@@ -655,7 +714,10 @@ function renderizarListaFiltrada(filtro) {
         const tr = document.createElement('tr');
         tr.className = "table-active-hover";
         const pat = al.apepat || al.primerApellido || '';
-        const estadoLabel = al.estado === "DENTRO" ? '<span class="badge bg-success">DENTRO</span>' : '<span class="badge bg-danger">FUERA</span>';
+        const estaDentro = estaDentroHoy(al.ncontrol || al.matricula);
+        const estadoLabel = estaDentro 
+            ? '<span class="badge bg-success">DENTRO</span>' 
+            : '<span class="badge bg-danger">FUERA</span>';
 
         tr.innerHTML = `
             <td>
@@ -783,8 +845,9 @@ function actualizarFaceMatcher() {
         );
         if (!item) continue;
 
-        if (modoEscaneoFacial === 'ENTRADA' && String(item.estado).toUpperCase() === 'DENTRO') continue;
-        if (modoEscaneoFacial === 'SALIDA' && String(item.estado).toUpperCase() !== 'DENTRO') continue;
+        const estaDentro = estaDentroHoy(idKey);
+        if (modoEscaneoFacial === 'ENTRADA' && estaDentro) continue;
+        if (modoEscaneoFacial === 'SALIDA' && !estaDentro) continue;
 
         descriptoresEtiquetados.push(
             new faceapi.LabeledFaceDescriptors(idKey, [new Float32Array(desc)])
@@ -898,11 +961,13 @@ async function procesarFotogramasFaciales() {
 
                 if (alumnoEncontrado) {
                     const pat = alumnoEncontrado.apepat || alumnoEncontrado.primerApellido || '';
-                    const accion = (alumnoEncontrado.estado === 'DENTRO') ? 'SALIDA' : 'ENTRADA';
+                    const matKey = alumnoEncontrado.ncontrol || alumnoEncontrado.matricula;
+                    const accion = estaDentroHoy(matKey) ? 'SALIDA' : 'ENTRADA';
                     colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
                     etiquetaTexto = `${alumnoEncontrado.nombre} ${pat} (${accion})`.toUpperCase();
                 } else if (personalEncontrado) {
-                    const accion = (personalEncontrado.estado === 'DENTRO') ? 'SALIDA' : 'ENTRADA';
+                    const rfcKey = personalEncontrado.rfc || personalEncontrado.uid || personalEncontrado.id;
+                    const accion = estaDentroHoy(rfcKey) ? 'SALIDA' : 'ENTRADA';
                     colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
                     const rol = personalEncontrado.rol || 'DOCENTE';
                     etiquetaTexto = `${personalEncontrado.nombre} [${rol}] (${accion})`.toUpperCase();
@@ -933,4 +998,89 @@ async function procesarFotogramasFaciales() {
     if (escaneoFacialActivo) {
         setTimeout(procesarFotogramasFaciales, 200);
     }
+}
+
+async function toggleReconocimientoFacial() {
+    const btn = document.getElementById('btnToggleFaceID');
+    const contQR = document.getElementById('contenedorQR');
+    const contFacial = document.getElementById('contenedorFacial');
+    const controlesModo = document.getElementById('controlesModoFacial');
+    const textoInstruccion = document.getElementById('textoInstruccion');
+    const video = document.getElementById('videoReconocimiento');
+
+    if (!escaneoFacialActivo) {
+        // Activar Face ID
+        if (html5QrCode) {
+            try {
+                if (html5QrCode.isScanning) await html5QrCode.stop();
+                html5QrCode.clear();
+            } catch(e) {}
+        }
+        if (contQR) contQR.style.display = 'none';
+        if (contFacial) contFacial.style.display = 'block';
+        if (controlesModo) controlesModo.style.display = 'block';
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i>Cambiar a Lector QR';
+            btn.style.backgroundColor = '#7b1b37';
+            btn.style.color = '#ffffff';
+        }
+        if (textoInstruccion) {
+            textoInstruccion.innerHTML = '<i class="bi bi-person-bounding-box me-1"></i> Mirando a la cámara para reconocimiento facial';
+        }
+
+        try {
+            streamReconocimiento = await navigator.mediaDevices.getUserMedia({
+                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
+            });
+            if (video) {
+                video.srcObject = streamReconocimiento;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    escaneoFacialActivo = true;
+                    procesarFotogramasFaciales();
+                };
+            }
+        } catch (err) {
+            console.error("Error al acceder a la cámara para FaceID:", err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Cámara',
+                text: 'No se pudo acceder a la cámara frontal para el reconocimiento facial.'
+            });
+            toggleReconocimientoFacial();
+        }
+    } else {
+        // Desactivar Face ID y volver a QR
+        escaneoFacialActivo = false;
+        if (streamReconocimiento) {
+            streamReconocimiento.getTracks().forEach(track => track.stop());
+            streamReconocimiento = null;
+        }
+        if (video) video.srcObject = null;
+        if (contFacial) contFacial.style.display = 'none';
+        if (controlesModo) controlesModo.style.display = 'none';
+        if (contQR) contQR.style.display = 'block';
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-person-bounding-box me-2"></i>Activar Face ID';
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = '#7b1b37';
+        }
+        if (textoInstruccion) {
+            textoInstruccion.innerHTML = '<i class="bi bi-camera me-1"></i> Posicione el código frente a la cámara';
+        }
+        inicializarLectorQR();
+    }
+}
+
+function cambiarModoFacial(modo) {
+    modoEscaneoFacial = modo;
+    const btnAmbos = document.getElementById('btnModoAmbos');
+    const btnEntrada = document.getElementById('btnModoEntrada');
+    const btnSalida = document.getElementById('btnModoSalida');
+
+    if (btnAmbos) btnAmbos.className = modo === 'AMBOS' ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
+    if (btnEntrada) btnEntrada.className = modo === 'ENTRADA' ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
+    if (btnSalida) btnSalida.className = modo === 'SALIDA' ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-outline-danger';
+
+    actualizarFaceMatcher();
 }
