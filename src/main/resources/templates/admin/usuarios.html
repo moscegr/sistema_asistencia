@@ -60,6 +60,9 @@
                         <button class="btn btn-outline-guinda px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCargaMasiva">
                             <i class="bi bi-cloud-arrow-up-fill me-1"></i>Carga Masiva Excel
                         </button>
+                        <button class="btn btn-outline-primary px-3 py-2 rounded-pill shadow-sm" onclick="descargarPlanillaGafetesTodoPersonal()">
+                            <i class="bi bi-grid-fill text-primary me-1"></i>Planilla Gafetes (PDF)
+                        </button>
                         <button class="btn btn-guinda px-3 py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
                             <i class="bi bi-person-plus-fill me-1"></i>Registrar Nuevo
                         </button>
@@ -176,10 +179,18 @@
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold">Fotografía (FaceID y Credencial)</label>
                                 <div class="d-flex align-items-center gap-3">
-                                    <img id="prevFotoUsuario" src="/img/logo_aniversario.jpg" class="rounded-circle border" style="width: 70px; height: 70px; object-fit: cover;">
+                                    <img id="prevFotoUsuario" src="/img/logo_aniversario.jpg" class="rounded-circle border" style="width: 75px; height: 75px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
                                     <div class="flex-grow-1">
                                         <input type="file" id="inputFotoUsuario" class="form-control form-control-sm" accept="image/*" onchange="procesarFotoUsuario(this)">
-                                        <small class="text-muted d-block mt-1">Sube una foto clara del rostro para el reconocimiento biométrico FaceID.</small>
+                                        <div class="d-flex gap-2 mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-guinda rounded-pill" onclick="abrirCamaraWebcamPersonal()">
+                                                <i class="bi bi-camera-video-fill me-1"></i>Tomar Foto con Webcam
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" id="btnQuitarFotoPersonal" onclick="eliminarFotoPersonal()" style="display: none;">
+                                                <i class="bi bi-trash me-1"></i>Quitar Foto
+                                            </button>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">Sube una foto clara o tómala directamente con la webcam para FaceID y Credenciales.</small>
                                     </div>
                                 </div>
                             </div>
@@ -211,6 +222,196 @@
                     <button type="button" class="btn btn-guinda px-4" id="btnGuardarUsuario" onclick="guardarUsuarioFormulario()">
                         <i class="bi bi-save me-2"></i>Guardar
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cámara Webcam Personal -->
+    <div class="modal fade" id="modalCamaraWebcamPersonal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-guinda text-white py-2">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-camera-fill me-2"></i>Tomar Foto con Cámara / Webcam</h6>
+                    <button type="button" class="btn-close btn-close-white" onclick="cerrarCamaraWebcamPersonal()"></button>
+                </div>
+                <div class="modal-body p-3 text-center bg-dark">
+                    <div class="position-relative mx-auto rounded-3 overflow-hidden shadow" style="width: 320px; height: 240px; background: #000;">
+                        <video id="videoWebcamPersonal" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="canvasWebcamPersonal" class="d-none" width="400" height="400"></canvas>
+                        <!-- Guía circular para centrar el rostro -->
+                        <div style="position: absolute; top: 20px; left: 60px; width: 200px; height: 200px; border: 2px dashed rgba(255,255,255,0.7); border-radius: 50%; pointer-events: none;"></div>
+                    </div>
+                    <p class="text-light small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Posicione su rostro dentro del círculo guía</p>
+                </div>
+                <div class="modal-footer border-0 bg-light d-flex justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" onclick="cerrarCamaraWebcamPersonal()">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-guinda rounded-pill px-4 fw-bold" onclick="capturarFotoWebcamPersonal()">
+                        <i class="bi bi-camera me-1"></i>Capturar Fotografía
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Generación de Gafete y Credencial de Personal -->
+    <div class="modal fade" id="modalGafeteCredencialPersonal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-guinda text-white py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-badge-fill me-2"></i>Gafete y Credencial de Personal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <ul class="nav nav-pills nav-fill mb-4 bg-light rounded p-1 border" id="pills-personal-tab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded fw-bold small" id="tab-gafete-pers-btn" data-bs-toggle="pill" data-bs-target="#tab-gafete-pers" type="button" role="tab">
+                                <i class="bi bi-qr-code me-1"></i> Gafete Oficial
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded fw-bold small" id="tab-cred-pers-btn" data-bs-toggle="pill" data-bs-target="#tab-cred-pers" type="button" role="tab">
+                                <i class="bi bi-person-vcard me-1"></i> Credencial PVC (CR-80)
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="pills-personal-tabContent">
+                        <!-- TAB GAFETE -->
+                        <div class="tab-pane fade show active" id="tab-gafete-pers" role="tabpanel">
+                            <div class="row align-items-center g-4">
+                                <div class="col-md-6 text-center">
+                                    <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3" style="min-height: 320px;">
+                                        <div id="gafetePersonalMuestra" class="w-100 text-center"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-dark mb-1" id="nombreGafeteModal">PERSONAL</h6>
+                                    <p class="text-muted small mb-3" id="detallesGafeteModal">RFC: - | ROL: -</p>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-guinda rounded-pill py-2 fw-bold shadow-sm" onclick="descargarGafetePersonalPDF()">
+                                            <i class="bi bi-file-earmark-pdf-fill me-2"></i>Descargar Gafete Individual (PDF)
+                                        </button>
+                                        <button class="btn btn-outline-secondary rounded-pill py-2 fw-bold" onclick="descargarGafetePersonalPNG()">
+                                            <i class="bi bi-file-image me-2"></i>Descargar como Imagen (PNG)
+                                        </button>
+                                    </div>
+                                    <div class="alert alert-light border mt-3 mb-0 small text-muted">
+                                        <i class="bi bi-printer me-1"></i> Formato listo para impresión directa o mica porta-gafete estándar.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB CREDENCIAL PVC -->
+                        <div class="tab-pane fade" id="tab-cred-pers" role="tabpanel">
+                            <div class="row align-items-center g-4">
+                                <div class="col-md-6 text-center">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+                                        <span class="x-small fw-bold text-muted">VISTA PREVIA CR-80</span>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary active py-0 px-2 fw-bold" id="btnVerFrentePersPVC" onclick="cambiarCaraPreviaPersonalPVC('frente')">Frente</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold" id="btnVerReversoPersPVC" onclick="cambiarCaraPreviaPersonalPVC('reverso')">Reverso</button>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-center align-items-center bg-light rounded border p-3" style="min-height: 330px;">
+                                        <!-- Frente PVC Personal -->
+                                        <div id="vistaPreviaPersPvcFrente" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 8px 18px rgba(0,0,0,0.18); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                                            <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                                <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+                                                <div style="text-align: center; flex: 1; margin: 0 4px;">
+                                                    <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis No. 134</div>
+                                                    <div id="persPvcBadgeHeader" style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE PERSONAL</div>
+                                                </div>
+                                                <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+                                            </div>
+                                            
+                                            <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
+                                                <div style="margin: 0 auto;">
+                                                    <div id="persPvcFoto" style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid var(--guinda); border-radius: 8px; background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
+                                                </div>
+                                                
+                                                <div style="margin: 1px 0;">
+                                                    <div id="persPvcNombre" style="font-size: 9.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; line-height: 1.15; padding: 0 2px;">NOMBRE DEL PERSONAL</div>
+                                                    <div style="margin-top: 1.5px;">
+                                                        <span id="persPvcRolBadge" style="background: var(--guinda); color: #ffffff; font-size: 6px; font-weight: 800; padding: 1.5px 8px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;">DOCENTE</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 7px; text-align: left; font-size: 6.5px; line-height: 1.45; box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);">
+                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                                                        <span style="color: #64748b; font-weight: 700;">RFC:</span>
+                                                        <span id="persPvcRfc" style="color: var(--guinda); font-weight: 900; font-size: 8px; letter-spacing: 0.5px;">PELJ850101XYZ</span>
+                                                    </div>
+                                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                                                        <span style="color: #64748b; font-weight: 700;">TURNO:</span>
+                                                        <span id="persPvcTurno" style="color: #0f172a; font-weight: 800;">Matutino</span>
+                                                    </div>
+                                                    <div style="display: flex; justify-content: space-between;">
+                                                        <span style="color: #64748b; font-weight: 700;">ADSCRIPCIÓN:</span>
+                                                        <span style="color: #334155; font-weight: 700;">CBTIS 134</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px;">
+                                                    <span>VIGENCIA: <strong id="persPvcVigencia" style="color: #ffe699;">AGOSTO 2026 - JULIO 2027</strong></span>
+                                                    <span>CBTIS 134</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Reverso PVC Personal -->
+                                        <div id="vistaPreviaPersPvcReverso" class="d-none" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 8px 18px rgba(0,0,0,0.18); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                                            <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                                                <img src="/img/logo_aniversario.jpg" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+                                                <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO BIOMÉTRICO</div>
+                                                <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
+                                            </div>
+                                            
+                                            <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
+                                                <div style="background: #ffffff; border: 1.5px solid var(--guinda); border-radius: 10px; padding: 4px; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.15);">
+                                                    <div id="persPvcQrContainer" style="width: 32mm; height: 32mm; margin: 0 auto;">
+                                                        <img id="persPvcQrImg" src="" style="width: 100%; height: 100%; object-fit: contain;">
+                                                    </div>
+                                                    <div style="font-size: 5.5px; font-weight: 800; color: var(--guinda); letter-spacing: 0.5px; margin-top: 2px;">CÓDIGO QR DE IDENTIFICACIÓN</div>
+                                                </div>
+                                                
+                                                <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
+                                                    Esta credencial es personal e intransferible. Acredita al portador como personal adscrito al plantel CBTis No. 134.
+                                                </div>
+                                                
+                                                <div style="width: 100%; margin-top: 2px;">
+                                                    <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                                                    <div id="persPvcDirector" style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">JOSE MARTÍN RODEA ZUÑIGA</div>
+                                                    <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel CBTis No. 134</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                                                <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-dark mb-1">Credencial PVC Térmica</h6>
+                                    <p class="text-muted small mb-3">Impresión en estándar CR-80 (54mm × 85.6mm) con frente y reverso.</p>
+                                    
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-guinda rounded-pill py-2 fw-bold shadow-sm" onclick="descargarCredencialPersonalPVC(false)">
+                                            <i class="bi bi-person-vcard-fill me-2"></i>Descargar Credencial Individual (PDF Térmico)
+                                        </button>
+                                        <button class="btn btn-outline-guinda rounded-pill py-2 fw-bold" onclick="descargarCredencialPersonalPVC(true)">
+                                            <i class="bi bi-grid-fill me-2"></i>Descargar Formato Planilla Carta
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -254,6 +455,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <script th:src="@{/js/app-init.js}"></script>
     <script th:src="@{/js/usuarios_admin.js}"></script>

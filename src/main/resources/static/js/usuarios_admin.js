@@ -178,6 +178,9 @@ function renderizarTablaUsuarios() {
                 </td>
                 <td class="text-center pe-4">
                     <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-guinda border-0" onclick="abrirModalGafeteCredencialPersonal('${idDoc}')" title="Generar Gafete y Credencial">
+                            <i class="bi bi-person-badge fs-5"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-primary border-0" onclick="prepararEdicion('${idDoc}')" title="Editar">
                             <i class="bi bi-pencil-square fs-5"></i>
                         </button>
@@ -210,7 +213,115 @@ function actualizarVisibilidadPassword() {
     }
 }
 
-// 3. Procesar Fotografía y extraer vector FaceID
+// -------------------------------------------------------------
+// 3. CAPTURA DE FOTOGRAFÍA (ARCHIVO Y WEBCAM)
+// -------------------------------------------------------------
+let streamWebcamPersonal = null;
+
+async function abrirCamaraWebcamPersonal() {
+    const video = document.getElementById('videoWebcamPersonal');
+    const modalEl = document.getElementById('modalCamaraWebcamPersonal');
+    if (!video || !modalEl) return;
+
+    try {
+        streamWebcamPersonal = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "user"
+            }
+        });
+        video.srcObject = streamWebcamPersonal;
+        await video.play();
+
+        const bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+    } catch (err) {
+        console.error("Error al iniciar cámara:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Cámara no disponible',
+            text: 'No se pudo acceder a la webcam. Verifique los permisos de su navegador.',
+            confirmButtonColor: '#7b1b37'
+        });
+    }
+}
+
+function cerrarCamaraWebcamPersonal() {
+    if (streamWebcamPersonal) {
+        streamWebcamPersonal.getTracks().forEach(t => t.stop());
+        streamWebcamPersonal = null;
+    }
+    const video = document.getElementById('videoWebcamPersonal');
+    if (video) video.srcObject = null;
+
+    const modalEl = document.getElementById('modalCamaraWebcamPersonal');
+    if (modalEl) {
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+    }
+}
+
+async function capturarFotoWebcamPersonal() {
+    const video = document.getElementById('videoWebcamPersonal');
+    const canvas = document.getElementById('canvasWebcamPersonal');
+    if (!video || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
+    canvas.width = 400;
+    canvas.height = 400;
+
+    const sx = ((video.videoWidth || 480) - size) / 2;
+    const sy = ((video.videoHeight || 480) - size) / 2;
+
+    // Efecto espejo
+    ctx.translate(400, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, 400, 400);
+
+    fotoBase64Temporal = canvas.toDataURL('image/jpeg', 0.92);
+    document.getElementById('prevFotoUsuario').src = fotoBase64Temporal;
+    
+    const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
+    if (btnQuitar) btnQuitar.style.display = 'inline-block';
+
+    cerrarCamaraWebcamPersonal();
+
+    // Extraer vector biométrico FaceID en segundo plano
+    try {
+        if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
+            const img = await faceapi.fetchImage(fotoBase64Temporal);
+            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+            if (deteccion) {
+                descriptorFacialTemporal = Array.from(deteccion.descriptor);
+            }
+        }
+    } catch(e) {
+        console.warn("Extracción facial webcam diferida:", e);
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Foto Capturada',
+        text: 'La fotografía se ha tomado y vinculado correctamente.',
+        toast: true,
+        position: 'bottom-end',
+        timer: 2500,
+        showConfirmButton: false
+    });
+}
+
+function eliminarFotoPersonal() {
+    fotoBase64Temporal = null;
+    descriptorFacialTemporal = null;
+    document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
+    const inputFoto = document.getElementById('inputFotoUsuario');
+    if (inputFoto) inputFoto.value = '';
+    const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
+    if (btnQuitar) btnQuitar.style.display = 'none';
+}
+
 async function procesarFotoUsuario(input) {
     const file = input.files[0];
     if (!file) return;
@@ -219,6 +330,9 @@ async function procesarFotoUsuario(input) {
     reader.onload = async (e) => {
         fotoBase64Temporal = e.target.result;
         document.getElementById('prevFotoUsuario').src = fotoBase64Temporal;
+        
+        const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
+        if (btnQuitar) btnQuitar.style.display = 'inline-block';
 
         try {
             if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
@@ -292,6 +406,7 @@ async function guardarUsuarioFormulario() {
         Swal.fire("Éxito", `Registro de ${nombre} guardado correctamente.`, "success");
         
         document.getElementById('formNuevoUsuario').reset();
+        eliminarFotoPersonal();
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
         if (modal) modal.hide();
         listarUsuarios();
@@ -554,5 +669,456 @@ async function ejecutarImportacionMasiva() {
 
     } catch (e) {
         Swal.fire("Error", "Ocurrió un error en la carga masiva: " + e.message, "error");
+    }
+}
+
+// -------------------------------------------------------------
+// 11. GAFETES Y CREDENCIALES DE PERSONAL Y DOCENTES
+// -------------------------------------------------------------
+let personalSeleccionadoGafete = null;
+let imagenGafetePersonalGenerada = null;
+
+async function abrirModalGafeteCredencialPersonal(id) {
+    const user = usuariosCache.find(u => (u.id || u.uid || u.correo) === id);
+    if (!user) return Swal.fire("Error", "No se encontró el registro del usuario.", "error");
+
+    personalSeleccionadoGafete = user;
+
+    const nombreEl = document.getElementById('nombreGafeteModal');
+    const detallesEl = document.getElementById('detallesGafeteModal');
+    if (nombreEl) nombreEl.innerText = user.nombre || 'PERSONAL';
+    if (detallesEl) detallesEl.innerText = `RFC: ${user.rfc || 'N/A'} | ROL: ${user.rol || 'DOCENTE'} | TURNO: ${user.turno || 'Matutino'}`;
+
+    // Renderizar Gafete en canvas
+    const contGafete = document.getElementById('gafetePersonalMuestra');
+    if (contGafete) {
+        contGafete.innerHTML = '<div class="spinner-border text-guinda spinner-border-sm me-2"></div>Generando vista previa...';
+        try {
+            imagenGafetePersonalGenerada = await generarImagenGafetePersonal(user);
+            contGafete.innerHTML = `<img src="${imagenGafetePersonalGenerada}" style="width: 200px; height: 280px; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">`;
+        } catch(err) {
+            console.error("Error generando gafete:", err);
+            contGafete.innerHTML = '<span class="text-danger small">Error al generar vista previa</span>';
+        }
+    }
+
+    // Renderizar Credencial PVC Frente y Reverso
+    const recuadroFoto = document.getElementById('persPvcFoto');
+    if (recuadroFoto) {
+        const fotoReal = user.fotoUrl || '/img/logo_aniversario.jpg';
+        recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
+        recuadroFoto.style.backgroundPosition = 'center';
+        recuadroFoto.style.backgroundRepeat = 'no-repeat';
+        recuadroFoto.style.backgroundSize = 'cover';
+    }
+
+    const persPvcNombre = document.getElementById('persPvcNombre');
+    if (persPvcNombre) persPvcNombre.innerText = user.nombre || 'NOMBRE COMPLETO';
+
+    const persPvcRolBadge = document.getElementById('persPvcRolBadge');
+    if (persPvcRolBadge) {
+        persPvcRolBadge.innerText = (user.rol || 'DOCENTE').toUpperCase();
+        if (user.rol === 'DOCENTE') {
+            persPvcRolBadge.style.backgroundColor = '#6f42c1';
+        } else if (user.rol === 'ADMINISTRATIVO') {
+            persPvcRolBadge.style.backgroundColor = '#0d6efd';
+        } else {
+            persPvcRolBadge.style.backgroundColor = '#7b1b37';
+        }
+    }
+
+    const persPvcRfc = document.getElementById('persPvcRfc');
+    if (persPvcRfc) persPvcRfc.innerText = user.rfc || 'N/A';
+
+    const persPvcTurno = document.getElementById('persPvcTurno');
+    if (persPvcTurno) persPvcTurno.innerText = user.turno || 'Matutino';
+
+    // Generar QR para el reverso
+    const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
+    generarQRConTigrePersonal(qrTexto).then(qrImg => {
+        const qrEl = document.getElementById('persPvcQrImg');
+        if (qrEl) qrEl.src = qrImg;
+    });
+
+    cambiarCaraPreviaPersonalPVC('frente');
+
+    const modalEl = document.getElementById('modalGafeteCredencialPersonal');
+    if (modalEl) {
+        const myModal = new bootstrap.Modal(modalEl);
+        myModal.show();
+    }
+}
+
+function cambiarCaraPreviaPersonalPVC(cara) {
+    const frente = document.getElementById('vistaPreviaPersPvcFrente');
+    const reverso = document.getElementById('vistaPreviaPersPvcReverso');
+    const btnFrente = document.getElementById('btnVerFrentePersPVC');
+    const btnReverso = document.getElementById('btnVerReversoPersPVC');
+
+    if (cara === 'frente') {
+        if (frente) frente.classList.remove('d-none');
+        if (reverso) reverso.classList.add('d-none');
+        if (btnFrente) btnFrente.classList.add('active');
+        if (btnReverso) btnReverso.classList.remove('active');
+    } else {
+        if (frente) frente.classList.add('d-none');
+        if (reverso) reverso.classList.remove('d-none');
+        if (btnFrente) btnFrente.classList.remove('active');
+        if (btnReverso) btnReverso.classList.add('active');
+    }
+}
+
+async function generarQRConTigrePersonal(texto) {
+    return new Promise((resolve) => {
+        const size = 250;
+        const divTemporal = document.createElement('div');
+        const textoLimpio = (texto || '').substring(0, 60);
+        
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(divTemporal, { 
+                text: textoLimpio, 
+                width: size, 
+                height: size, 
+                colorDark : "#000000", 
+                colorLight : "#ffffff", 
+                correctLevel: QRCode.CorrectLevel.H 
+            });
+
+            setTimeout(() => {
+                const imgQrGenerado = divTemporal.querySelector('img');
+                const canvas = divTemporal.querySelector('canvas');
+                if (imgQrGenerado && imgQrGenerado.src) {
+                    resolve(imgQrGenerado.src);
+                } else if (canvas) {
+                    resolve(canvas.toDataURL("image/png"));
+                } else {
+                    resolve('/img/logo_aniversario.jpg');
+                }
+            }, 150);
+        } else {
+            resolve('/img/logo_aniversario.jpg');
+        }
+    });
+}
+
+async function generarImagenGafetePersonal(user) {
+    return new Promise(async (resolve, reject) => {
+        if (!user) return reject("Usuario no proporcionado");
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 400; 
+        canvas.height = 560;
+
+        ctx.fillStyle = "#FFFFFF"; 
+        ctx.fillRect(0, 0, 400, 560);
+        
+        ctx.strokeStyle = "#7b1b37"; 
+        ctx.setLineDash([6, 6]); 
+        ctx.lineWidth = 2;
+        ctx.strokeRect(3, 3, 394, 554); 
+        ctx.setLineDash([]);
+
+        // Franja superior institucional en degradado guinda
+        const gradient = ctx.createLinearGradient(0, 0, 400, 0);
+        gradient.addColorStop(0, '#7b1b37');
+        gradient.addColorStop(1, '#5a1228');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 400, 90);
+
+        // Línea dorada de acento
+        ctx.fillStyle = "#d4af37";
+        ctx.fillRect(0, 88, 400, 3);
+
+        const imgEscuela = new Image();
+        const imgTigre = new Image();
+        const imgFoto = new Image();
+        
+        imgEscuela.src = '/img/logo_aniversario.jpg';
+        imgTigre.src = '/img/tigres.png';
+        imgFoto.src = user.fotoUrl || '/img/logo_aniversario.jpg';
+
+        let cargas = 0;
+        const totalImagenes = 3;
+        const alCargarImg = () => {
+            cargas++;
+            if (cargas < totalImagenes) return;
+
+            // Logo Escuela (Circular)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(imgEscuela, 18, 14, 60, 60);
+            ctx.restore();
+
+            // Borde circular blanco
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+            
+            // Logo Tigre
+            ctx.drawImage(imgTigre, 322, 14, 60, 60);
+
+            // Cabecera Central
+            ctx.fillStyle = "#FFFFFF"; 
+            ctx.font = "bold 20px Arial"; 
+            ctx.textAlign = "center";
+            ctx.fillText("CBTis No. 134", 200, 42);
+            ctx.fillStyle = "#ffe699"; 
+            ctx.font = "bold 11px Arial";
+            ctx.fillText("CREDENCIAL OFICIAL DE PERSONAL", 200, 64);
+
+            // Nombre
+            ctx.fillStyle = "#111111"; 
+            ctx.font = "bold 20px Arial"; 
+            ctx.textAlign = "center";
+            ctx.fillText((user.nombre || '').toUpperCase(), 200, 122);
+
+            // Fotografía de la persona (Circular)
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(120, 245, 65, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.clip();
+            ctx.drawImage(imgFoto, 55, 180, 130, 130);
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(120, 245, 65, 0, Math.PI * 2, true);
+            ctx.strokeStyle = "#7b1b37";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            // Código QR (Lado Derecho)
+            const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
+            generarQRConTigrePersonal(qrTexto).then(qrDataUrl => {
+                const imgQR = new Image();
+                imgQR.src = qrDataUrl;
+                imgQR.onload = () => {
+                    ctx.drawImage(imgQR, 220, 165, 150, 150);
+                    ctx.fillStyle = "#7b1b37";
+                    ctx.font = "bold 10px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText("ESCANEAME PARA ACCESO", 295, 330);
+
+                    // Información de la persona
+                    const rfc = user.rfc || 'SIN RFC';
+                    const rol = (user.rol || 'DOCENTE').toUpperCase();
+                    const turno = user.turno || 'Matutino';
+
+                    ctx.fillStyle = "#7b1b37"; 
+                    ctx.font = "bold 24px monospace";
+                    ctx.textAlign = "center";
+                    ctx.fillText(rfc, 200, 385);
+
+                    // Badge de Rol
+                    ctx.fillStyle = (rol === 'DOCENTE') ? "#6f42c1" : ((rol === 'ADMINISTRATIVO') ? "#0d6efd" : "#7b1b37");
+                    ctx.fillRect(80, 410, 240, 32);
+                    ctx.fillStyle = "#FFFFFF";
+                    ctx.font = "bold 16px Arial";
+                    ctx.fillText(rol, 200, 432);
+                    
+                    ctx.fillStyle = "#444444"; 
+                    ctx.font = "bold 14px Arial";
+                    ctx.fillText(`TURNO: ${turno.toUpperCase()}`, 200, 475);
+
+                    // Pie de página institucional
+                    ctx.fillStyle = "#7b1b37";
+                    ctx.fillRect(0, 515, 400, 45);
+                    ctx.fillStyle = "#FFFFFF"; 
+                    ctx.font = "bold 11px Arial";
+                    ctx.fillText("CBTIS 134 • SISTEMA DE CONTROL DE ACCESOS Y REGISTRO", 200, 542);
+
+                    resolve(canvas.toDataURL("image/png"));
+                };
+                imgQR.onerror = () => resolve(canvas.toDataURL("image/png"));
+            });
+        };
+
+        imgEscuela.onload = alCargarImg;
+        imgTigre.onload = alCargarImg;
+        imgFoto.onload = alCargarImg;
+
+        imgEscuela.onerror = alCargarImg;
+        imgTigre.onerror = alCargarImg;
+        imgFoto.onerror = alCargarImg;
+    });
+}
+
+async function descargarGafetePersonalPDF() {
+    if (!personalSeleccionadoGafete) return;
+    Swal.fire({ title: 'Generando Gafete...', text: 'Preparando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter');
+        const imgData = imagenGafetePersonalGenerada || await generarImagenGafetePersonal(personalSeleccionadoGafete);
+
+        const widthGafete = 90;
+        const heightGafete = 120;
+        const x = (215.9 - widthGafete) / 2;
+        const y = (279.4 - heightGafete) / 2;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(123, 27, 55);
+        pdf.text("CBTis No. 134 • GAFETE OFICIAL DE PERSONAL", 107.95, 45, { align: "center" });
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text("Imprimir en Hoja Carta al 100% de Escala • Recortar por la línea punteada", 107.95, 51, { align: "center" });
+
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineDashPattern([2, 2], 0);
+        pdf.rect(x - 0.5, y - 0.5, widthGafete + 1, heightGafete + 1);
+
+        pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
+
+        const rfc = personalSeleccionadoGafete.rfc || 'PERSONAL';
+        pdf.save(`Gafete_Personal_${rfc}.pdf`);
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar el PDF del gafete.", "error");
+    }
+}
+
+function descargarGafetePersonalPNG() {
+    if (!imagenGafetePersonalGenerada && !personalSeleccionadoGafete) return;
+    const a = document.createElement('a');
+    a.href = imagenGafetePersonalGenerada;
+    a.download = `Gafete_${personalSeleccionadoGafete.rfc || 'Personal'}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+async function descargarCredencialPersonalPVC(modoPlanilla = false) {
+    if (!personalSeleccionadoGafete) return;
+    Swal.fire({ title: 'Generando Credencial PVC...', text: 'Renderizando frente y reverso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const elFrente = document.getElementById('vistaPreviaPersPvcFrente');
+        const elReverso = document.getElementById('vistaPreviaPersPvcReverso');
+
+        elFrente.classList.remove('d-none');
+        elReverso.classList.remove('d-none');
+
+        const canvasFrente = await html2canvas(elFrente, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+        const canvasReverso = await html2canvas(elReverso, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
+
+        elReverso.classList.add('d-none'); // restaurar estado
+
+        const imgFrente = canvasFrente.toDataURL('image/jpeg', 0.95);
+        const imgReverso = canvasReverso.toDataURL('image/jpeg', 0.95);
+
+        if (!modoPlanilla) {
+            // Formato Térmico CR80: 54mm x 85.6mm
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [54, 85.6]
+            });
+
+            pdf.addImage(imgFrente, 'JPEG', 0, 0, 54, 85.6);
+            pdf.addPage([54, 85.6], 'portrait');
+            pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6);
+
+            pdf.save(`Credencial_PVC_${personalSeleccionadoGafete.rfc || 'Personal'}.pdf`);
+        } else {
+            // Formato Planilla Carta
+            const pdf = new jsPDF('portrait', 'mm', 'letter');
+            pdf.setFont("helvetica", "bold");
+            pdf.setFontSize(11);
+            pdf.setTextColor(123, 27, 55);
+            pdf.text("CBTis No. 134 • CREDENCIAL DE PERSONAL (CR-80)", 107.95, 40, { align: "center" });
+
+            const w = 54, h = 85.6;
+            const y = 60;
+            const x1 = (215.9 / 2) - w - 6;
+            const x2 = (215.9 / 2) + 6;
+
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineDashPattern([2, 2], 0);
+            pdf.rect(x1 - 0.5, y - 0.5, w + 1, h + 1);
+            pdf.rect(x2 - 0.5, y - 0.5, w + 1, h + 1);
+
+            pdf.addImage(imgFrente, 'JPEG', x1, y, w, h);
+            pdf.addImage(imgReverso, 'JPEG', x2, y, w, h);
+
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text("FRENTE", x1 + (w / 2), y + h + 6, { align: "center" });
+            pdf.text("REVERSO", x2 + (w / 2), y + h + 6, { align: "center" });
+
+            pdf.save(`Planilla_Credencial_${personalSeleccionadoGafete.rfc || 'Personal'}.pdf`);
+        }
+
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Error", "No se pudo generar la credencial PVC: " + e.message, "error");
+    }
+}
+
+async function descargarPlanillaGafetesTodoPersonal() {
+    if (!usuariosCache || usuariosCache.length === 0) {
+        return Swal.fire("Aviso", "No hay personal registrado en el directorio.", "warning");
+    }
+
+    Swal.fire({
+        title: 'Generando Planilla de Gafetes...',
+        text: `Generando gafetes para ${usuariosCache.length} miembros del personal...`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter');
+        
+        let col = 0, row = 0;
+        const widthGafete = 85, heightGafete = 118;
+        const marginX = 16, marginY = 16;
+        const gapX = 13.9, gapY = 11.4;
+
+        for (let i = 0; i < usuariosCache.length; i++) {
+            const u = usuariosCache[i];
+            const imgData = await generarImagenGafetePersonal(u);
+
+            if (i > 0 && i % 4 === 0) {
+                pdf.addPage();
+                col = 0; row = 0;
+            } else if (i > 0 && i % 2 === 0) {
+                row++; col = 0;
+            } else if (i > 0) {
+                col++;
+            }
+
+            const x = marginX + (col * (widthGafete + gapX));
+            const y = marginY + (row * (heightGafete + gapY));
+
+            pdf.setDrawColor(200, 200, 200);
+            pdf.setLineDashPattern([2, 2], 0);
+            pdf.rect(x - 0.5, y - 0.5, widthGafete + 1, heightGafete + 1);
+
+            pdf.addImage(imgData, 'PNG', x, y, widthGafete, heightGafete);
+        }
+
+        pdf.save(`Planilla_Gafetes_Personal_CBTIS134.pdf`);
+        Swal.close();
+    } catch(e) {
+        console.error("Error generando planilla masiva:", e);
+        Swal.fire("Error", "No se pudo generar la planilla: " + e.message, "error");
     }
 }
