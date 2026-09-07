@@ -73,7 +73,7 @@
                 <div class="card border-0 shadow-sm rounded-4 mb-4">
                     <div class="card-body p-3">
                         <div class="row g-3 align-items-center">
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
                                     <input type="text" id="filtroTexto" class="form-control border-start-0" placeholder="Buscar por nombre, RFC o correo..." oninput="filtrarTablaUsuarios()">
@@ -87,8 +87,14 @@
                                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFiltroPlataforma" onclick="cambiarFiltroRol('PLATAFORMA')">Plataforma</button>
                                 </div>
                             </div>
-                            <div class="col-md-3 text-md-end text-muted small">
-                                Total: <strong id="contadorUsuarios" class="text-dark">0</strong> registros
+                            <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end gap-2">
+                                <button class="btn btn-sm btn-outline-success rounded-pill fw-bold shadow-sm px-3" onclick="descargarListaPersonalExcel()">
+                                    <i class="bi bi-file-earmark-excel-fill me-1"></i>Lista Excel
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold shadow-sm px-3" onclick="descargarListaPersonalPDF()">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i>Lista PDF
+                                </button>
+                                <span class="text-muted small ms-2 border-start ps-2">Total: <strong id="contadorUsuarios" class="text-dark">0</strong></span>
                             </div>
                         </div>
                     </div>

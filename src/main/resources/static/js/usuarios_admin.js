@@ -502,7 +502,7 @@ function eliminarUsuario(id) {
     });
 }
 
-// 8. DESCARGAR PLANTILLA LAYOUT EXCEL OFICIAL
+// 8. DESCARGAR PLANTILLA LAYOUT EXCEL OFICIAL CON DATOS DE PRUEBA
 function descargarPlantillaLayoutExcel() {
     if (typeof XLSX === 'undefined') {
         return Swal.fire("Error", "La librería SheetJS no está disponible.", "error");
@@ -513,18 +513,22 @@ function descargarPlantillaLayoutExcel() {
         ["JUAN CARLOS PÉREZ LÓPEZ", "PELJ850101XYZ", "DOCENTE", "Matutino", "juan.perez@cbtis134.edu.mx", "7471234567"],
         ["MARÍA ELENA GÓMEZ RÍOS", "GORM900215ABC", "DOCENTE", "Vespertino", "elena.gomez@cbtis134.edu.mx", "7479876543"],
         ["ROBERTO SÁNCHEZ DÍAZ", "SADR781120H12", "ADMINISTRATIVO", "Tiempo Completo", "roberto.sanchez@cbtis134.edu.mx", "7475551234"],
-        ["ANA LAURA TORRES VEGA", "TOVA820410M34", "PREFECTO", "Matutino", "prefectura.mat@cbtis134.edu.mx", "7474448899"]
+        ["ANA LAURA TORRES VEGA", "TOVA820410M34", "PREFECTO", "Matutino", "prefectura.mat@cbtis134.edu.mx", "7474448899"],
+        ["RICARDO HERNÁNDEZ CASTRO", "HECR870614P89", "DOCENTE", "Matutino", "ricardo.hernandez@cbtis134.edu.mx", "7473332211"],
+        ["PATRICIA MORALES JIMÉNEZ", "MOJP911205K56", "ORIENTACION", "Matutino", "orientacion.cbtis134@gmail.com", "7478889900"],
+        ["GUSTAVO RAMÍREZ FLORES", "RAFG800425R78", "GUARDIA", "Mixto", "vigilancia134@gmail.com", "7471112233"],
+        ["SANDRA LUZ DOMÍNGUEZ NAVA", "DONS840918L45", "ADMINISTRATIVO", "Vespertino", "sandra.dominguez@cbtis134.edu.mx", "7476667788"]
     ];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(headers);
 
     ws['!cols'] = [
-        { wch: 32 }, // NOMBRE_COMPLETO
+        { wch: 34 }, // NOMBRE_COMPLETO
         { wch: 18 }, // RFC
         { wch: 18 }, // ROL
         { wch: 18 }, // TURNO
-        { wch: 35 }, // CORREO_INSTITUCIONAL
+        { wch: 36 }, // CORREO_INSTITUCIONAL
         { wch: 16 }  // TELEFONO
     ];
 
@@ -534,9 +538,198 @@ function descargarPlantillaLayoutExcel() {
     Swal.fire({
         icon: 'success',
         title: 'Plantilla Descargada',
-        text: 'Se ha descargado "Plantilla_Personal_Docentes_CBTIS134.xlsx". Rellena los datos e impórtala con el botón Carga Masiva.',
+        text: 'Se ha descargado "Plantilla_Personal_Docentes_CBTIS134.xlsx" con datos de prueba de referencia. Rellena los datos e impórtala con el botón Carga Masiva.',
         confirmButtonColor: '#7b1b37'
     });
+}
+
+// 8.1 DESCARGAR LISTA / REPORTE DE PERSONAL (EXCEL)
+function descargarListaPersonalExcel() {
+    if (typeof XLSX === 'undefined') {
+        return Swal.fire("Error", "La librería SheetJS no está disponible.", "error");
+    }
+
+    const texto = (document.getElementById('filtroTexto')?.value || "").trim().toLowerCase();
+    const filtrados = usuariosCache.filter(u => {
+        const rol = (u.rol || "").toUpperCase();
+        if (filtroRolActual === 'DOCENTE' && rol !== 'DOCENTE') return false;
+        if (filtroRolActual === 'ADMINISTRATIVO' && rol !== 'ADMINISTRATIVO') return false;
+        if (filtroRolActual === 'PLATAFORMA' && (rol === 'DOCENTE' || rol === 'ADMINISTRATIVO')) return false;
+        if (texto) {
+            const nom = (u.nombre || "").toLowerCase();
+            const rfc = (u.rfc || "").toLowerCase();
+            const cor = (u.correo || "").toLowerCase();
+            const tel = (u.telefono || "").toLowerCase();
+            return nom.includes(texto) || rfc.includes(texto) || cor.includes(texto) || tel.includes(texto);
+        }
+        return true;
+    });
+
+    if (filtrados.length === 0) {
+        return Swal.fire("Aviso", "No hay registros para exportar con los filtros actuales.", "warning");
+    }
+
+    const filas = [
+        ["#", "NOMBRE COMPLETO", "RFC", "ROL / PUESTO", "TURNO", "CORREO INSTITUCIONAL", "TELÉFONO", "PRESENCIA HOY", "ESTATUS"]
+    ];
+
+    filtrados.forEach((u, i) => {
+        filas.push([
+            i + 1,
+            (u.nombre || '').toUpperCase(),
+            (u.rfc || 'SIN RFC').toUpperCase(),
+            (u.rol || 'DOCENTE').toUpperCase(),
+            u.turno || 'Matutino',
+            u.correo || 'N/A',
+            u.telefono || 'N/A',
+            u.estado === 'DENTRO' ? 'DENTRO' : 'FUERA',
+            u.estatus || 'Activo'
+        ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+
+    ws['!cols'] = [
+        { wch: 6 },  // #
+        { wch: 36 }, // NOMBRE
+        { wch: 18 }, // RFC
+        { wch: 18 }, // ROL
+        { wch: 18 }, // TURNO
+        { wch: 36 }, // CORREO
+        { wch: 16 }, // TELÉFONO
+        { wch: 16 }, // PRESENCIA
+        { wch: 12 }  // ESTATUS
+    ];
+
+    const hoyStr = new Date().toISOString().split('T')[0];
+    const nombreArchivo = `Directorio_Personal_${filtroRolActual}_${hoyStr}.xlsx`;
+    XLSX.utils.book_append_sheet(wb, ws, "Directorio_Personal");
+    XLSX.writeFile(wb, nombreArchivo);
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Reporte Excel Descargado',
+        text: `Se exportaron ${filtrados.length} registros en "${nombreArchivo}".`,
+        confirmButtonColor: '#7b1b37'
+    });
+}
+
+// 8.2 DESCARGAR LISTA / REPORTE DE PERSONAL (PDF)
+async function descargarListaPersonalPDF() {
+    if (!usuariosCache || usuariosCache.length === 0) {
+        return Swal.fire("Aviso", "No hay personal registrado en el sistema.", "warning");
+    }
+
+    const texto = (document.getElementById('filtroTexto')?.value || "").trim().toLowerCase();
+    const filtrados = usuariosCache.filter(u => {
+        const rol = (u.rol || "").toUpperCase();
+        if (filtroRolActual === 'DOCENTE' && rol !== 'DOCENTE') return false;
+        if (filtroRolActual === 'ADMINISTRATIVO' && rol !== 'ADMINISTRATIVO') return false;
+        if (filtroRolActual === 'PLATAFORMA' && (rol === 'DOCENTE' || rol === 'ADMINISTRATIVO')) return false;
+        if (texto) {
+            const nom = (u.nombre || "").toLowerCase();
+            const rfc = (u.rfc || "").toLowerCase();
+            const cor = (u.correo || "").toLowerCase();
+            const tel = (u.telefono || "").toLowerCase();
+            return nom.includes(texto) || rfc.includes(texto) || cor.includes(texto) || tel.includes(texto);
+        }
+        return true;
+    });
+
+    if (filtrados.length === 0) {
+        return Swal.fire("Aviso", "No hay registros para exportar.", "warning");
+    }
+
+    Swal.fire({ title: 'Generando Reporte PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('portrait', 'mm', 'letter');
+        const hoy = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        let y = 20;
+
+        // Encabezado
+        pdf.setFillColor(123, 27, 55);
+        pdf.rect(14, y, 187.9, 14, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text("CBTis No. 134 • DIRECTORIO OFICIAL DE PERSONAL Y DOCENTES", 107.95, y + 9, { align: "center" });
+
+        y += 20;
+        pdf.setTextColor(60, 60, 60);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.text(`Fecha de emisión: ${hoy} | Filtro: ${filtroRolActual} | Total de registros: ${filtrados.length}`, 14, y);
+
+        y += 6;
+        // Cabecera de Tabla
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(14, y, 187.9, 7, 'F');
+        pdf.setTextColor(40, 40, 40);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.text("#", 16, y + 5);
+        pdf.text("NOMBRE COMPLETO", 25, y + 5);
+        pdf.text("RFC", 92, y + 5);
+        pdf.text("ROL / PUESTO", 125, y + 5);
+        pdf.text("TURNO", 158, y + 5);
+        pdf.text("ESTATUS", 182, y + 5);
+
+        y += 7;
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+
+        for (let i = 0; i < filtrados.length; i++) {
+            const u = filtrados[i];
+
+            if (y > 260) {
+                pdf.addPage();
+                y = 20;
+                // Redibujar cabecera
+                pdf.setFillColor(240, 240, 240);
+                pdf.rect(14, y, 187.9, 7, 'F');
+                pdf.setTextColor(40, 40, 40);
+                pdf.setFont("helvetica", "bold");
+                pdf.setFontSize(8);
+                pdf.text("#", 16, y + 5);
+                pdf.text("NOMBRE COMPLETO", 25, y + 5);
+                pdf.text("RFC", 92, y + 5);
+                pdf.text("ROL / PUESTO", 125, y + 5);
+                pdf.text("TURNO", 158, y + 5);
+                pdf.text("ESTATUS", 182, y + 5);
+                y += 7;
+                pdf.setFont("helvetica", "normal");
+                pdf.setFontSize(7.5);
+            }
+
+            if (i % 2 === 1) {
+                pdf.setFillColor(248, 248, 248);
+                pdf.rect(14, y, 187.9, 6, 'F');
+            }
+
+            pdf.setTextColor(40, 40, 40);
+            pdf.text(String(i + 1), 16, y + 4.2);
+            
+            const nombreCorto = (u.nombre || '').substring(0, 38).toUpperCase();
+            pdf.text(nombreCorto, 25, y + 4.2);
+            pdf.text(String(u.rfc || 'SIN RFC').substring(0, 13).toUpperCase(), 92, y + 4.2);
+            pdf.text(String(u.rol || 'DOCENTE').substring(0, 16).toUpperCase(), 125, y + 4.2);
+            pdf.text(String(u.turno || 'Matutino').substring(0, 14), 158, y + 4.2);
+            pdf.text(String(u.estatus || 'Activo'), 182, y + 4.2);
+
+            y += 6;
+        }
+
+        const hoyStr = new Date().toISOString().split('T')[0];
+        pdf.save(`Directorio_Personal_${filtroRolActual}_${hoyStr}.pdf`);
+        Swal.close();
+    } catch(err) {
+        console.error("Error generando PDF de personal:", err);
+        Swal.fire("Error", "No se pudo generar el reporte PDF: " + err.message, "error");
+    }
 }
 
 // 9. ANALIZAR ARCHIVO EXCEL PARA CARGA MASIVA

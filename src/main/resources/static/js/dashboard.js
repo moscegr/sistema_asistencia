@@ -11,9 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarSesion();
     cargarDashboardCompleto();
     cargarEstadisticas();
+    cargarEstadisticasPersonal();
     setInterval(() => {
         cargarDashboardCompleto();
         cargarEstadisticas();
+        cargarEstadisticasPersonal();
     }, 60000);
 });
 
@@ -568,6 +570,74 @@ async function cargarEstadisticas() {
     const listIncidencias = await safeFetchJson('/api/incidencias');
     if (listIncidencias) setVal('totalIncidencias', listIncidencias.length);
 }
+
+async function cargarEstadisticasPersonal() {
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+    const hoy = new Date().toLocaleDateString('en-CA');
+    try {
+        const [usuarios, registrosHoy] = await Promise.all([
+            safeFetchJson('/api/usuarios') || [],
+            safeFetchJson('/api/registros-diarios/fecha/' + hoy) || []
+        ]);
+
+        if (!usuarios || !Array.isArray(usuarios)) return;
+
+        let docentes = 0;
+        let adminis = 0;
+        let mat = 0;
+        let ves = 0;
+        let dentroCount = 0;
+
+        const dentroMap = new Set();
+        if (Array.isArray(registrosHoy)) {
+            registrosHoy.forEach(r => {
+                if (r.estatus_actual === 'DENTRO' || (r.hora_entrada && !r.hora_salida)) {
+                    if (r.matricula) dentroMap.add(r.matricula.trim().toUpperCase());
+                    if (r.id) dentroMap.add(r.id.trim().toUpperCase());
+                }
+            });
+        }
+
+        usuarios.forEach(u => {
+            const rol = (u.rol || '').toUpperCase();
+            if (rol === 'DOCENTE') {
+                docentes++;
+            } else {
+                adminis++;
+            }
+
+            const turno = (u.turno || '').toUpperCase();
+            if (turno.includes('VESP') || turno === 'VESPERTINO') {
+                ves++;
+            } else {
+                mat++;
+            }
+
+            const rfcKey = (u.rfc || '').trim().toUpperCase();
+            const uidKey = (u.uid || '').trim().toUpperCase();
+            const idKey = (u.id || '').trim().toUpperCase();
+            const correoKey = (u.correo || '').trim().toUpperCase();
+
+            const estaDentro = (rfcKey && dentroMap.has(rfcKey)) ||
+                               (uidKey && dentroMap.has(uidKey)) ||
+                               (idKey && dentroMap.has(idKey)) ||
+                               (correoKey && dentroMap.has(correoKey)) ||
+                               (u.estado === 'DENTRO');
+
+            if (estaDentro) {
+                dentroCount++;
+            }
+        });
+
+        setVal('totalDocentes', docentes);
+        setVal('totalAdminis', adminis);
+        setVal('totalPersonalDentro', dentroCount);
+        setVal('totalPersonalTurnos', `${mat} Mat / ${ves} Ves`);
+    } catch (e) {
+        console.error("Error al cargar estadísticas de personal:", e);
+    }
+}
+window.cargarEstadisticasPersonal = cargarEstadisticasPersonal;
 
 async function cargarDashboardCompleto() {
     try {
