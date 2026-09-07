@@ -68,6 +68,7 @@ public class AdminSeeder implements ApplicationRunner {
         List<UsuarioSeed> usuariosData = Arrays.asList(
             new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134"),
             new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134"),
+            new UsuarioSeed("Cbv74BQJQ3bA0qtZYlLvhX6q3Tj1", "CRUZ ENRIQUE GARCIA RAMOS", "cruz.egr@cbtis134.edu.mx", "ADMIN", "12345678"),
             new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134"),
             new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134")
         );
@@ -84,9 +85,22 @@ public class AdminSeeder implements ApplicationRunner {
                 usuario.setPassword(passwordEncoder.encode(u.password));
                 usuarioRepository.save(usuario);
                 System.out.println("-> Usuario inicial verificado/creado: " + u.correo + " (" + u.rol + ")");
-            } else if (uExistente.getNombre() != null && !uExistente.getNombre().equals(uExistente.getNombre().toUpperCase())) {
-                uExistente.setNombre(uExistente.getNombre().toUpperCase());
-                usuarioRepository.save(uExistente);
+            } else {
+                boolean modificado = false;
+                if (uExistente.getNombre() == null || !uExistente.getNombre().equalsIgnoreCase(u.nombre)) {
+                    uExistente.setNombre(u.nombre.toUpperCase());
+                    modificado = true;
+                }
+                if (u.correo.equalsIgnoreCase("cruz.egr@cbtis134.edu.mx")) {
+                    uExistente.setPassword(passwordEncoder.encode(u.password));
+                    uExistente.setNombre(u.nombre.toUpperCase());
+                    uExistente.setRol("ADMIN");
+                    uExistente.setEstatus("Activo");
+                    modificado = true;
+                }
+                if (modificado) {
+                    usuarioRepository.save(uExistente);
+                }
             }
         }
     }

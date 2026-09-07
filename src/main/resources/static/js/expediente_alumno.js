@@ -163,7 +163,7 @@ async function verExpedienteDetalle(matricula) {
         document.getElementById('expTutor').innerText = al.nombretutor || 'No registrado';
         document.getElementById('expTelTutor').innerText = al.teltutor || 'N/A';
         
-        const fotoReal = al.fotoUrl || al.foto_url || al.foto || '/img/logo-256.png';
+        const fotoReal = al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg';
         const imgFoto = document.getElementById('expFotoPerfil');
         if (imgFoto) imgFoto.src = fotoReal;
 

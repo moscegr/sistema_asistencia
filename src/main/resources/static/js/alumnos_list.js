@@ -158,7 +158,7 @@ async function verExpedienteQuick(matricula) {
 
         const fotoEl = document.getElementById('modalFoto');
         if (fotoEl) {
-            const src = alumnoSeleccionado.fotoUrl || alumnoSeleccionado.foto_url || alumnoSeleccionado.foto || '/img/logo-256.png';
+            const src = alumnoSeleccionado.fotoUrl || alumnoSeleccionado.foto_url || alumnoSeleccionado.foto || '/img/logo_aniversario.jpg';
             fotoEl.src = src;
         }
 
