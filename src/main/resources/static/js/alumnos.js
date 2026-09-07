@@ -1,5 +1,4 @@
 let iaCargada = false;
-let streamCamara = null;
 let descriptorFacialGlobal = null;
 let fotoPerfilGlobal = null;
 let alumnoEdicionId = null;
@@ -8,12 +7,7 @@ let adminUID = "ADMIN_DEFAULT";
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarEspecialidadesForm();
     cargarModelosIABackground();
-    const esEdicion = await verificarEdicion();
-
-    // Si es un nuevo estudiante y no hay foto cargada, activar cámara automáticamente de inmediato
-    if (!esEdicion && !fotoPerfilGlobal) {
-        iniciarCamaraRegistro();
-    }
+    await verificarEdicion();
 });
 
 async function cargarEspecialidadesForm() {
@@ -102,8 +96,6 @@ async function verificarEdicion() {
             if (fotoExistente) {
                 fotoPerfilGlobal = fotoExistente;
                 mostrarFotoPreview(fotoPerfilGlobal);
-            } else {
-                iniciarCamaraRegistro();
             }
             
             toggleAula(d.color_semaforo);
@@ -127,68 +119,98 @@ async function cargarModelosIABackground() {
     }
 }
 
-async function iniciarCamaraRegistro() {
-    const video = document.getElementById('videoRegistro');
-    if (!video) return;
-    
+let streamWebcamAlumno = null;
+
+async function abrirCamaraWebcamAlumno() {
+    const video = document.getElementById('videoWebcamAlumno');
+    const modalEl = document.getElementById('modalCamaraWebcamAlumno');
+    if (!video || !modalEl) return;
+
     try {
-        if (streamCamara) {
-            streamCamara.getTracks().forEach(t => t.stop());
+        if (streamWebcamAlumno) {
+            streamWebcamAlumno.getTracks().forEach(t => t.stop());
         }
-        streamCamara = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-        video.srcObject = streamCamara;
-        
-        if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
-        if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'none';
-        if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'block';
-        if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'inline-block';
-        if (document.getElementById('btnTomarOtraFoto')) document.getElementById('btnTomarOtraFoto').style.display = 'none';
-        if (document.getElementById('btnEliminarFoto')) document.getElementById('btnEliminarFoto').style.display = 'none';
-        
-    } catch (e) {
-        console.warn("Cámara no iniciada:", e);
+        streamWebcamAlumno = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+        });
+        video.srcObject = streamWebcamAlumno;
+
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    } catch (err) {
+        console.error("Error al abrir webcam alumno:", err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Cámara',
+            text: 'No se pudo acceder a la webcam. Verifique los permisos de su navegador.',
+            confirmButtonColor: '#7b1b37'
+        });
     }
 }
 
-async function capturarFirmaFacial() {
-    const video = document.getElementById('videoRegistro');
-    Swal.fire({ title: 'Capturando fotografía...', text: 'Guardando foto de perfil', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    
-    try {
-        // Redimensionar y comprimir la captura a 300x400 JPEG para máxima eficiencia (pesa ~20KB)
-        const canvasSnap = document.createElement('canvas');
-        canvasSnap.width = 300;
-        canvasSnap.height = 400;
-        const ctxSnap = canvasSnap.getContext('2d');
-
-        const vW = video.videoWidth || 640;
-        const vH = video.videoHeight || 480;
-        ctxSnap.drawImage(video, 0, 0, vW, vH, 0, 0, 300, 400);
-        
-        fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
-
-        if (iaCargada) {
-            try {
-                const deteccion = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-                if (deteccion) {
-                    descriptorFacialGlobal = Array.from(deteccion.descriptor);
-                }
-            } catch(e) { console.warn("Extracción vectorial omitida:", e); }
-        }
-
-        if (streamCamara) streamCamara.getTracks().forEach(track => track.stop());
-
-        if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
-        if (document.getElementById('btnCapturarRostro')) document.getElementById('btnCapturarRostro').style.display = 'none';
-        
-        mostrarFotoPreview(fotoPerfilGlobal);
-
-        Swal.fire("¡Foto Capturada!", "La fotografía de perfil se ha asignado correctamente al estudiante.", "success");
-
-    } catch (err) {
-        console.error(err);
-        Swal.fire("Error", "No se pudo capturar la imagen de la cámara.", "error");
+function cerrarCamaraWebcamAlumno() {
+    if (streamWebcamAlumno) {
+        streamWebcamAlumno.getTracks().forEach(t => t.stop());
+        streamWebcamAlumno = null;
     }
+    const video = document.getElementById('videoWebcamAlumno');
+    if (video) video.srcObject = null;
+
+    const modalEl = document.getElementById('modalCamaraWebcamAlumno');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+}
+
+async function capturarFotoWebcamAlumno() {
+    const video = document.getElementById('videoWebcamAlumno');
+    const canvas = document.getElementById('canvasWebcamAlumno');
+    if (!video || !canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const size = Math.min(video.videoWidth || 640, video.videoHeight || 480);
+    const startX = ((video.videoWidth || 640) - size) / 2;
+    const startY = ((video.videoHeight || 480) - size) / 2;
+
+    canvas.width = 400;
+    canvas.height = 400;
+    
+    // Espejo para coincidir con la vista previa
+    ctx.translate(400, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, startX, startY, size, size, 0, 0, 400, 400);
+
+    fotoPerfilGlobal = canvas.toDataURL('image/jpeg', 0.90);
+    mostrarFotoPreview(fotoPerfilGlobal);
+    cerrarCamaraWebcamAlumno();
+
+    // Extracción de descriptor facial FaceID
+    if (typeof faceapi !== 'undefined') {
+        try {
+            if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                ]);
+            }
+            const deteccion = await faceapi.detectSingleFace(canvas).withFaceLandmarks().withFaceDescriptor();
+            if (deteccion) {
+                descriptorFacialGlobal = Array.from(deteccion.descriptor);
+            }
+        } catch(e) {
+            console.warn("Extracción facial webcam diferida:", e);
+        }
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Foto Capturada',
+        text: 'La fotografía del estudiante se ha capturado exitosamente para FaceID y Credenciales.',
+        timer: 1800,
+        showConfirmButton: false
+    });
 }
 
 function cargarFotoDesdeArchivo(event) {
@@ -201,20 +223,26 @@ function cargarFotoDesdeArchivo(event) {
         img.src = e.target.result;
         img.onload = async () => {
             const canvasSnap = document.createElement('canvas');
-            canvasSnap.width = 300;
+            canvasSnap.width = 400;
             canvasSnap.height = 400;
             const ctxSnap = canvasSnap.getContext('2d');
-            ctxSnap.drawImage(img, 0, 0, 300, 400);
-            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.85);
+            ctxSnap.drawImage(img, 0, 0, 400, 400);
+            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.90);
             mostrarFotoPreview(fotoPerfilGlobal);
 
             // Generar vector facial si la IA está cargada
-            if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
+            if (typeof faceapi !== 'undefined') {
                 try {
+                    if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
+                        await Promise.all([
+                            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+                            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                        ]);
+                    }
                     const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
                     if (deteccion) {
                         descriptorFacialGlobal = Array.from(deteccion.descriptor);
-                        console.log("Descriptor facial generado desde archivo de imagen con éxito.");
                     }
                 } catch(err) {
                     console.warn("Extracción vectorial facial desde archivo omitida:", err);
@@ -226,20 +254,13 @@ function cargarFotoDesdeArchivo(event) {
 }
 
 function mostrarFotoPreview(srcFoto) {
-    if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'none';
-    if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
-    
-    const divRes = document.getElementById('rostroCapturado');
     const imgPrev = document.getElementById('imgFotoPerfilPreview');
-    const btnTomarOtra = document.getElementById('btnTomarOtraFoto');
     const btnDel = document.getElementById('btnEliminarFoto');
 
-    if (divRes) divRes.style.display = 'block';
     if (imgPrev) {
         imgPrev.src = srcFoto;
         imgPrev.style.display = 'block';
     }
-    if (btnTomarOtra) btnTomarOtra.style.display = 'inline-block';
     if (btnDel) btnDel.style.display = 'inline-block';
 }
 
@@ -247,16 +268,28 @@ function eliminarFotoEstudiante() {
     fotoPerfilGlobal = null;
     descriptorFacialGlobal = null;
 
-    if (document.getElementById('rostroCapturado')) document.getElementById('rostroCapturado').style.display = 'none';
-    if (document.getElementById('contenedorCamara')) document.getElementById('contenedorCamara').style.display = 'none';
-    if (document.getElementById('iconoEspera')) document.getElementById('iconoEspera').style.display = 'flex';
-    if (document.getElementById('btnEliminarFoto')) document.getElementById('btnEliminarFoto').style.display = 'none';
-    if (document.getElementById('btnTomarOtraFoto')) document.getElementById('btnTomarOtraFoto').style.display = 'none';
-    if (document.getElementById('inputFotoArchivo')) document.getElementById('inputFotoArchivo').value = '';
-    
-    iniciarCamaraRegistro();
-    Swal.fire({ icon: 'info', title: 'Fotografía removida', text: 'Se eliminará la foto de perfil del estudiante al guardar.', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
+    const imgPrev = document.getElementById('imgFotoPerfilPreview');
+    const inputArchivo = document.getElementById('inputFotoArchivo');
+    const btnDel = document.getElementById('btnEliminarFoto');
+
+    if (imgPrev) imgPrev.src = '/img/logo-256.png';
+    if (inputArchivo) inputArchivo.value = '';
+    if (btnDel) btnDel.style.display = 'none';
+
+    Swal.fire({
+        icon: 'info',
+        title: 'Fotografía removida',
+        text: 'Se ha restablecido la imagen por defecto.',
+        timer: 1500,
+        showConfirmButton: false
+    });
 }
+
+window.abrirCamaraWebcamAlumno = abrirCamaraWebcamAlumno;
+window.cerrarCamaraWebcamAlumno = cerrarCamaraWebcamAlumno;
+window.capturarFotoWebcamAlumno = capturarFotoWebcamAlumno;
+window.cargarFotoDesdeArchivo = cargarFotoDesdeArchivo;
+window.eliminarFotoEstudiante = eliminarFotoEstudiante;
 
 const formAlumno = document.getElementById('formAlumno');
 if (formAlumno) {

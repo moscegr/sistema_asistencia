@@ -953,9 +953,10 @@ async function procesarFotogramasFaciales() {
             const xEspejo = displaySize.width - box.x - box.width;
 
             let etiquetaTexto = "DESCONOCIDO";
-            let colorBox = '#dc3545'; // Rojo por defecto para desconocido / salida
+            let colorBox = '#dc3545'; // ROJO para persona NO reconocida / desconocido
 
             if (bestMatch.label !== 'unknown') {
+                colorBox = '#198754'; // VERDE garantizado para cualquier persona RECONOCIDA
                 const alumnoEncontrado = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, bestMatch.label));
                 const personalEncontrado = !alumnoEncontrado ? personalCache.find(p => igualMatricula(p.rfc || p.uid || p.id, bestMatch.label)) : null;
 
@@ -963,16 +964,14 @@ async function procesarFotogramasFaciales() {
                     const pat = alumnoEncontrado.apepat || alumnoEncontrado.primerApellido || '';
                     const matKey = alumnoEncontrado.ncontrol || alumnoEncontrado.matricula;
                     const accion = estaDentroHoy(matKey) ? 'SALIDA' : 'ENTRADA';
-                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
                     etiquetaTexto = `${alumnoEncontrado.nombre} ${pat} (${accion})`.toUpperCase();
                 } else if (personalEncontrado) {
                     const rfcKey = personalEncontrado.rfc || personalEncontrado.uid || personalEncontrado.id;
                     const accion = estaDentroHoy(rfcKey) ? 'SALIDA' : 'ENTRADA';
-                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
                     const rol = personalEncontrado.rol || 'DOCENTE';
                     etiquetaTexto = `${personalEncontrado.nombre} [${rol}] (${accion})`.toUpperCase();
                 } else {
-                    etiquetaTexto = bestMatch.label;
+                    etiquetaTexto = bestMatch.label.toUpperCase();
                 }
             }
 

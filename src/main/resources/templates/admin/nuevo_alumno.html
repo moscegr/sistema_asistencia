@@ -86,46 +86,23 @@
                                 </div>
                                 
                                 <div class="col-md-12 mt-4 pt-3 border-top">
-								    <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-bounding-box me-2"></i> Fotografía y Registro Biométrico Facial (Opcional)</h6>
-								    <div class="row align-items-center bg-light p-3 rounded border">
-								        
-								        <div class="col-md-4 text-center">
-								            <div id="contenedorCamara" class="bg-dark rounded shadow-sm position-relative mx-auto" style="width: 220px; height: 165px; overflow: hidden; display: none;">
-								                <video id="videoRegistro" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-								            </div>
-								            
-								            <div id="rostroCapturado" class="bg-white border rounded p-2 mx-auto shadow-sm" style="width: 220px; display: none;">
-								                <img id="imgFotoPerfilPreview" src="" class="img-fluid rounded mb-2" style="max-height: 140px; object-fit: contain;">
-								                <div class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Foto Registrada</div>
-								            </div>
-								            
-								            <div id="iconoEspera" class="text-muted" style="width: 220px; height: 165px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc; border-radius: 10px; margin: 0 auto;">
-								                <i class="bi bi-camera-video-off fs-1"></i>
-								            </div>
-								        </div>
-								        
-								        <div class="col-md-8">
-								            <p class="x-small text-muted mb-3">Escanee el rostro del estudiante o suba una foto. Esta foto se guardará en su perfil y se utilizará por defecto en las credenciales escolares.</p>
-								            
-								            <div class="d-flex gap-2 flex-wrap mb-2">
-								                <button type="button" id="btnCapturarRostro" class="btn bg-guinda text-white btn-sm fw-bold" onclick="capturarFirmaFacial()" style="display: none; background-color: #7b1b37;">
-								                    <i class="bi bi-camera-fill me-1"></i> Escanear Rostro y Capturar Foto
-								                </button>
-								                <button type="button" id="btnTomarOtraFoto" class="btn btn-outline-primary btn-sm fw-bold" onclick="iniciarCamaraRegistro()" style="display: none;">
-								                    <i class="bi bi-camera-video me-1"></i> Tomar otra Foto
-								                </button>
-								                <button type="button" id="btnEliminarFoto" class="btn btn-outline-danger btn-sm fw-bold" onclick="eliminarFotoEstudiante()" style="display: none;">
-								                    <i class="bi bi-trash me-1"></i> Eliminar Foto
-								                </button>
-								            </div>
-
-								            <div class="mt-2">
-								                <label class="x-small fw-bold text-secondary mb-1">O suba una imagen de perfil desde su equipo:</label>
-								                <input type="file" class="form-control form-control-sm" id="inputFotoArchivo" accept="image/png, image/jpeg" onchange="cargarFotoDesdeArchivo(event)">
-								            </div>
-								        </div>
-								    </div>
-								</div>
+                                    <label class="form-label small fw-bold"><i class="bi bi-person-bounding-box me-2 text-guinda"></i>Fotografía del Alumno (FaceID y Credenciales)</label>
+                                    <div class="d-flex align-items-center gap-3 bg-light p-3 rounded border">
+                                        <img id="imgFotoPerfilPreview" src="/img/logo-256.png" class="rounded-circle border shadow-sm" style="width: 85px; height: 85px; object-fit: cover;">
+                                        <div class="flex-grow-1">
+                                            <input type="file" id="inputFotoArchivo" class="form-control form-control-sm" accept="image/*" onchange="cargarFotoDesdeArchivo(event)">
+                                            <div class="d-flex gap-2 mt-2">
+                                                <button type="button" class="btn btn-sm btn-outline-guinda rounded-pill" onclick="abrirCamaraWebcamAlumno()">
+                                                    <i class="bi bi-camera-video-fill me-1"></i>Tomar Foto con Webcam
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" id="btnEliminarFoto" onclick="eliminarFotoEstudiante()" style="display: none;">
+                                                    <i class="bi bi-trash me-1"></i>Quitar Foto
+                                                </button>
+                                            </div>
+                                            <small class="text-muted d-block mt-1">Sube una foto clara o tómala directamente con la webcam para FaceID y Credenciales escolares.</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -222,6 +199,32 @@
         </div>
     </div>
 </div>
+    <!-- Modal Cámara Webcam Alumno -->
+    <div class="modal fade" id="modalCamaraWebcamAlumno" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-guinda text-white py-2" style="background-color: #7b1b37;">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-camera-fill me-2"></i>Tomar Foto con Cámara / Webcam</h6>
+                    <button type="button" class="btn-close btn-close-white" onclick="cerrarCamaraWebcamAlumno()"></button>
+                </div>
+                <div class="modal-body p-3 text-center bg-dark">
+                    <div class="position-relative mx-auto rounded-3 overflow-hidden shadow" style="width: 320px; height: 240px; background: #000;">
+                        <video id="videoWebcamAlumno" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                        <canvas id="canvasWebcamAlumno" class="d-none" width="400" height="400"></canvas>
+                        <!-- Guía circular para centrar el rostro -->
+                        <div style="position: absolute; top: 20px; left: 60px; width: 200px; height: 200px; border: 2px dashed rgba(255,255,255,0.7); border-radius: 50%; pointer-events: none;"></div>
+                    </div>
+                    <p class="text-light small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Posicione el rostro del alumno dentro del círculo guía</p>
+                </div>
+                <div class="modal-footer border-0 bg-light d-flex justify-content-between p-2">
+                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" onclick="cerrarCamaraWebcamAlumno()">Cancelar</button>
+                    <button type="button" class="btn btn-sm text-white rounded-pill px-4 fw-bold" style="background-color: #7b1b37;" onclick="capturarFotoWebcamAlumno()">
+                        <i class="bi bi-camera me-1"></i>Capturar Fotografía
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
