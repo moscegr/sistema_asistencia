@@ -2,6 +2,7 @@
 
 let html5QrcodeScanner = null;
 let alumnosCache = [];
+let personalCache = [];
 let especialidadesConfig = [];
 let pasesIndividualesHoy = [];
 let gruposAutorizadosHoy = [];
@@ -9,7 +10,7 @@ let procesandoEscaneo = false;
 let ultimoEscaneo = { matricula: "", tiempo: 0 };
 
 const igualMatricula = (val1, val2) => {
-    return String(val1 || '').trim() === String(val2 || '').trim();
+    return String(val1 || '').trim().toUpperCase() === String(val2 || '').trim().toUpperCase();
 };
 
 const normalizarTexto = (texto) => {
@@ -44,14 +45,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function cargarConfiguracionInicial() {
     try {
-        const [resAlumnos, resConfig, resPases, resContingencia] = await Promise.all([
+        const [resAlumnos, resPersonal, resConfig, resPases, resContingencia] = await Promise.all([
             fetch('/api/alumnos').then(r => r.ok ? r.json() : []),
+            fetch('/api/usuarios').then(r => r.ok ? r.json() : []),
             fetch('/api/configuracion/escolar').then(r => r.ok ? r.json() : {}),
             fetch('/api/pases').then(r => r.ok ? r.json() : []),
             fetch('/api/configuracion/modo_contingencia').then(r => r.ok ? r.json() : {})
         ]);
 
         alumnosCache = resAlumnos;
+        personalCache = resPersonal;
         especialidadesConfig = resConfig.especialidades || [];
 
         const modoContingenciaActivo = (resContingencia?.activo === true);
@@ -204,17 +207,130 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             String(a.qr_texto || '').trim() === textoCrudo
         );
 
+        let persona = null;
         if (!al) {
-            const resAl = await fetch(`/api/alumnos/ncontrol/${encodeURIComponent(matricula)}`);
-            if (resAl.ok) al = await resAl.json();
+            persona = personalCache.find(p => 
+                igualMatricula(p.rfc, matricula) || 
+                igualMatricula(p.uid, matricula) ||
+                igualMatricula(p.qrCode, matricula) ||
+                igualMatricula(p.id, matricula) ||
+                igualMatricula(p.correo, matricula) ||
+                String(p.qrCode || '').trim().toUpperCase() === textoCrudo.toUpperCase()
+            );
         }
 
+        if (!al && !persona) {
+            // Intentar consultar por endpoint si es nuevo o no estaba en cache
+            try {
+                const resPers = await fetch(`/api/usuarios/rfc/${encodeURIComponent(matricula)}`);
+                if (resPers.ok) persona = await resPers.json();
+            } catch(e) {}
+            if (!persona) {
+                try {
+                    const resAl = await fetch(`/api/alumnos/ncontrol/${encodeURIComponent(matricula)}`);
+                    if (resAl.ok) al = await resAl.json();
+                } catch(e) {}
+            }
+        }
+
+        // ==========================================
+        // CASO 1: DOCENTE O PERSONAL ADMINISTRATIVO
+        // ==========================================
+        if (persona) {
+            const estatusPers = String(persona.estatus || 'ACTIVO').toUpperCase();
+            if (estatusPers === 'INACTIVO' || estatusPers === 'BAJA') {
+                reproducirBeepError();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Personal Inactivo',
+                    text: `El docente/personal ${persona.nombre} se encuentra inactivo.`,
+                    position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
+                });
+                procesandoEscaneo = false;
+                return;
+            }
+
+            const horaActual = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const estaDentro = (String(persona.estado || '').toUpperCase() === 'DENTRO');
+
+            const resRegs = await fetch(`/api/registros-diarios/fecha/${hoy}`);
+            const registrosHoy = resRegs.ok ? await resRegs.json() : [];
+            const rfcKey = persona.rfc || persona.uid || persona.id;
+            const regExistente = registrosHoy.find(r => igualMatricula(r.matricula, rfcKey));
+
+            if (!estaDentro) {
+                // Registrar ENTRADA de Docente / Personal
+                const nuevoReg = regExistente || {
+                    matricula: rfcKey,
+                    nombre: persona.nombre,
+                    especialidad: persona.rol || 'DOCENTE',
+                    grado: persona.turno || 'Matutino',
+                    grupo: 'PERSONAL',
+                    fecha: hoy
+                };
+                nuevoReg.hora_entrada = horaActual;
+                nuevoReg.estatus_actual = "DENTRO";
+
+                fetch('/api/registros-diarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(nuevoReg)
+                }).catch(e => console.error("Error guardando registro docente:", e));
+
+                persona.estado = "DENTRO";
+                fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado: "DENTRO" })
+                }).catch(e => console.error("Error actualizando estado docente:", e));
+
+                mostrarResultadoPersonal(persona, "ENTRADA");
+
+            } else {
+                // Registrar SALIDA de Docente / Personal
+                const regSalida = regExistente || {
+                    matricula: rfcKey,
+                    nombre: persona.nombre,
+                    especialidad: persona.rol || 'DOCENTE',
+                    grado: persona.turno || 'Matutino',
+                    grupo: 'PERSONAL',
+                    fecha: hoy
+                };
+                regSalida.hora_salida = horaActual;
+                regSalida.estatus_actual = "FUERA";
+                regSalida.tipo_salida = "PERSONAL";
+
+                fetch('/api/registros-diarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(regSalida)
+                }).catch(e => console.error("Error guardando salida docente:", e));
+
+                persona.estado = "FUERA";
+                fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado: "FUERA" })
+                }).catch(e => console.error("Error actualizando estado docente:", e));
+
+                mostrarResultadoPersonal(persona, "SALIDA");
+            }
+
+            setTimeout(() => {
+                procesandoEscaneo = false;
+            }, 800);
+            return;
+        }
+
+        // ==========================================
+        // CASO 2: ALUMNO
+        // ==========================================
         if (!al) {
             reproducirBeepError();
             Swal.fire({
                 icon: 'error', 
-                title: 'Estudiante No Encontrado', 
-                text: `No se encontró ningún estudiante con la matrícula: ${matricula}`,
+                title: 'Estudiante / Personal No Encontrado', 
+                text: `No se encontró ningún registro con la matrícula o RFC: ${matricula}`,
                 position: 'bottom-end', toast: true, width: '600px', timer: 3000, showConfirmButton: false
             });
             procesandoEscaneo = false; 
@@ -362,6 +478,40 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
     }
 }
 
+function mostrarResultadoPersonal(persona, accion) {
+    reproducirBeepExito();
+    const colorBanda = accion === "ENTRADA" ? "#198754" : "#dc3545";
+    const rol = (persona.rol || "DOCENTE").toUpperCase();
+    const titulo = `${rol} - ${accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA"}`;
+    const foto = persona.fotoUrl || '/img/logo_aniversario.jpg';
+    const rfc = persona.rfc || persona.uid || 'N/A';
+    const turno = persona.turno || 'Matutino';
+
+    Swal.fire({
+        position: 'bottom-end',
+        toast: true,
+        width: '600px',
+        timer: 3500,
+        showConfirmButton: false,
+        background: '#ffffff',
+        html: `
+            <div id="bandaEstatus" style="background-color: ${colorBanda}; color: white; padding: 10px; font-weight: bold; font-size: 1.4rem; border-radius: 8px 8px 0 0; text-align: center;">
+                ${titulo}
+            </div>
+            <div class="d-flex align-items-center p-3">
+                <img src="${foto}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid ${colorBanda};">
+                <div class="ms-3 text-start">
+                    <h4 class="fw-bold mb-1" style="color: #212529;">${persona.nombre}</h4>
+                    <p class="mb-0 text-muted" style="font-size: 1.1rem;">
+                        <strong>RFC:</strong> <span class="font-monospace fw-bold text-dark">${rfc}</span> <br>
+                        <strong>Rol:</strong> <span class="badge ${rol === 'DOCENTE' ? 'bg-purple' : 'bg-primary'} text-white" style="${rol === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : ''}">${rol}</span> | <strong>Turno:</strong> ${turno}
+                    </p>
+                </div>
+            </div>
+        `
+    });
+}
+
 function mostrarResultado(al, accion) {
     reproducirBeepExito();
 
@@ -427,35 +577,28 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
             ? (configWs.plantilla_entrada || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}.')
             : (configWs.plantilla_salida || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}.');
 
-        let mensaje = plantillaBase
-            .replace(/{nombre}/g, nombreCompleto)
-            .replace(/{matricula}/g, mat)
-            .replace(/{grado}/g, al.grado || '')
-            .replace(/{grupo}/g, al.grupo || '')
-            .replace(/{carrera}/g, al.especialidad || '')
-            .replace(/{hora}/g, hora)
-            .replace(/{fecha}/g, fecha);
+        const mensajeFinal = plantillaBase
+            .replace(/\{nombre\}/g, nombreCompleto)
+            .replace(/\{matricula\}/g, mat)
+            .replace(/\{hora\}/g, hora)
+            .replace(/\{fecha\}/g, fecha)
+            .replace(/\{carrera\}/g, al.especialidad || 'N/A')
+            .replace(/\{grado\}/g, al.grado || '')
+            .replace(/\{grupo\}/g, al.grupo || '');
 
-        const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
+        const payload = {
+            telefono: tel,
+            mensaje: mensajeFinal
+        };
 
-        const resp = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+        fetch('/api/whatsapp/enviar-mensaje', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                apiUrl: configWs.apiUrl || configWs.serverUrl,
-                apiKey: configWs.apiKey || configWs.token,
-                token: configWs.token || configWs.apiKey,
-                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
-                to: tel,
-                body: mensaje
-            })
-        });
+            body: JSON.stringify(payload)
+        }).catch(errWs => console.warn("Error enviando WhatsApp:", errWs));
 
-        if (resp.ok) {
-            // Notificación enviada con éxito en segundo plano
-        }
-    } catch(e) {
-        console.warn("No se pudo enviar la notificación de WhatsApp:", e);
+    } catch (e) {
+        console.error("Error en enviarNotificacionTutor:", e);
     }
 }
 
@@ -465,13 +608,10 @@ function generarTableroDinamico() {
 
     contenedor.innerHTML = "";
 
-    const paletaColores = ['#7b1b37', '#0d6efd', '#198754', '#ffc107', '#0dcaf0', '#6f42c1', '#fd7e14'];
-
-    especialidadesConfig.forEach((esp, index) => {
-        const color = paletaColores[index % paletaColores.length];
-        
-        const alumnosEsp = alumnosCache.filter(a => a.especialidad === esp.nombre);
-        const gruposUnicos = [...new Set(alumnosEsp.map(a => `${a.grado}${a.grupo}`))].sort();
+    especialidadesConfig.forEach(esp => {
+        const color = esp.color || "#6c757d";
+        const alumnosDeEstaEsp = alumnosCache.filter(a => a.especialidad === esp.nombre);
+        const gruposUnicos = [...new Set(alumnosDeEstaEsp.map(a => `${a.grado}${a.grupo}`))].sort();
 
         let badgesHTML = "";
         gruposUnicos.forEach(gpo => {
@@ -505,13 +645,13 @@ function renderizarListaFiltrada(filtro) {
     tbody.innerHTML = "";
 
     const f = normalizarTexto(filtro);
-    const filtrados = alumnosCache.filter(a => {
+    const filtradosAlumnos = alumnosCache.filter(a => {
         const nom = normalizarTexto(`${a.nombre} ${a.apepat || a.primerApellido || ''} ${a.apemat || a.segundoApellido || ''}`);
         const mat = normalizarTexto(a.ncontrol || a.matricula);
         return nom.includes(f) || mat.includes(f);
     });
 
-    filtrados.slice(0, 50).forEach(al => {
+    filtradosAlumnos.slice(0, 50).forEach(al => {
         const tr = document.createElement('tr');
         tr.className = "table-active-hover";
         const pat = al.apepat || al.primerApellido || '';
@@ -535,32 +675,32 @@ function renderizarListaFiltrada(filtro) {
     });
 }
 
-// ── RECONOCIMIENTO FACIAL EMPRESARIAL (EDGE-CACHE & BACKGROUND AUTO-VECTORIZATION) ──
-const DB_BIOMETRIA_NAME = 'cbtis134_biometrics_db';
-const DB_BIOMETRIA_VERSION = 1;
+// -------------------------------------------------------------
+// ARQUITECTURA BIOMÉTRICA EMPRESARIAL (EDGE-BIOMETRICS)
+// -------------------------------------------------------------
+const DB_NAME = 'cbtis134_biometrics_db';
+const DB_VERSION = 1;
 const STORE_DESCRIPTORES = 'face_descriptors';
 
-let faceMatcher = null;
-let escaneoFacialActivo = false;
-let streamReconocimiento = null;
-let modoEscaneoFacial = 'AMBOS'; 
 let motorFacialListo = false;
-let descriptoresCargados = new Map(); // matricula -> Array(128)
+let streamReconocimiento = null;
+let escaneoFacialActivo = false;
+let faceMatcher = null;
+let modoEscaneoFacial = 'AMBOS';
+const descriptoresCargados = new Map();
 
 function abrirDBBiometria() {
     return new Promise((resolve) => {
         if (!window.indexedDB) return resolve(null);
-        try {
-            const req = indexedDB.open(DB_BIOMETRIA_NAME, DB_BIOMETRIA_VERSION);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_DESCRIPTORES)) {
-                    db.createObjectStore(STORE_DESCRIPTORES, { keyPath: 'matricula' });
-                }
-            };
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => resolve(null);
-        } catch(e) { resolve(null); }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_DESCRIPTORES)) {
+                db.createObjectStore(STORE_DESCRIPTORES, { keyPath: 'matricula' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(null);
     });
 }
 
@@ -591,7 +731,6 @@ async function guardarDescriptorLocal(matricula, descriptor) {
 async function precargarMotorFacialSilencioso() {
     if (typeof faceapi === 'undefined') return;
     try {
-        // 1. Cargar pesos de la red neuronal en memoria RAM/WebGL silenciosamente
         if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
             const rutaModelos = window.location.origin + '/models';
             await Promise.all([
@@ -601,28 +740,29 @@ async function precargarMotorFacialSilencioso() {
             ]);
         }
 
-        // 2. Extraer descriptores matemáticos (vector de 128 floats) de MongoDB o de IndexedDB
-        for (const al of alumnosCache) {
-            const mat = String(al.ncontrol || al.matricula || '').trim();
-            if (!mat) continue;
+        // 2. Extraer descriptores matemáticos (vector de 128 floats) de Alumnos y de Personal
+        const todoElPersonalYAlumnos = [...alumnosCache, ...personalCache];
 
-            let desc = al.descriptor_facial || al.descriptorFacial;
+        for (const item of todoElPersonalYAlumnos) {
+            const idKey = String(item.ncontrol || item.matricula || item.rfc || item.uid || item.id || '').trim();
+            if (!idKey) continue;
+
+            let desc = item.descriptor_facial || item.descriptorFacial;
             if (!desc || desc.length !== 128) {
-                desc = await obtenerDescriptorLocal(mat);
+                desc = await obtenerDescriptorLocal(idKey);
                 if (desc && desc.length === 128) {
-                    al.descriptor_facial = desc;
+                    item.descriptor_facial = desc;
                 }
             }
 
             if (desc && desc.length === 128) {
-                descriptoresCargados.set(mat, desc);
+                descriptoresCargados.set(idKey, desc);
             }
         }
 
         actualizarFaceMatcher();
         motorFacialListo = true;
 
-        // 3. Proceso en segundo plano: Auto-vectorizar fotos pendientes sin congelar la interfaz
         setTimeout(procesarFotosFaltantesSegundoPlano, 1500);
 
     } catch (e) {
@@ -632,15 +772,22 @@ async function precargarMotorFacialSilencioso() {
 
 function actualizarFaceMatcher() {
     const descriptoresEtiquetados = [];
-    for (const [mat, desc] of descriptoresCargados.entries()) {
-        const al = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, mat));
-        if (!al) continue;
+    const todoElPersonalYAlumnos = [...alumnosCache, ...personalCache];
 
-        if (modoEscaneoFacial === 'ENTRADA' && String(al.estado).toUpperCase() === 'DENTRO') continue;
-        if (modoEscaneoFacial === 'SALIDA' && String(al.estado).toUpperCase() !== 'DENTRO') continue;
+    for (const [idKey, desc] of descriptoresCargados.entries()) {
+        const item = todoElPersonalYAlumnos.find(a => 
+            igualMatricula(a.ncontrol || a.matricula, idKey) ||
+            igualMatricula(a.rfc, idKey) ||
+            igualMatricula(a.uid, idKey) ||
+            igualMatricula(a.id, idKey)
+        );
+        if (!item) continue;
+
+        if (modoEscaneoFacial === 'ENTRADA' && String(item.estado).toUpperCase() === 'DENTRO') continue;
+        if (modoEscaneoFacial === 'SALIDA' && String(item.estado).toUpperCase() !== 'DENTRO') continue;
 
         descriptoresEtiquetados.push(
-            new faceapi.LabeledFaceDescriptors(mat, [new Float32Array(desc)])
+            new faceapi.LabeledFaceDescriptors(idKey, [new Float32Array(desc)])
         );
     }
 
@@ -654,14 +801,13 @@ function actualizarFaceMatcher() {
 async function procesarFotosFaltantesSegundoPlano() {
     if (typeof faceapi === 'undefined' || !faceapi.nets.ssdMobilenetv1.isLoaded) return;
 
-    const pendientes = alumnosCache.filter(al => {
+    // Alumnos pendientes
+    const alumnosPendientes = alumnosCache.filter(al => {
         const mat = String(al.ncontrol || al.matricula || '').trim();
         return mat && !descriptoresCargados.has(mat) && (al.fotoUrl || al.foto_url || al.foto);
     });
 
-    if (pendientes.length === 0) return;
-
-    for (const al of pendientes) {
+    for (const al of alumnosPendientes) {
         const mat = String(al.ncontrol || al.matricula || '').trim();
         try {
             const src = al.fotoUrl || al.foto_url || al.foto;
@@ -673,7 +819,6 @@ async function procesarFotosFaltantesSegundoPlano() {
                 descriptoresCargados.set(mat, desc);
                 await guardarDescriptorLocal(mat, desc);
 
-                // Auto-sanar base de datos: persistir descriptor permanentemente en MongoDB
                 fetch(`/api/alumnos/${encodeURIComponent(mat)}/descriptor-facial`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -683,85 +828,36 @@ async function procesarFotosFaltantesSegundoPlano() {
                 actualizarFaceMatcher();
             }
         } catch(e) {}
-        // Pequeño retardo de 40ms entre fotos para mantener el navegador 100% fluido
         await new Promise(r => setTimeout(r, 40));
     }
-}
 
-async function cambiarModoFacial(modo) {
-    modoEscaneoFacial = modo;
+    // Personal / Docentes pendientes
+    const personalPendiente = personalCache.filter(p => {
+        const idKey = String(p.rfc || p.uid || p.id || '').trim();
+        return idKey && !descriptoresCargados.has(idKey) && p.fotoUrl;
+    });
 
-    if (document.getElementById('btnModoAmbos')) document.getElementById('btnModoAmbos').className = (modo === 'AMBOS') ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
-    if (document.getElementById('btnModoEntrada')) document.getElementById('btnModoEntrada').className = (modo === 'ENTRADA') ? 'btn btn-sm btn-success' : 'btn btn-sm btn-outline-success';
-    if (document.getElementById('btnModoSalida')) document.getElementById('btnModoSalida').className = (modo === 'SALIDA') ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-outline-danger';
-
-    actualizarFaceMatcher();
-}
-
-async function toggleReconocimientoFacial() {
-    const video = document.getElementById('videoReconocimiento'); 
-    const btn = document.getElementById('btnToggleFaceID');
-    const contFacial = document.getElementById('contenedorFacial');
-    const contQR = document.getElementById('contenedorQR');
-    const controlesFiltro = document.getElementById('controlesModoFacial');
-    const textoIns = document.getElementById('textoInstruccion');
-
-    if (!video) return;
-
-    if (escaneoFacialActivo) {
-        escaneoFacialActivo = false;
-        if (streamReconocimiento) streamReconocimiento.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-
-        if (contFacial) contFacial.style.display = 'none';
-        if (controlesFiltro) controlesFiltro.style.display = 'none';
-        if (contQR) contQR.style.display = 'block';
-        if (btn) {
-            btn.innerHTML = '<i class="bi bi-person-bounding-box me-2"></i>Activar Face ID';
-            btn.style.backgroundColor = 'transparent';
-            btn.style.color = 'var(--guinda)';
-        }
-        if (textoIns) textoIns.innerHTML = '<i class="bi bi-camera me-1"></i> Posicione el código frente a la cámara';
-
-        // Reanudar lector QR optimizado
-        inicializarLectorQR();
-
-    } else {
+    for (const pers of personalPendiente) {
+        const idKey = String(pers.rfc || pers.uid || pers.id || '').trim();
         try {
-            // Detener cámara QR para liberar el hardware de video
-            if (html5QrCode && html5QrCode.isScanning) {
-                try { await html5QrCode.stop(); } catch(e) {}
+            const img = await faceapi.fetchImage(pers.fotoUrl);
+            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+            if (deteccion) {
+                const desc = Array.from(deteccion.descriptor);
+                pers.descriptor_facial = desc;
+                descriptoresCargados.set(idKey, desc);
+                await guardarDescriptorLocal(idKey, desc);
+
+                fetch(`/api/usuarios/${encodeURIComponent(pers.id || pers.uid)}/descriptor-facial`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(desc)
+                }).catch(() => {});
+
+                actualizarFaceMatcher();
             }
-
-            // Activación instantánea (sin bloqueos ni esperas)
-            if (!motorFacialListo) {
-                await precargarMotorFacialSilencioso();
-            }
-            actualizarFaceMatcher();
-
-            streamReconocimiento = await navigator.mediaDevices.getUserMedia({ video: {
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                facingMode: 'user'
-            } });
-            video.srcObject = streamReconocimiento;
-            escaneoFacialActivo = true;
-
-            if (contQR) contQR.style.display = 'none';
-            if (contFacial) contFacial.style.display = 'block';
-            if (controlesFiltro) controlesFiltro.style.display = 'block';
-            if (btn) {
-                btn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i>Volver a QR';
-                btn.style.backgroundColor = 'var(--guinda)';
-                btn.style.color = 'white';
-            }
-            if (textoIns) textoIns.innerHTML = '<i class="bi bi-person-video me-1"></i> Mire a la cámara para registrar acceso';
-
-            video.addEventListener('play', procesarFotogramasFaciales);
-            
-        } catch (e) {
-            Swal.fire("Error", "No se pudo acceder a la cámara. Revisa los permisos del navegador.", "error");
-        }
+        } catch(e) {}
+        await new Promise(r => setTimeout(r, 40));
     }
 }
 
@@ -798,11 +894,18 @@ async function procesarFotogramasFaciales() {
 
             if (bestMatch.label !== 'unknown') {
                 const alumnoEncontrado = alumnosCache.find(a => igualMatricula(a.ncontrol || a.matricula, bestMatch.label));
+                const personalEncontrado = !alumnoEncontrado ? personalCache.find(p => igualMatricula(p.rfc || p.uid || p.id, bestMatch.label)) : null;
+
                 if (alumnoEncontrado) {
                     const pat = alumnoEncontrado.apepat || alumnoEncontrado.primerApellido || '';
                     const accion = (alumnoEncontrado.estado === 'DENTRO') ? 'SALIDA' : 'ENTRADA';
-                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545'; // Verde para Entrada, Rojo para Salida
+                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
                     etiquetaTexto = `${alumnoEncontrado.nombre} ${pat} (${accion})`.toUpperCase();
+                } else if (personalEncontrado) {
+                    const accion = (personalEncontrado.estado === 'DENTRO') ? 'SALIDA' : 'ENTRADA';
+                    colorBox = (accion === 'ENTRADA') ? '#198754' : '#dc3545';
+                    const rol = personalEncontrado.rol || 'DOCENTE';
+                    etiquetaTexto = `${personalEncontrado.nombre} [${rol}] (${accion})`.toUpperCase();
                 } else {
                     etiquetaTexto = bestMatch.label;
                 }

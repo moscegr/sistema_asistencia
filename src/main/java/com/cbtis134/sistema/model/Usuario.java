@@ -20,6 +20,14 @@ public class Usuario {
     private Object ultimo_acceso;
     private List<String> permisos;
 
+    private String rfc;
+    private String turno;
+    private String telefono;
+    private String fotoUrl;
+    private List<Double> descriptor_facial;
+    private String estado;
+    private String qrCode;
+
     public Usuario() {
     }
 
@@ -122,5 +130,61 @@ public class Usuario {
 
     public void setPermisos(List<String> permisos) {
         this.permisos = permisos;
+    }
+
+    public String getRfc() {
+        return rfc;
+    }
+
+    public void setRfc(String rfc) {
+        this.rfc = rfc;
+    }
+
+    public String getTurno() {
+        return turno;
+    }
+
+    public void setTurno(String turno) {
+        this.turno = turno;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public String getFotoUrl() {
+        return fotoUrl;
+    }
+
+    public void setFotoUrl(String fotoUrl) {
+        this.fotoUrl = fotoUrl;
+    }
+
+    public List<Double> getDescriptor_facial() {
+        return descriptor_facial;
+    }
+
+    public void setDescriptor_facial(List<Double> descriptor_facial) {
+        this.descriptor_facial = descriptor_facial;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public String getQrCode() {
+        return qrCode;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
     }
 }

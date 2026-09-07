@@ -32,12 +32,13 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
         return username -> usuarioRepository.findByCorreo(username)
                 .or(() -> usuarioRepository.findByCorreo(username.toLowerCase()))
+                .filter(u -> !"DOCENTE".equalsIgnoreCase(u.getRol()) && !"ADMINISTRATIVO".equalsIgnoreCase(u.getRol()))
                 .map(u -> new User(
                         u.getCorreo(),
                         u.getPassword() != null ? u.getPassword() : "",
                         List.of(new SimpleGrantedAuthority("ROLE_" + u.getRol().toUpperCase()))
                 ))
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado o sin acceso a la plataforma: " + username));
     }
 
     @Bean
@@ -55,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
+                .requestMatchers(HttpMethod.PATCH, "/api/usuarios/**").hasAnyRole("ADMIN", "GUARDIA")
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMIN")
 
                 // match /alumnos/{matricula}

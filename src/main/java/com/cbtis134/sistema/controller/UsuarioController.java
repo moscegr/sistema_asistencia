@@ -78,10 +78,24 @@ public class UsuarioController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/rfc/{rfc}")
+    public ResponseEntity<Usuario> obtenerPorRfc(@PathVariable String rfc) {
+        String rfcLimpio = rfc != null ? rfc.trim().toUpperCase() : "";
+        return usuarioRepository.findByRfc(rfcLimpio)
+                .map(u -> {
+                    if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    return ResponseEntity.ok(u);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Usuario usuario) {
-        if (usuario.getCorreo() != null && usuarioRepository.existsByCorreo(usuario.getCorreo().trim().toLowerCase())) {
+        if (usuario.getCorreo() != null && !usuario.getCorreo().trim().isEmpty() && usuarioRepository.existsByCorreo(usuario.getCorreo().trim().toLowerCase())) {
             return ResponseEntity.badRequest().body("El correo ya está registrado.");
+        }
+        if (usuario.getRfc() != null && !usuario.getRfc().trim().isEmpty() && usuarioRepository.existsByRfc(usuario.getRfc().trim().toUpperCase())) {
+            return ResponseEntity.badRequest().body("El RFC ya está registrado.");
         }
         if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
             usuario.setUid(UUID.randomUUID().toString());
@@ -91,6 +105,15 @@ public class UsuarioController {
         }
         if (usuario.getNombre() != null) {
             usuario.setNombre(usuario.getNombre().toUpperCase());
+        }
+        if (usuario.getRfc() != null) {
+            usuario.setRfc(usuario.getRfc().trim().toUpperCase());
+        }
+        if (usuario.getTurno() != null) {
+            usuario.setTurno(usuario.getTurno().trim());
+        }
+        if (usuario.getQrCode() == null || usuario.getQrCode().isEmpty()) {
+            usuario.setQrCode(usuario.getRfc() != null && !usuario.getRfc().isEmpty() ? usuario.getRfc() : usuario.getUid());
         }
         if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
@@ -102,11 +125,87 @@ public class UsuarioController {
         return ResponseEntity.ok(creado);
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<?> guardarMasivo(@RequestBody List<Usuario> lista) {
+        int insertados = 0;
+        int actualizados = 0;
+
+        for (Usuario u : lista) {
+            if (u.getNombre() == null || u.getNombre().trim().isEmpty()) continue;
+
+            String rfc = (u.getRfc() != null) ? u.getRfc().trim().toUpperCase() : null;
+            String correo = (u.getCorreo() != null && !u.getCorreo().trim().isEmpty()) ? u.getCorreo().trim().toLowerCase() : null;
+
+            Usuario existente = null;
+            if (rfc != null && !rfc.isEmpty()) {
+                existente = usuarioRepository.findByRfc(rfc).orElse(null);
+            }
+            if (existente == null && correo != null) {
+                existente = usuarioRepository.findByCorreo(correo).orElse(null);
+            }
+
+            if (existente != null) {
+                existente.setNombre(u.getNombre().toUpperCase());
+                if (rfc != null) existente.setRfc(rfc);
+                if (correo != null) existente.setCorreo(correo);
+                if (u.getRol() != null) existente.setRol(u.getRol().toUpperCase());
+                if (u.getTurno() != null) existente.setTurno(u.getTurno());
+                if (u.getTelefono() != null) existente.setTelefono(u.getTelefono());
+                if (u.getFotoUrl() != null) existente.setFotoUrl(u.getFotoUrl());
+                if (u.getDescriptor_facial() != null) existente.setDescriptor_facial(u.getDescriptor_facial());
+                if (u.getEstatus() != null) existente.setEstatus(u.getEstatus());
+                usuarioRepository.save(existente);
+                actualizados++;
+            } else {
+                if (u.getUid() == null || u.getUid().isEmpty()) {
+                    u.setUid(UUID.randomUUID().toString());
+                }
+                u.setNombre(u.getNombre().toUpperCase());
+                if (rfc != null) u.setRfc(rfc);
+                if (correo != null) u.setCorreo(correo);
+                if (u.getRol() == null || u.getRol().isEmpty()) u.setRol("DOCENTE");
+                else u.setRol(u.getRol().toUpperCase());
+                if (u.getTurno() == null || u.getTurno().isEmpty()) u.setTurno("Matutino");
+                if (u.getQrCode() == null || u.getQrCode().isEmpty()) {
+                    u.setQrCode(rfc != null && !rfc.isEmpty() ? rfc : u.getUid());
+                }
+                if (u.getPassword() != null && !u.getPassword().isEmpty()) {
+                    u.setPassword(passwordEncoder.encode(u.getPassword()));
+                }
+                if (u.getEstatus() == null) u.setEstatus("Activo");
+                usuarioRepository.save(u);
+                insertados++;
+            }
+        }
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "insertados", insertados,
+            "actualizados", actualizados,
+            "total", insertados + actualizados
+        ));
+    }
+
+    @PatchMapping("/{id:.+}/descriptor-facial")
+    public ResponseEntity<?> guardarDescriptorFacial(@PathVariable String id, @RequestBody List<Double> descriptor) {
+        String idLimpio = id != null ? id.trim() : "";
+        return usuarioRepository.findById(idLimpio)
+                .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .map(u -> {
+                    u.setDescriptor_facial(descriptor);
+                    usuarioRepository.save(u);
+                    return ResponseEntity.ok(java.util.Map.of("status", "ok", "id", u.getId()));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/{id:.+}")
     public ResponseEntity<?> actualizar(@PathVariable String id, @RequestBody Usuario usuarioActualizado) {
         String idLimpio = id != null ? id.trim() : "";
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
                 .or(() -> usuarioRepository.findByCorreo(idLimpio))
                 .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(usuario -> {
@@ -116,6 +215,13 @@ public class UsuarioController {
                     if (usuarioActualizado.getCorreo() != null && !usuarioActualizado.getCorreo().trim().isEmpty()) {
                         usuario.setCorreo(usuarioActualizado.getCorreo().trim().toLowerCase());
                     }
+                    if (usuarioActualizado.getRfc() != null) usuario.setRfc(usuarioActualizado.getRfc().trim().toUpperCase());
+                    if (usuarioActualizado.getTurno() != null) usuario.setTurno(usuarioActualizado.getTurno());
+                    if (usuarioActualizado.getTelefono() != null) usuario.setTelefono(usuarioActualizado.getTelefono());
+                    if (usuarioActualizado.getFotoUrl() != null) usuario.setFotoUrl(usuarioActualizado.getFotoUrl());
+                    if (usuarioActualizado.getDescriptor_facial() != null) usuario.setDescriptor_facial(usuarioActualizado.getDescriptor_facial());
+                    if (usuarioActualizado.getEstado() != null) usuario.setEstado(usuarioActualizado.getEstado());
+                    if (usuarioActualizado.getQrCode() != null) usuario.setQrCode(usuarioActualizado.getQrCode());
                     if (usuarioActualizado.getRol() != null) usuario.setRol(usuarioActualizado.getRol());
                     if (usuarioActualizado.getEstatus() != null) usuario.setEstatus(usuarioActualizado.getEstatus());
                     if (usuarioActualizado.getPermisos() != null) usuario.setPermisos(usuarioActualizado.getPermisos());
@@ -132,6 +238,7 @@ public class UsuarioController {
         String idLimpio = id != null ? id.trim() : "";
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
                 .or(() -> usuarioRepository.findByCorreo(idLimpio))
                 .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(usuario -> {
