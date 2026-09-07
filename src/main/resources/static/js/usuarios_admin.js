@@ -1184,14 +1184,140 @@ async function descargarGafetePersonalPDF() {
     }
 }
 
-function descargarGafetePersonalPNG() {
-    if (!imagenGafetePersonalGenerada && !personalSeleccionadoGafete) return;
-    const a = document.createElement('a');
-    a.href = imagenGafetePersonalGenerada;
-    a.download = `Gafete_${personalSeleccionadoGafete.rfc || 'Personal'}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+async function generarCanvasCredencialPersonalFrente(user) {
+    return new Promise(async (resolve) => {
+        let container = document.getElementById('tempCardContainerPersonal');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tempCardContainerPersonal';
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            document.body.appendChild(container);
+        }
+
+        const nombre = (user.nombre || '').toUpperCase();
+        const rfc = (user.rfc || 'SIN RFC').toUpperCase();
+        const rol = (user.rol || 'DOCENTE').toUpperCase();
+        const turno = user.turno || 'Matutino';
+        const fotoSrc = user.fotoUrl || '/img/logo_aniversario.jpg';
+        const colorRol = (rol === 'DOCENTE') ? '#6f42c1' : ((rol === 'ADMINISTRATIVO') ? '#0d6efd' : '#7b1b37');
+
+        container.innerHTML = `
+            <div id="cardPersFrenteTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                    <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+                    <div style="text-align: center; flex: 1; margin: 0 4px;">
+                        <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis No. 134</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE PERSONAL</div>
+                    </div>
+                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+                </div>
+                
+                <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
+                    <div style="margin: 0 auto;">
+                        <div style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid #7b1b37; border-radius: 8px; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
+                    </div>
+                    
+                    <div style="margin: 1px 0;">
+                        <div style="font-size: 9.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; line-height: 1.15; padding: 0 2px;">${nombre}</div>
+                        <div style="margin-top: 1.5px;">
+                            <span style="background: ${colorRol}; color: #ffffff; font-size: 6.5px; font-weight: 800; padding: 1.5px 8px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;">${rol}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 7px; text-align: left; font-size: 6.5px; line-height: 1.45; box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                            <span style="color: #64748b; font-weight: 700;">RFC:</span>
+                            <span style="color: #7b1b37; font-weight: 900; font-size: 8px; letter-spacing: 0.5px;">${rfc}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                            <span style="color: #64748b; font-weight: 700;">TURNO:</span>
+                            <span style="color: #0f172a; font-weight: 800;">${turno.toUpperCase()}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: #64748b; font-weight: 700;">ADSCRIPCIÓN:</span>
+                            <span style="color: #334155; font-weight: 800;">PLANTEL CBTIS 134</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                </div>
+            </div>
+        `;
+
+        const targetEl = container.firstElementChild;
+        const canvas = await html2canvas(targetEl, {
+            scale: 4,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+        });
+
+        resolve(canvas.toDataURL("image/jpeg", 0.95));
+    });
+}
+
+async function generarCanvasCredencialPersonalReverso(user) {
+    return new Promise(async (resolve) => {
+        let container = document.getElementById('tempCardContainerPersonal');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'tempCardContainerPersonal';
+            container.style.position = 'fixed';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            document.body.appendChild(container);
+        }
+
+        const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
+        const qrImgData = await generarQRConTigrePersonal(qrTexto);
+
+        container.innerHTML = `
+            <div id="cardPersReversoTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                    <img src="/img/logo_aniversario.jpg" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+                    <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
+                    <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
+                </div>
+                
+                <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
+                    <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 10px; padding: 4px; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.15);">
+                        <div style="width: 32mm; height: 32mm; margin: 0 auto;">
+                            <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <div style="font-size: 5.5px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 2px;">ESCANEAME PARA ACCESO</div>
+                    </div>
+                    
+                    <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
+                        Esta credencial es personal e intransferible. Acredita al portador como personal adscrito al plantel educativo CBTis No. 134.
+                    </div>
+                    
+                    <div style="width: 100%; margin-top: 2px;">
+                        <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                        <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">JOSE MARTÍN RODEA ZUÑIGA</div>
+                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel CBTis No. 134</div>
+                    </div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
+                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                </div>
+            </div>
+        `;
+
+        const targetEl = container.firstElementChild;
+        const canvas = await html2canvas(targetEl, {
+            scale: 4,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+        });
+
+        resolve(canvas.toDataURL("image/jpeg", 0.95));
+    });
 }
 
 async function descargarCredencialPersonalPVC(modoPlanilla = false) {
@@ -1200,22 +1326,11 @@ async function descargarCredencialPersonalPVC(modoPlanilla = false) {
 
     try {
         const { jsPDF } = window.jspdf;
-        const elFrente = document.getElementById('vistaPreviaPersPvcFrente');
-        const elReverso = document.getElementById('vistaPreviaPersPvcReverso');
-
-        elFrente.classList.remove('d-none');
-        elReverso.classList.remove('d-none');
-
-        const canvasFrente = await html2canvas(elFrente, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
-        const canvasReverso = await html2canvas(elReverso, { scale: 3, useCORS: true, backgroundColor: '#ffffff' });
-
-        elReverso.classList.add('d-none'); // restaurar estado
-
-        const imgFrente = canvasFrente.toDataURL('image/jpeg', 0.95);
-        const imgReverso = canvasReverso.toDataURL('image/jpeg', 0.95);
+        const imgFrente = await generarCanvasCredencialPersonalFrente(personalSeleccionadoGafete);
+        const imgReverso = await generarCanvasCredencialPersonalReverso(personalSeleccionadoGafete);
 
         if (!modoPlanilla) {
-            // Formato Térmico CR80: 54mm x 85.6mm
+            // Formato Térmico CR80: 54mm x 85.6mm por cara
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -1226,7 +1341,7 @@ async function descargarCredencialPersonalPVC(modoPlanilla = false) {
             pdf.addPage([54, 85.6], 'portrait');
             pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6);
 
-            pdf.save(`Credencial_PVC_${personalSeleccionadoGafete.rfc || 'Personal'}.pdf`);
+            pdf.save(`Credencial_Termica_Personal_${personalSeleccionadoGafete.rfc || 'Personal'}.pdf`);
         } else {
             // Formato Planilla Carta
             const pdf = new jsPDF('portrait', 'mm', 'letter');
@@ -1261,6 +1376,46 @@ async function descargarCredencialPersonalPVC(modoPlanilla = false) {
     } catch (e) {
         console.error(e);
         Swal.fire("Error", "No se pudo generar la credencial PVC: " + e.message, "error");
+    }
+}
+
+async function descargarCredencialesTermicasMasivasPersonal() {
+    if (!usuariosCache || usuariosCache.length === 0) {
+        return Swal.fire("Aviso", "No hay personal registrado en el directorio.", "warning");
+    }
+
+    Swal.fire({
+        title: 'Generando Credenciales Térmicas Masivas...',
+        text: `Procesando ${usuariosCache.length} credenciales en formato CR-80 (54x85.6mm)...`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: [54, 85.6]
+        });
+
+        for (let i = 0; i < usuariosCache.length; i++) {
+            const u = usuariosCache[i];
+            const imgFrente = await generarCanvasCredencialPersonalFrente(u);
+            const imgReverso = await generarCanvasCredencialPersonalReverso(u);
+
+            if (i > 0) pdf.addPage([54, 85.6], 'portrait');
+            pdf.addImage(imgFrente, 'JPEG', 0, 0, 54, 85.6);
+
+            pdf.addPage([54, 85.6], 'portrait');
+            pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6);
+        }
+
+        pdf.save(`Credenciales_Termicas_Personal_CR80.pdf`);
+        Swal.close();
+    } catch(e) {
+        console.error("Error generando credenciales térmicas masivas:", e);
+        Swal.fire("Error", "No se pudieron generar las credenciales térmicas: " + e.message, "error");
     }
 }
 
@@ -1315,3 +1470,12 @@ async function descargarPlanillaGafetesTodoPersonal() {
         Swal.fire("Error", "No se pudo generar la planilla: " + e.message, "error");
     }
 }
+
+window.descargarCredencialPersonalPVC = descargarCredencialPersonalPVC;
+window.descargarCredencialesTermicasMasivasPersonal = descargarCredencialesTermicasMasivasPersonal;
+window.descargarPlanillaGafetesTodoPersonal = descargarPlanillaGafetesTodoPersonal;
+window.descargarGafetePersonalPDF = descargarGafetePersonalPDF;
+window.abrirModalGafeteCredencialPersonal = abrirModalGafeteCredencialPersonal;
+window.descargarPlantillaLayoutExcel = descargarPlantillaLayoutExcel;
+window.descargarListaPersonalExcel = descargarListaPersonalExcel;
+window.descargarListaPersonalPDF = descargarListaPersonalPDF;
