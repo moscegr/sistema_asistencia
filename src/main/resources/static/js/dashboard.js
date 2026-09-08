@@ -651,8 +651,6 @@ async function enviarWhatsappTutorDesercion(matricula) {
 }
 window.enviarWhatsappTutorDesercion = enviarWhatsappTutorDesercion;
 
-let calendarioInstancia = null;
-
 const PALETA_COLORES_CALENDARIO = [
     { nombre: 'Institucional Guinda', valor: '#7b1b37' },
     { nombre: 'Inhábiles / Suspensión Oficial', valor: '#dc3545' },
