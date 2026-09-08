@@ -396,20 +396,42 @@
 
             <div class="row mb-4 anim-up anim-d1">
                 <div class="col-12">
-                    <div class="welcome-banner">
-                        <div class="welcome-avatar">
-                            <i class="bi bi-person-circle"></i>
+                    <div class="welcome-banner d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="welcome-avatar">
+                                <i class="bi bi-person-circle"></i>
+                            </div>
+                            <div>
+                                <p class="welcome-name">Bienvenido, <span id="userBannerName">Cargando...</span></p>
+                                <span class="role-badge">
+                                    <i class="bi bi-shield-check"></i>
+                                    Rol: <span id="userBannerRol">ADMINISTRADOR</span>
+                                </span>
+                            </div>
                         </div>
-                        <div>
-                            <p class="welcome-name">Bienvenido, <span id="userBannerName">Cargando...</span></p>
-                            <span class="role-badge">
-                                <i class="bi bi-shield-check"></i>
-                                Rol: <span id="userBannerRol">ADMINISTRADOR</span>
-                            </span>
+
+                        <!-- 🌤️ Widget de Clima Inteligente en Plantel -->
+                        <div class="d-none d-lg-flex align-items-center gap-3 px-3 py-2 rounded-3 text-white shadow-sm" style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.22); min-width: 340px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="climaIcono" class="fs-2"><i class="bi bi-cloud-sun-fill text-warning"></i></span>
+                                <div>
+                                    <div class="d-flex align-items-baseline gap-1">
+                                        <span id="climaTemp" class="fs-4 fw-bold">--°C</span>
+                                        <span id="climaSensacion" class="x-small text-white-50" style="font-size: 0.72rem;">(--°C)</span>
+                                    </div>
+                                    <span id="climaDesc" class="x-small d-block fw-semibold text-white" style="font-size: 0.78rem;">Consultando clima...</span>
+                                </div>
+                            </div>
+                            <div class="border-start border-white border-opacity-25 ps-3 text-start x-small" style="line-height: 1.3;">
+                                <div><i class="bi bi-geo-alt-fill text-warning me-1"></i><span id="climaUbicacion" class="fw-bold">Chilpancingo, Gro.</span></div>
+                                <div class="text-white-50" style="font-size: 0.72rem;"><i class="bi bi-droplet-fill me-1 text-info"></i><span id="climaHumedad">--%</span> • <i class="bi bi-wind me-1 text-light"></i><span id="climaViento">-- km/h</span></div>
+                                <div id="climaAlerta" class="text-warning fw-semibold mt-1" style="font-size: 0.70rem;"><i class="bi bi-stars me-1"></i>Sincronizando pronóstico...</div>
+                            </div>
                         </div>
+
                         <!-- Ciclo en el lado derecho -->
-                        <div class="ms-auto text-end" style="position:relative; z-index:1;">
-                            <span style="font-size:11px; opacity:.6; display:block; margin-bottom:2px;">Ciclo activo</span>
+                        <div class="text-end" style="position:relative; z-index:1;">
+                            <span style="font-size:11px; opacity:.75; display:block; margin-bottom:2px; text-transform: uppercase; letter-spacing: 0.5px;">Ciclo activo</span>
                             <span id="displayCicloActual"
                                   style="font-size:17px; font-weight:700; letter-spacing:0.5px;">
                                 Cargando...
@@ -454,38 +476,38 @@
                             <h3 id="totalIncidencias" class="stat-num">0</h3>
                             <p class="stat-label">Incidencias</p>
                         </div>
-                        <div class="stat-icon s-red"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                        <div class="stat-icon s-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
                     </div>
                 </div>
             </div>
 
-            <!-- ── 2.1 STAT CARDS PERSONAL Y DOCENTES ── -->
+            <!-- ── 2.1 STAT CARDS PERSONAL Y ASISTENCIA ── -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3 anim-up anim-d2">
                     <div class="stat-card" style="border-top-color: #6f42c1;">
                         <div>
-                            <h3 id="totalDocentes" class="stat-num">0</h3>
+                            <h3 id="totalDocentes" class="stat-num" style="color: #6f42c1;">0</h3>
                             <p class="stat-label">Docentes Registrados</p>
                         </div>
                         <div class="stat-icon" style="background: #f3e8ff; color: #6f42c1;"><i class="bi bi-mortarboard-fill"></i></div>
                     </div>
                 </div>
                 <div class="col-6 col-lg-3 anim-up anim-d3">
-                    <div class="stat-card" style="border-top-color: #0d6efd;">
+                    <div class="stat-card s-blue">
                         <div>
-                            <h3 id="totalAdminis" class="stat-num">0</h3>
+                            <h3 id="totalAdminis" class="stat-num text-primary">0</h3>
                             <p class="stat-label">Personal Administrativo</p>
                         </div>
-                        <div class="stat-icon" style="background: #eff6ff; color: #0d6efd;"><i class="bi bi-person-workspace"></i></div>
+                        <div class="stat-icon s-blue"><i class="bi bi-person-badge"></i></div>
                     </div>
                 </div>
                 <div class="col-6 col-lg-3 anim-up anim-d4">
                     <div class="stat-card s-green">
                         <div>
-                            <h3 id="totalPersonalDentro" class="stat-num">0</h3>
+                            <h3 id="totalPersonalDentro" class="stat-num text-success">0</h3>
                             <p class="stat-label">Personal en Plantel Hoy</p>
                         </div>
-                        <div class="stat-icon s-green"><i class="bi bi-person-check-fill"></i></div>
+                        <div class="stat-icon s-green"><i class="bi bi-person-check"></i></div>
                     </div>
                 </div>
                 <div class="col-6 col-lg-3 anim-up anim-d5">
@@ -499,24 +521,44 @@
                 </div>
             </div>
 
-            <!-- ── 3. CALENDARIO ── -->
+            <!-- ── 3. CALENDARIO OFICIAL SEP Y AGENDA ESCOLAR ── -->
             <div class="row g-4 mb-4 anim-up anim-d5">
                 <div class="col-12">
                     <div class="card-dash p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                             <div>
-                                <h5 class="section-title mb-1">
-                                    <i class="bi bi-calendar-event"></i> Agenda Escolar CBTis 134
+                                <h5 class="section-title mb-1" style="color: var(--guinda);">
+                                    <i class="bi bi-calendar-check-fill me-2"></i>Agenda Escolar y Calendario Oficial SEP
                                 </h5>
-                                <p class="section-sub">Gestión de eventos, evaluaciones y días inhábiles</p>
+                                <p class="section-sub mb-0">Sincronización en tiempo real con días festivos federales, periodos de evaluación DGETI y eventos institucionales</p>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <button class="btn btn-sm btn-guinda requiere-permiso" data-roles="ADMIN,ORIENTACION" onclick="abrirModalNuevoEvento()">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                    <button type="button" class="btn btn-secondary active" id="btnCalFiltroTodos" onclick="filtrarEventosCalendario('TODOS')">Todos</button>
+                                    <button type="button" class="btn btn-outline-danger" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">🇲🇽 Feriados SEP</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnCalFiltroEval" onclick="filtrarEventosCalendario('EVAL')">📝 Evaluaciones</button>
+                                    <button type="button" class="btn btn-outline-dark" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">🏫 CBTis 134</button>
+                                </div>
+                                <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="sincronizarCalendarioSEP()" title="Recargar eventos y festivos">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar SEP
+                                </button>
+                                <button class="btn btn-sm btn-guinda rounded-pill px-3 shadow-sm requiere-permiso" data-roles="ADMIN,ORIENTACION" onclick="abrirModalNuevoEvento()">
                                     <i class="bi bi-calendar-plus-fill me-1"></i> Agregar Evento
                                 </button>
                             </div>
                         </div>
-                        <div id="calendar" style="min-height: 400px;"></div>
+
+                        <!-- Leyenda de colores del calendario -->
+                        <div class="d-flex align-items-center gap-3 mb-3 p-2 bg-light rounded-3 border x-small flex-wrap">
+                            <span class="fw-bold text-muted text-uppercase" style="font-size: 0.72rem;"><i class="bi bi-tags-fill me-1"></i>Categorías:</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #dc3545; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inhábiles / Feriados SEP</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #0d6efd; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Evaluaciones Parciales</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #6f42c1; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Consejos Técnicos (CTE)</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #198754; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Días Cívicos / Efemérides</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #7b1b37; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Eventos Locales CBTis 134</span>
+                        </div>
+
+                        <div id="calendar" style="min-height: 440px;"></div>
                     </div>
                 </div>
             </div>

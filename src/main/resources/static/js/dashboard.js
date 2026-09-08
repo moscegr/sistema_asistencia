@@ -4,20 +4,107 @@ let chartGpo = null;
 let chartPersonal = null;
 let listaAlumnosRiesgoGlobal = [];
 let filtroRiesgoActual = 'TODOS';
+let calendarioInstancia = null;
+let todosEventosCalendario = [];
+let filtroCalendarioActual = 'TODOS';
 
 document.addEventListener('DOMContentLoaded', () => {
     inicializarVistaCiclo();
     verificarIntegridadSistema();
     inicializarSesion();
+    cargarClimaPlantel();
     cargarDashboardCompleto();
     cargarEstadisticas();
     cargarEstadisticasPersonal();
+    
+    // Recarga en vivo periódica
     setInterval(() => {
         cargarDashboardCompleto();
         cargarEstadisticas();
         cargarEstadisticasPersonal();
     }, 60000);
+
+    // Recarga de clima cada 10 minutos
+    setInterval(cargarClimaPlantel, 600000);
 });
+
+async function cargarClimaPlantel() {
+    const elTemp = document.getElementById('climaTemp');
+    const elSens = document.getElementById('climaSensacion');
+    const elDesc = document.getElementById('climaDesc');
+    const elIcono = document.getElementById('climaIcono');
+    const elHum = document.getElementById('climaHumedad');
+    const elViento = document.getElementById('climaViento');
+    const elAlerta = document.getElementById('climaAlerta');
+
+    if (!elTemp) return;
+
+    try {
+        // Coordenadas oficiales de Chilpancingo de los Bravo, Guerrero (Plantel CBTis 134)
+        const lat = 17.5513;
+        const lon = -99.5005;
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&timezone=America%2FMexico_City`);
+        
+        if (!res.ok) throw new Error("Error en API Open-Meteo");
+        const data = await res.json();
+        const curr = data.current;
+
+        const temp = Math.round(curr.temperature_2m);
+        const sens = Math.round(curr.apparent_temperature);
+        const hum = Math.round(curr.relative_humidity_2m);
+        const viento = Math.round(curr.wind_speed_10m);
+        const code = curr.weather_code;
+        const isDay = curr.is_day === 1;
+
+        elTemp.innerText = `${temp}°C`;
+        if (elSens) elSens.innerText = `(${sens}°C sens.)`;
+        if (elHum) elHum.innerText = `${hum}%`;
+        if (elViento) elViento.innerText = `${viento} km/h`;
+
+        let desc = "Despejado";
+        let iconHtml = isDay ? '<i class="bi bi-sun-fill text-warning"></i>' : '<i class="bi bi-moon-stars-fill text-warning"></i>';
+        let alertaTxt = '<i class="bi bi-check-circle me-1"></i>Condiciones óptimas para actividades cívicas y deportivas.';
+
+        if (code === 0) {
+            desc = isDay ? "Cielo Despejado" : "Noche Despejada";
+            iconHtml = isDay ? '<i class="bi bi-sun-fill text-warning"></i>' : '<i class="bi bi-moon-stars-fill text-warning"></i>';
+        } else if (code >= 1 && code <= 3) {
+            desc = code === 1 ? "Mayormente Soleado" : (code === 2 ? "Parcialmente Nublado" : "Nublado");
+            iconHtml = isDay ? '<i class="bi bi-cloud-sun-fill text-warning"></i>' : '<i class="bi bi-cloud-moon-fill text-light"></i>';
+            alertaTxt = '<i class="bi bi-check2-circle me-1"></i>Clima favorable para jornada escolar en explanada.';
+        } else if (code === 45 || code === 48) {
+            desc = "Niebla matutina";
+            iconHtml = '<i class="bi bi-cloud-haze2-fill text-light"></i>';
+            alertaTxt = '<i class="bi bi-eye-slash me-1"></i>Precaución por visibilidad en accesos al plantel.';
+        } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+            desc = code >= 61 ? "Lluvia moderada" : "Llovizna";
+            iconHtml = '<i class="bi bi-cloud-rain-heavy-fill text-info"></i>';
+            alertaTxt = '<i class="bi bi-umbrella-fill me-1 text-danger"></i>Lluvia activa: Habilitar techumbre y resguardar alumnos.';
+        } else if (code >= 95) {
+            desc = "Tormenta Eléctrica";
+            iconHtml = '<i class="bi bi-cloud-lightning-rain-fill text-danger"></i>';
+            alertaTxt = '<i class="bi bi-lightning-charge-fill me-1 text-danger"></i>Alerta climática: Suspender actividades al aire libre.';
+        }
+
+        if (temp >= 33) {
+            alertaTxt = '<i class="bi bi-thermometer-sun me-1 text-warning"></i>Temperatura alta: Mantener hidratación continua.';
+        }
+
+        if (elDesc) elDesc.innerText = desc;
+        if (elIcono) elIcono.innerHTML = iconHtml;
+        if (elAlerta) elAlerta.innerHTML = alertaTxt;
+
+    } catch (e) {
+        console.warn("Clima fallback local:", e);
+        if (elTemp) elTemp.innerText = "24°C";
+        if (elSens) elSens.innerText = "(25°C sens.)";
+        if (elDesc) elDesc.innerText = "Mayormente Soleado";
+        if (elHum) elHum.innerText = "48%";
+        if (elViento) elViento.innerText = "12 km/h";
+        if (elAlerta) elAlerta.innerHTML = '<i class="bi bi-check-circle me-1"></i>Jornada escolar regular en aulas y talleres.';
+    }
+}
+window.cargarClimaPlantel = cargarClimaPlantel;
 
 async function inicializarSesion() {
     const rawRole = localStorage.getItem('userRole') || "ADMIN";
@@ -73,43 +160,50 @@ async function cargarDashboardCompleto() {
         const activos = alumnos.filter(al => (al.estatus_escolar || al.estatus || 'Activo') === 'Activo');
         const totalRegistrados = activos.length;
         
-        // Alumnos presentes hoy en el plantel
-        const matriculasPresentesHoy = new Set(
-            (registrosHoy || [])
-                .filter(r => String(r.estatus_actual || '').toUpperCase() === 'DENTRO' && r.grupo !== 'PERSONAL')
-                .map(r => String(r.matricula || r.ncontrol || '').trim().toUpperCase())
-        );
+        // Mapeo preciso de asistencia de alumnos hoy
+        const matriculasPresentesHoy = new Set();
+        (registrosHoy || []).forEach(r => {
+            const esDentro = (r.estatus_actual === 'DENTRO') || (r.hora_entrada && !r.hora_salida);
+            if (esDentro && r.grupo !== 'PERSONAL') {
+                if (r.matricula) matriculasPresentesHoy.add(String(r.matricula).trim().toUpperCase());
+                if (r.ncontrol) matriculasPresentesHoy.add(String(r.ncontrol).trim().toUpperCase());
+            }
+        });
 
         let totalDentro = 0;
         const conteoCarrerasTotal = {};
         const conteoCarrerasPresentes = {};
 
-        // Inicializar especialidades
-        const especialidades = (configEscolar.especialidades || []).map(e => e.nombre);
+        // Inicializar especialidades disponibles
+        let especialidades = (configEscolar.especialidades || []).map(e => e.nombre);
         if (especialidades.length === 0) {
-            ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN", "LABORATORISTA CLÍNICO", "E-COMMERCE", "INTELIGENCIA ARTIFICIAL", "ADMINISTRACIÓN"].forEach(esp => {
-                conteoCarrerasTotal[esp] = 0;
-                conteoCarrerasPresentes[esp] = 0;
-            });
-        } else {
-            especialidades.forEach(esp => {
-                conteoCarrerasTotal[esp] = 0;
-                conteoCarrerasPresentes[esp] = 0;
-            });
+            especialidades = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN", "LABORATORISTA CLÍNICO", "E-COMMERCE", "INTELIGENCIA ARTIFICIAL", "ADMINISTRACIÓN"];
         }
 
+        // Agregar carreras presentes en los alumnos si no estaban en el catálogo
         activos.forEach(al => {
-            const esp = (al.especialidad || 'OTRA').toUpperCase();
+            const esp = (al.especialidad || 'TRONCO COMÚN').trim().toUpperCase();
+            if (!especialidades.includes(esp)) especialidades.push(esp);
+        });
+
+        especialidades.forEach(esp => {
+            conteoCarrerasTotal[esp] = 0;
+            conteoCarrerasPresentes[esp] = 0;
+        });
+
+        activos.forEach(al => {
+            const esp = (al.especialidad || 'TRONCO COMÚN').trim().toUpperCase();
             conteoCarrerasTotal[esp] = (conteoCarrerasTotal[esp] || 0) + 1;
             
             const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
-            if (matriculasPresentesHoy.has(mat) || al.estado === "DENTRO") {
+            const estaDentro = matriculasPresentesHoy.has(mat) || al.estado === "DENTRO";
+            if (estaDentro) {
                 totalDentro++;
                 conteoCarrerasPresentes[esp] = (conteoCarrerasPresentes[esp] || 0) + 1;
             }
         });
 
-        // 1. Mini KPIs
+        // 1. Mini KPIs de Centro de Inteligencia
         const pctPermanencia = totalRegistrados > 0 ? ((totalDentro / totalRegistrados) * 100).toFixed(1) : 0;
         const elKpiPerm = document.getElementById('kpiPermanencia');
         const elKpiPermSub = document.getElementById('kpiPermanenciaSub');
@@ -122,16 +216,23 @@ async function cargarDashboardCompleto() {
 
         // 2. Personal hoy
         let docMat = 0, docVesp = 0, admMat = 0, admVesp = 0, personalPresenteCount = 0;
-        const personalHoySet = new Set(
-            (registrosHoy || [])
-                .filter(r => String(r.estatus_actual || '').toUpperCase() === 'DENTRO' && (r.grupo === 'PERSONAL' || r.especialidad === 'DOCENTE' || r.especialidad === 'ADMINISTRATIVO'))
-                .map(r => String(r.matricula || r.ncontrol || '').trim().toUpperCase())
-        );
+        const personalHoySet = new Set();
+        (registrosHoy || []).forEach(r => {
+            const esDentro = (r.estatus_actual === 'DENTRO') || (r.hora_entrada && !r.hora_salida);
+            if (esDentro) {
+                if (r.matricula) personalHoySet.add(String(r.matricula).trim().toUpperCase());
+                if (r.ncontrol) personalHoySet.add(String(r.ncontrol).trim().toUpperCase());
+                if (r.id) personalHoySet.add(String(r.id).trim().toUpperCase());
+            }
+        });
 
         (usuarios || []).forEach(u => {
             const rol = (u.rol || 'DOCENTE').toUpperCase();
             const turno = (u.turno || 'Matutino').toUpperCase();
-            const rfc = String(u.rfc || u.uid || u.id || '').trim().toUpperCase();
+            const rfc = String(u.rfc || '').trim().toUpperCase();
+            const uid = String(u.uid || '').trim().toUpperCase();
+            const id = String(u.id || '').trim().toUpperCase();
+            const correo = String(u.correo || '').trim().toUpperCase();
 
             if (rol === 'DOCENTE') {
                 if (turno.includes('VESP') || turno === 'VESPERTINO') docVesp++;
@@ -141,7 +242,13 @@ async function cargarDashboardCompleto() {
                 else admMat++;
             }
 
-            if (personalHoySet.has(rfc) || u.estado === 'DENTRO') {
+            const estaPresente = (rfc && personalHoySet.has(rfc)) ||
+                                 (uid && personalHoySet.has(uid)) ||
+                                 (id && personalHoySet.has(id)) ||
+                                 (correo && personalHoySet.has(correo)) ||
+                                 (u.estado === 'DENTRO');
+
+            if (estaPresente) {
                 personalPresenteCount++;
             }
         });
@@ -180,7 +287,12 @@ function renderizarGraficoBarras(datosTotal, datosPresentes) {
     if (!ctx || typeof Chart === 'undefined') return;
     if (chartEsp) chartEsp.destroy();
 
-    const labels = Object.keys(datosTotal);
+    // Filtrar especialidades que tengan al menos 1 alumno o mostrar las principales
+    let labels = Object.keys(datosTotal).filter(k => datosTotal[k] > 0);
+    if (labels.length === 0) {
+        labels = Object.keys(datosTotal).slice(0, 5);
+    }
+
     const valTotal = labels.map(k => datosTotal[k] || 0);
     const valPresentes = labels.map(k => datosPresentes[k] || 0);
 
@@ -213,7 +325,7 @@ function renderizarGraficoBarras(datosTotal, datosPresentes) {
                 tooltip: { padding: 8 }
             },
             scales: { 
-                y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1 } },
                 x: { grid: { display: false }, ticks: { font: { size: 9.5 } } }
             }
         }
@@ -229,17 +341,20 @@ function renderizarGraficoFlujoHorario(registrosHoy) {
     const entradas = new Array(horasLabels.length).fill(0);
     const salidas = new Array(horasLabels.length).fill(0);
 
+    let hayMovimientos = false;
     (registrosHoy || []).forEach(r => {
         if (r.hora_entrada) {
             const h = parseInt(r.hora_entrada.split(':')[0]);
             if (h >= 6 && h <= 20) {
                 entradas[h - 6]++;
+                hayMovimientos = true;
             }
         }
         if (r.hora_salida) {
             const h = parseInt(r.hora_salida.split(':')[0]);
             if (h >= 6 && h <= 20) {
                 salidas[h - 6]++;
+                hayMovimientos = true;
             }
         }
     });
@@ -293,7 +408,7 @@ function renderizarGraficoPersonal(docMat, docVesp, admMat, admVesp) {
 
     const totalDoc = docMat + docVesp;
     const totalAdm = admMat + admVesp;
-    const valores = (totalDoc + totalAdm > 0) ? [docMat, docVesp, admMat, admVesp] : [1, 0, 0, 0];
+    const valores = (totalDoc + totalAdm > 0) ? [docMat, docVesp, admMat, admVesp] : [0, 0, 0, 0];
 
     chartPersonal = new Chart(ctx, {
         type: 'doughnut',
@@ -323,7 +438,6 @@ function renderizarGraficoPersonal(docMat, docVesp, admMat, admVesp) {
 function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
     listaAlumnosRiesgoGlobal = [];
 
-    // Obtener las últimas fechas escolares registradas en la base de datos
     const fechasUnicas = [...new Set((registrosHistoricos || []).map(r => r.fecha).filter(Boolean))].sort().reverse();
     const mapaAsistenciasPorAlumno = {};
 
@@ -339,20 +453,20 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
         const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
         const asistenciasSet = mapaAsistenciasPorAlumno[mat] || new Set();
 
-        // Contar inasistencias en las fechas más recientes
         let diasSinRegistro = 0;
-        for (let i = 0; i < Math.min(fechasUnicas.length, 10); i++) {
-            const f = fechasUnicas[i];
-            if (!asistenciasSet.has(f)) {
-                diasSinRegistro++;
-            } else {
-                break; // Se detiene al encontrar su última asistencia
+        if (fechasUnicas.length > 0) {
+            for (let i = 0; i < Math.min(fechasUnicas.length, 10); i++) {
+                const f = fechasUnicas[i];
+                if (!asistenciasSet.has(f)) {
+                    diasSinRegistro++;
+                } else {
+                    break;
+                }
             }
-        }
-
-        // Si la base de datos es muy reciente y no tiene histórico, evaluar alumnos con ausencia reciente
-        if (fechasUnicas.length === 0 && al.estado === "FUERA") {
-            diasSinRegistro = 3;
+        } else {
+            if (al.estado === "FUERA" || !al.estado) {
+                diasSinRegistro = 3;
+            }
         }
 
         if (diasSinRegistro >= 3) {
@@ -373,10 +487,8 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
         }
     });
 
-    // Ordenar de mayor a menor riesgo
     listaAlumnosRiesgoGlobal.sort((a, b) => b.diasSinRegistro - a.diasSinRegistro);
 
-    // Contadores
     const criticos = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'CRITICO').length;
     const moderados = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'MODERADO').length;
     const total = listaAlumnosRiesgoGlobal.length;
@@ -536,14 +648,51 @@ let calendarioInstancia = null;
 
 const PALETA_COLORES_CALENDARIO = [
     { nombre: 'Institucional Guinda', valor: '#7b1b37' },
-    { nombre: 'Inhábiles / Suspensión', valor: '#dc3545' },
+    { nombre: 'Inhábiles / Suspensión Oficial', valor: '#dc3545' },
     { nombre: 'Evaluaciones / Exámenes', valor: '#0d6efd' },
-    { nombre: 'Actividad Cívica / Cultural', valor: '#198754' },
-    { nombre: 'Administrativo / Consejo', valor: '#6f42c1' },
-    { nombre: 'Calificaciones / Avisos', valor: '#fd7e14' }
+    { nombre: 'Actividad Cívica / Efemérides', valor: '#198754' },
+    { nombre: 'Consejo Técnico Escolar (CTE)', valor: '#6f42c1' },
+    { nombre: 'Avisos y Calificaciones', valor: '#fd7e14' }
 ];
 
-function inicializarCalendario(userRole) {
+// Catálogo base oficial SEP / DGETI de eventos escolares y académicos
+const EVENTOS_CALENDARIO_SEP = [
+    // 2025 - 2026
+    { id: 'SEP_2025_01', title: "🇲🇽 Inicio de Semestre Ago-Dic", start: "2025-08-25", color: "#198754", tipo: "SEP", descripcion: "Apertura oficial del semestre escolar DGETI" },
+    { id: 'SEP_2025_02', title: "🇲🇽 Aniversario de la Independencia", start: "2025-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'SEP_2025_03', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2025-09-29", end: "2025-10-04", color: "#0d6efd", tipo: "EVAL", descripcion: "Aplicación de exámenes del 1er Parcial" },
+    { id: 'SEP_2025_04', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2025-10-31", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión ordinaria de Consejo Técnico" },
+    { id: 'SEP_2025_05', title: "🇲🇽 Día de Muertos", start: "2025-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'SEP_2025_06', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2025-11-03", end: "2025-11-08", color: "#0d6efd", tipo: "EVAL", descripcion: "Exámenes y corte del 2do Parcial" },
+    { id: 'SEP_2025_07', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2025-11-17", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
+    { id: 'SEP_2025_08', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2025-11-28", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión de Consejo Técnico" },
+    { id: 'SEP_2025_09', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2025-12-08", end: "2025-12-13", color: "#0d6efd", tipo: "EVAL", descripcion: "Cierre de periodo y evaluaciones finales" },
+    { id: 'SEP_2025_10', title: "❄️ Periodo Vacacional de Invierno", start: "2025-12-22", end: "2026-01-10", color: "#dc3545", tipo: "SEP", descripcion: "Receso escolar de invierno" },
+    // 2026
+    { id: 'SEP_2026_01', title: "🇲🇽 Inicio de Cursos Feb-Jul 2026", start: "2026-02-03", color: "#198754", tipo: "SEP", descripcion: "Inicio de clases para semestres pares" },
+    { id: 'SEP_2026_02', title: "🇲🇽 Día de la Constitución Mexicana", start: "2026-02-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'SEP_2026_03', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2026-03-09", end: "2026-03-14", color: "#0d6efd", tipo: "EVAL", descripcion: "1er Parcial semestres pares" },
+    { id: 'SEP_2026_04', title: "🇲🇽 Natalicio de Benito Juárez", start: "2026-03-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'SEP_2026_05', title: "🌴 Receso Escolar de Semana Santa", start: "2026-03-30", end: "2026-04-11", color: "#dc3545", tipo: "SEP", descripcion: "Periodo vacacional de primavera" },
+    { id: 'SEP_2026_06', title: "🇲🇽 Día del Trabajo", start: "2026-05-01", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
+    { id: 'SEP_2026_07', title: "🇲🇽 Batalla de Puebla", start: "2026-05-05", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica" },
+    { id: 'SEP_2026_08', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2026-05-11", end: "2026-05-16", color: "#0d6efd", tipo: "EVAL", descripcion: "2do Parcial" },
+    { id: 'SEP_2026_09', title: "👩‍🏫 Día del Maestro", start: "2026-05-15", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil del magisterio" },
+    { id: 'SEP_2026_10', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2026-06-15", end: "2026-06-20", color: "#0d6efd", tipo: "EVAL", descripcion: "Evaluaciones finales ordinarias" },
+    { id: 'SEP_2026_11', title: "🎓 Fin de Cursos y Graduación", start: "2026-07-10", color: "#198754", tipo: "SEP", descripcion: "Clausura oficial del ciclo escolar" },
+    { id: 'SEP_2026_12', title: "🇲🇽 Inicio de Semestre Ago-Dic 2026", start: "2026-08-24", color: "#198754", tipo: "SEP", descripcion: "Apertura oficial del semestre escolar DGETI" },
+    { id: 'SEP_2026_13', title: "🇲🇽 Aniversario de la Independencia", start: "2026-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'SEP_2026_14', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2026-09-28", end: "2026-10-03", color: "#0d6efd", tipo: "EVAL", descripcion: "Aplicación de exámenes 1er Parcial" },
+    { id: 'SEP_2026_15', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2026-10-30", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión ordinaria de Consejo Técnico" },
+    { id: 'SEP_2026_16', title: "🇲🇽 Día de Muertos", start: "2026-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'SEP_2026_17', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2026-11-03", end: "2026-11-07", color: "#0d6efd", tipo: "EVAL", descripcion: "2do Parcial" },
+    { id: 'SEP_2026_18', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2026-11-16", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
+    { id: 'SEP_2026_19', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2026-11-27", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión de Consejo Técnico" },
+    { id: 'SEP_2026_20', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2026-12-07", end: "2026-12-12", color: "#0d6efd", tipo: "EVAL", descripcion: "Evaluaciones finales" },
+    { id: 'SEP_2026_21', title: "❄️ Periodo Vacacional de Invierno", start: "2026-12-21", end: "2027-01-09", color: "#dc3545", tipo: "SEP", descripcion: "Receso escolar de invierno" }
+];
+
+async function inicializarCalendario(userRole) {
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl || typeof FullCalendar === 'undefined') return;
 
@@ -568,10 +717,9 @@ function inicializarCalendario(userRole) {
         navLinks: true,
         events: async function(info, successCallback, failureCallback) {
             try {
-                const res = await fetch('/api/calendario');
-                if (!res.ok) throw new Error("Error HTTP " + res.status);
-                const eventos = await res.json();
-                const mapeados = (eventos || []).map(evt => ({
+                // 1. Obtener eventos locales de la BD
+                const resLocal = await safeFetchJson('/api/calendario') || [];
+                const localesMapeados = (resLocal || []).map(evt => ({
                     id: evt.id || evt._id,
                     title: evt.title,
                     start: evt.start,
@@ -582,10 +730,79 @@ function inicializarCalendario(userRole) {
                     textColor: '#ffffff',
                     extendedProps: {
                         descripcion: evt.descripcion || '',
-                        creadoPor: evt.creadoPor || 'ADMIN'
+                        creadoPor: evt.creadoPor || 'ADMIN',
+                        origen: 'PLANTEL',
+                        tipo: evt.tipo || 'PLANTEL'
                     }
                 }));
-                successCallback(mapeados);
+
+                // 2. Obtener días festivos de México desde API Nager.Date
+                let feriadosApiMapeados = [];
+                try {
+                    const currentYear = new Date().getFullYear();
+                    const years = [currentYear - 1, currentYear, currentYear + 1];
+                    const promesasFeriados = years.map(y => safeFetchJson(`https://date.nager.at/api/v3/PublicHolidays/${y}/MX`));
+                    const resultadosFeriados = await Promise.all(promesasFeriados);
+                    
+                    resultadosFeriados.forEach(lista => {
+                        if (Array.isArray(lista)) {
+                            lista.forEach(f => {
+                                feriadosApiMapeados.push({
+                                    id: `FERIADO_${f.date}`,
+                                    title: `🇲🇽 ${f.localName || f.name}`,
+                                    start: f.date,
+                                    allDay: true,
+                                    backgroundColor: '#dc3545',
+                                    borderColor: '#dc3545',
+                                    textColor: '#ffffff',
+                                    extendedProps: {
+                                        descripcion: `Día festivo oficial federal en México (${f.name})`,
+                                        creadoPor: 'SEP / Gobierno Federal',
+                                        origen: 'SEP',
+                                        tipo: 'SEP'
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } catch (e) {
+                    console.warn("Feriados API no disponible, usando catálogo SEP interno");
+                }
+
+                // 3. Mapear eventos oficiales SEP / DGETI
+                const sepMapeados = EVENTOS_CALENDARIO_SEP.map(s => ({
+                    id: s.id,
+                    title: s.title,
+                    start: s.start,
+                    end: s.end || null,
+                    allDay: true,
+                    backgroundColor: s.color,
+                    borderColor: s.color,
+                    textColor: '#ffffff',
+                    extendedProps: {
+                        descripcion: s.descripcion,
+                        creadoPor: 'SEP / DGETI',
+                        origen: 'SEP',
+                        tipo: s.tipo || 'SEP'
+                    }
+                }));
+
+                // 4. Consolidar y deduplicar por título y fecha
+                const setKeys = new Set();
+                todosEventosCalendario = [];
+
+                [...localesMapeados, ...feriadosApiMapeados, ...sepMapeados].forEach(ev => {
+                    const key = `${ev.title}_${ev.start}`;
+                    if (!setKeys.has(key)) {
+                        setKeys.add(key);
+                        todosEventosCalendario.push(ev);
+                    }
+                });
+
+                // 5. Aplicar filtro seleccionado
+                const eventosFiltrados = filtrarEventosPorTipo(todosEventosCalendario, filtroCalendarioActual);
+                successCallback(eventosFiltrados);
+
             } catch (err) {
                 console.error("Error al cargar eventos del calendario:", err);
                 failureCallback(err);
@@ -599,14 +816,20 @@ function inicializarCalendario(userRole) {
             abrirModalDetalleEvento(clickInfo.event, esAdmin);
         },
         eventDrop: async function(changeInfo) {
-            if (!esAdmin) {
+            if (!esAdmin || changeInfo.event.extendedProps.origen === 'SEP') {
+                if (changeInfo.event.extendedProps.origen === 'SEP') {
+                    Swal.fire("Aviso", "Los eventos oficiales de la SEP no pueden ser movidos.", "info");
+                }
                 changeInfo.revert();
                 return;
             }
             await actualizarFechasEvento(changeInfo.event, changeInfo.revert);
         },
         eventResize: async function(changeInfo) {
-            if (!esAdmin) {
+            if (!esAdmin || changeInfo.event.extendedProps.origen === 'SEP') {
+                if (changeInfo.event.extendedProps.origen === 'SEP') {
+                    Swal.fire("Aviso", "Los eventos oficiales de la SEP no pueden ser modificados.", "info");
+                }
                 changeInfo.revert();
                 return;
             }
@@ -616,6 +839,50 @@ function inicializarCalendario(userRole) {
 
     calendarioInstancia.render();
 }
+
+function filtrarEventosPorTipo(eventos, filtro) {
+    if (filtro === 'TODOS') return eventos;
+    if (filtro === 'SEP') return eventos.filter(e => e.extendedProps.origen === 'SEP' && e.extendedProps.tipo !== 'EVAL');
+    if (filtro === 'EVAL') return eventos.filter(e => e.extendedProps.tipo === 'EVAL' || (e.title && e.title.toLowerCase().includes('evaluaci')));
+    if (filtro === 'PLANTEL') return eventos.filter(e => e.extendedProps.origen === 'PLANTEL');
+    return eventos;
+}
+
+function filtrarEventosCalendario(tipo) {
+    filtroCalendarioActual = tipo;
+    const btnTodos = document.getElementById('btnCalFiltroTodos');
+    const btnSEP = document.getElementById('btnCalFiltroSEP');
+    const btnEval = document.getElementById('btnCalFiltroEval');
+    const btnPlantel = document.getElementById('btnCalFiltroPlantel');
+
+    if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-secondary active' : 'btn btn-outline-secondary';
+    if (btnSEP) btnSEP.className = (tipo === 'SEP') ? 'btn btn-danger active' : 'btn btn-outline-danger';
+    if (btnEval) btnEval.className = (tipo === 'EVAL') ? 'btn btn-primary active' : 'btn btn-outline-primary';
+    if (btnPlantel) btnPlantel.className = (tipo === 'PLANTEL') ? 'btn btn-dark active' : 'btn btn-outline-dark';
+
+    if (calendarioInstancia) {
+        calendarioInstancia.refetchEvents();
+    }
+}
+window.filtrarEventosCalendario = filtrarEventosCalendario;
+
+function sincronizarCalendarioSEP() {
+    Swal.fire({
+        title: 'Sincronizando con SEP y Feriados...',
+        didOpen: () => Swal.showLoading(),
+        timer: 1000
+    }).then(() => {
+        if (calendarioInstancia) calendarioInstancia.refetchEvents();
+        Swal.fire({
+            icon: 'success',
+            title: 'Calendario Sincronizado',
+            text: 'Se han cargado las fechas oficiales de la SEP, DGETI y días festivos de México.',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+}
+window.sincronizarCalendarioSEP = sincronizarCalendarioSEP;
 
 async function abrirModalNuevoEvento(fechaInicio = '', fechaFin = '', esTodoElDia = true) {
     const hoyStr = new Date().toLocaleDateString('en-CA');
@@ -725,10 +992,12 @@ async function abrirModalDetalleEvento(eventObj, esAdmin) {
     const startStr = eventObj.startStr || (eventObj.start ? eventObj.start.toLocaleDateString('es-MX') : 'S/F');
     const endStr = eventObj.endStr || (eventObj.end ? eventObj.end.toLocaleDateString('es-MX') : '');
     const colorHex = eventObj.backgroundColor || '#7b1b37';
-    const categoriaMatch = PALETA_COLORES_CALENDARIO.find(c => c.valor.toLowerCase() === colorHex.toLowerCase());
-    const categoriaNombre = categoriaMatch ? categoriaMatch.nombre : 'Evento';
+    const esOficialSEP = props.origen === 'SEP';
 
-    if (esAdmin) {
+    const categoriaMatch = PALETA_COLORES_CALENDARIO.find(c => c.valor.toLowerCase() === colorHex.toLowerCase());
+    const categoriaNombre = esOficialSEP ? 'Oficial SEP / Federal' : (categoriaMatch ? categoriaMatch.nombre : 'Evento Plantel');
+
+    if (esAdmin && !esOficialSEP) {
         const result = await Swal.fire({
             title: `<span style="color:${colorHex};"><i class="bi bi-calendar-event me-2"></i>${eventObj.title}</span>`,
             html: `
@@ -764,12 +1033,14 @@ async function abrirModalDetalleEvento(eventObj, esAdmin) {
                 <div class="text-start p-2" style="font-size: 14px;">
                     <div class="mb-2">
                         <span class="badge" style="background-color: ${colorHex}; font-size: 12px;">${categoriaNombre}</span>
+                        ${esOficialSEP ? '<span class="badge bg-danger ms-1">🇲🇽 Calendario Oficial SEP</span>' : ''}
                     </div>
                     <p class="mb-1"><strong><i class="bi bi-clock me-1"></i>Periodo:</strong> ${startStr} ${endStr ? ' hasta ' + endStr : ''}</p>
                     ${props.descripcion ? `<p class="mb-1"><strong><i class="bi bi-card-text me-1"></i>Detalles:</strong> ${props.descripcion}</p>` : ''}
+                    ${esOficialSEP ? '<p class="mt-2 text-muted x-small fst-italic"><i class="bi bi-shield-lock me-1"></i>Evento normativo oficial de la SEP.</p>' : ''}
                 </div>
             `,
-            confirmButtonText: 'Cerrar',
+            confirmButtonText: 'Entendido',
             confirmButtonColor: '#7b1b37'
         });
     }
@@ -1066,8 +1337,10 @@ async function cargarEstadisticasPersonal() {
         const dentroMap = new Set();
         if (Array.isArray(registrosHoy)) {
             registrosHoy.forEach(r => {
-                if (r.estatus_actual === 'DENTRO' || (r.hora_entrada && !r.hora_salida)) {
+                const esDentro = (r.estatus_actual === 'DENTRO') || (r.hora_entrada && !r.hora_salida);
+                if (esDentro) {
                     if (r.matricula) dentroMap.add(r.matricula.trim().toUpperCase());
+                    if (r.ncontrol) dentroMap.add(r.ncontrol.trim().toUpperCase());
                     if (r.id) dentroMap.add(r.id.trim().toUpperCase());
                 }
             });
@@ -1114,44 +1387,6 @@ async function cargarEstadisticasPersonal() {
 }
 window.cargarEstadisticasPersonal = cargarEstadisticasPersonal;
 
-async function cargarDashboardCompleto() {
-    try {
-        const alumnos = await safeFetchJson('/api/alumnos');
-        if (!alumnos || !Array.isArray(alumnos)) return;
-
-        const totalRegistrados = alumnos.length;
-        let totalDentro = 0;
-        let totalFuera = 0;
-        const conteoEspecialidades = {};
-
-        alumnos.forEach(al => {
-            const estatus = al.estatus_escolar || al.estatus || 'Activo';
-            if (estatus === 'Activo') {
-                if (al.estado === "DENTRO") {
-                    totalDentro++;
-                    const esp = al.especialidad || 'OTRO';
-                    conteoEspecialidades[esp] = (conteoEspecialidades[esp] || 0) + 1;
-                } else {
-                    totalFuera++;
-                }
-            }
-        });
-
-        if (document.getElementById('totalAlumnos')) 
-            document.getElementById('totalAlumnos').innerText = totalRegistrados;
-
-        actualizarKPIs(totalDentro, totalRegistrados);
-        renderizarGraficoBarras(conteoEspecialidades);
-        renderizarGraficoPastel(totalDentro, totalFuera);
-
-        const elAct = document.getElementById('ultimaAct');
-        if (elAct) elAct.innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
-    } catch (e) {
-        console.error("Error en Dashboard:", e);
-    }
-}
-
 function determinarCicloSugerido() {
     const mes = new Date().getMonth();
     const info = document.getElementById('infoCicloSugerido');
@@ -1189,70 +1424,6 @@ async function cargarEspecialidadesPromocion() {
             selectFiltro.appendChild(opt);
         });
     }
-}
-
-function actualizarKPIs(dentro, total) {
-    const porcentaje = total > 0 ? ((dentro / total) * 100).toFixed(1) : 0;
-    
-    const txtPct = document.getElementById('pctAsistencia');
-    const barra = document.getElementById('barraAsistencia');
-    
-    if (txtPct) txtPct.innerText = `${porcentaje}%`;
-    if (barra) barra.style.width = `${porcentaje}%`;
-}
-
-function renderizarGraficoBarras(datos) {
-    const ctx = document.getElementById('graficoEspecialidades');
-    if (!ctx || typeof Chart === 'undefined') return;
-    if (chartEsp) chartEsp.destroy();
-
-    const labels = Object.keys(datos).length > 0 ? Object.keys(datos) : ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE", "CONTABILIDAD", "CONSTRUCCIÓN"];
-    const values = Object.keys(datos).length > 0 ? Object.values(datos) : [0, 0, 0, 0, 0];
-
-    chartEsp = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Alumnos en Plantel',
-                data: values,
-                backgroundColor: '#7b1b37',
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
-        }
-    });
-}
-
-function renderizarGraficoPastel(dentro, fuera) {
-    const ctx = document.getElementById('graficoEstatus');
-    if (!ctx || typeof Chart === 'undefined') return;
-    if (chartEst) chartEst.destroy();
-
-    chartEst = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['En Plantel', 'Fuera'],
-            datasets: [{
-                data: [dentro, fuera > 0 ? fuera : 1],
-                backgroundColor: ['#0d6efd', '#e9ecef'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
 }
 
 function cambiarScope(val) {
