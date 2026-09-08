@@ -101,113 +101,75 @@
 
                     <div class="col-xl-8 col-lg-7">
                         
-                        <!-- Tarjeta de Búsqueda de Accesos (Alumno / Personal) -->
-					    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
-					        <div class="card-header bg-white border-0 pt-3 pb-2">
+                        <!-- Cabecera Autorizaciones del Día + Reloj + Leyenda compacta -->
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+						    <div class="d-flex align-items-center gap-2 flex-wrap">
+						        <h6 class="fw-bold mb-0" style="color: var(--guinda); font-size: 1.05rem;"> 
+						            <i class="bi bi-grid-3x3-gap-fill me-1"></i>Autorizaciones del Día (Pases de Salida)
+						        </h6>
+						        <span class="badge bg-success px-2 py-1" style="font-size: 0.72rem;"><i class="bi bi-check-lg me-1"></i>Autorizado</span>
+						        <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.72rem;"><i class="bi bi-dash me-1"></i>Sin Pase</span>
+						    </div>
+						    
+						    <div id="relojActual" class="fw-bold border-start border-2 ps-2 text-end" 
+						         style="color: var(--guinda); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.95rem; letter-spacing: 0.5px;">
+						         CARGANDO...
+						    </div>
+						</div>
+
+                        <!-- Tarjeta de Búsqueda de Accesos (Abajo de Autorizaciones del Día) -->
+					    <div class="card border-0 shadow-sm mb-3" style="border-radius: 12px;">
+					        <div class="card-body p-2">
 					            <div class="row g-2 align-items-center">
-					                <div class="col-md-6 col-12">
-					                    <div class="d-flex align-items-center">
-					                        <span class="badge bg-light text-guinda border me-2 d-flex align-items-center justify-content-center" style="width:34px; height:34px; border-radius: 8px;">
-					                            <i class="bi bi-search fs-6" style="color: var(--guinda);"></i>
+					                <div class="col-md-7 col-12">
+					                    <div class="input-group input-group-sm">
+					                        <span class="input-group-text bg-white border-end-0 text-muted ps-2">
+					                            <i class="bi bi-search text-secondary"></i>
 					                        </span>
-					                        <div>
-					                            <h6 class="fw-bold mb-0" style="color: var(--guinda);">Búsqueda Rápida de Accesos</h6>
-					                            <span class="x-small text-muted" id="contadorResultadosBusqueda">0 resultados</span>
-					                        </div>
+					                        <input type="text" id="filtroRapido" class="form-control border-start-0 ps-1" 
+					                               placeholder="Buscar alumno o personal por nombre, matrícula o RFC..." autocomplete="off">
+					                        <button class="btn btn-outline-secondary border-start-0" type="button" id="btnLimpiarFiltro" onclick="limpiarBusqueda()" style="display: none;">
+					                            <i class="bi bi-x-lg"></i>
+					                        </button>
 					                    </div>
 					                </div>
-					                <div class="col-md-6 col-12">
+					                <div class="col-md-5 col-12">
 					                    <!-- Selector de Tipo: Todos, Alumnos, Personal -->
-					                    <div class="btn-group w-100 shadow-sm" role="group" aria-label="Filtro de tipo">
-					                        <button type="button" class="btn btn-sm btn-guinda active fw-bold" id="btnFiltroTipoTodos" onclick="cambiarFiltroTipo('TODOS')">
+					                    <div class="btn-group w-100 btn-group-sm" role="group" aria-label="Filtro de tipo">
+					                        <button type="button" class="btn btn-guinda active fw-bold" id="btnFiltroTipoTodos" onclick="cambiarFiltroTipo('TODOS')">
 					                            <i class="bi bi-people me-1"></i>Todos
 					                        </button>
-					                        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" id="btnFiltroTipoAlumnos" onclick="cambiarFiltroTipo('ALUMNOS')">
+					                        <button type="button" class="btn btn-outline-secondary fw-bold" id="btnFiltroTipoAlumnos" onclick="cambiarFiltroTipo('ALUMNOS')">
 					                            <i class="bi bi-mortarboard me-1"></i>Alumnos
 					                        </button>
-					                        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" id="btnFiltroTipoPersonal" onclick="cambiarFiltroTipo('PERSONAL')">
+					                        <button type="button" class="btn btn-outline-secondary fw-bold" id="btnFiltroTipoPersonal" onclick="cambiarFiltroTipo('PERSONAL')">
 					                            <i class="bi bi-person-badge me-1"></i>Personal
 					                        </button>
 					                    </div>
 					                </div>
 					            </div>
-					        </div>
-					        <div class="card-body pt-1 pb-3">
-					            <div class="input-group mb-2 shadow-sm">
-					                <span class="input-group-text bg-white border-end-0 text-muted ps-3">
-					                    <i class="bi bi-search text-secondary"></i>
-					                </span>
-					                <input type="text" id="filtroRapido" class="form-control border-start-0 ps-1 py-2" 
-					                       placeholder="Buscar por nombre, matrícula o RFC..." autocomplete="off">
-					                <button class="btn btn-outline-secondary border-start-0 pe-3" type="button" id="btnLimpiarFiltro" onclick="limpiarBusqueda()" style="display: none;">
-					                    <i class="bi bi-x-lg"></i>
-					                </button>
-					            </div>
 					            
-					            <div id="contenedorResultadosBusqueda" style="display: none;">
-					                <div class="table-responsive border rounded-3 bg-white" style="max-height: 280px; overflow-y: auto;">
+					            <!-- Despliegue de Resultados Flotante / Dinámico -->
+					            <div id="contenedorResultadosBusqueda" class="mt-2" style="display: none;">
+					                <div class="d-flex justify-content-between align-items-center mb-1 px-1">
+					                    <span class="x-small text-muted fw-bold" id="contadorResultadosBusqueda">0 resultados</span>
+					                    <span class="x-small text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic para registrar Entrada o Salida</span>
+					                </div>
+					                <div class="table-responsive border rounded-2 bg-white" style="max-height: 220px; overflow-y: auto;">
 					                    <table class="table table-sm table-hover align-middle mb-0">
 					                        <tbody id="tablaSimpleAlumnos">
 					                        </tbody>
 					                    </table>
 					                </div>
-					                <div id="busquedaSinResultados" class="text-center py-3 text-muted" style="display: none;">
-					                    <i class="bi bi-exclamation-circle fs-3 d-block mb-1 text-danger opacity-50"></i>
-					                    <span class="small fw-semibold">No se encontraron coincidencias.</span>
-					                </div>
-					                <div class="mt-1 text-end">
-					                    <span class="x-small text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic en un registro para validar entrada o salida.</span>
+					                <div id="busquedaSinResultados" class="text-center py-2 text-muted" style="display: none;">
+					                    <i class="bi bi-exclamation-circle d-block mb-1 text-danger opacity-50"></i>
+					                    <span class="x-small fw-semibold">No se encontraron coincidencias.</span>
 					                </div>
 					            </div>
 					        </div>
 					    </div>
 
-                        <div class="mb-4">
-						    <div class="d-flex justify-content-between align-items-center mb-3">
-						        <h5 class="fw-bold mb-0" style="color: var(--guinda);"> 
-						            <i class="bi bi-grid-3x3-gap-fill me-2"></i>Autorizaciones del Día (Pases de Salida)
-						        </h5>
-						        
-						        <div id="relojActual" class="fw-bold border-start border-2 ps-3" 
-						             style="color: var(--guinda); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 1.1rem; letter-spacing: 0.5px;">
-						             CARGANDO...
-						        </div>
-						    </div>
-						
-						    <div class="d-flex flex-wrap gap-4 p-3 bg-white rounded-3 shadow-sm border">
-						
-						        <div class="d-flex align-items-center flex-grow-1">
-						            <span class="badge bg-success me-3 d-flex align-items-center justify-content-center"
-						                  style="width:38px; height:38px; border-radius: 10px;">
-						                <i class="bi bi-check-lg fs-5"></i>
-						            </span>
-						            <div class="lh-sm">
-						                <span class="d-block fw-bold small text-success">AUTORIZADO</span>
-						                <span class="small text-muted">
-						                    El grupo o alumno cuentan con pase grupal vigente hoy.
-						                </span>
-						            </div>
-						        </div>
-						
-						        <div class="vr d-none d-md-block" style="opacity: 0.1;"></div>
-						
-						        <div class="d-flex align-items-center flex-grow-1">
-						            <span class="badge bg-light text-secondary border me-3 d-flex align-items-center justify-content-center"
-						                  style="width:38px; height:38px; border-radius: 10px;">
-						                <i class="bi bi-dash fs-5"></i>
-						            </span>
-						
-						            <div class="lh-sm">
-						                <span class="d-block fw-bold small text-secondary">SIN PASE GRUPAL</span>
-						                <span class="small text-muted">
-						                    Los alumnos no cuentan con pase grupal o individual para salir.
-						                </span>
-						            </div>
-						        </div>
-						    </div>
-						</div>
-						
-						<div class="row g-3" id="tableroEspecialidades"></div>
+						<div class="row g-2" id="tableroEspecialidades"></div>
                     </div>
                 </div>
             </div> </div> </div>

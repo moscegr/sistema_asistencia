@@ -300,6 +300,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
                 persona.estado = "DENTRO";
                 actualizarRegistroLocalHoy(nuevoReg);
+                const idxPers = personalCache.findIndex(p => igualMatricula(p.rfc || p.uid || p.id, rfcKey));
+                if (idxPers >= 0) personalCache[idxPers].estado = "DENTRO";
 
                 fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
                     method: 'PUT',
@@ -331,6 +333,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
                 persona.estado = "FUERA";
                 actualizarRegistroLocalHoy(regSalida);
+                const idxPers2 = personalCache.findIndex(p => igualMatricula(p.rfc || p.uid || p.id, rfcKey));
+                if (idxPers2 >= 0) personalCache[idxPers2].estado = "FUERA";
 
                 fetch(`/api/usuarios/${encodeURIComponent(persona.id || persona.uid)}`, {
                     method: 'PUT',
@@ -342,6 +346,8 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
             }
 
             actualizarFaceMatcher();
+            renderizarListaFiltrada(document.getElementById('filtroRapido')?.value || "");
+
             setTimeout(() => {
                 procesandoEscaneo = false;
             }, 800);
@@ -678,17 +684,17 @@ function generarTableroDinamico() {
             const estaAutorizado = gruposAutorizadosHoy.includes(gpoKey);
             const badgeClass = estaAutorizado ? 'bg-success text-white' : 'bg-light text-dark border';
             
-            badgesHTML += `<span class="badge ${badgeClass} me-1 mb-1 p-2">${gpo}</span>`;
+            badgesHTML += `<span class="badge ${badgeClass} me-1 mb-1 px-2 py-1 font-monospace" style="font-size: 0.75rem;">${gpo}</span>`;
         });
 
         const card = document.createElement('div');
-        card.className = "col-md-6 col-lg-4";
+        card.className = "col-xl-4 col-md-6 col-sm-6";
         card.innerHTML = `
-            <div class="card border-0 shadow-sm especialidad-card h-100" style="border-top-color: ${color} !important; border-radius: 12px;">
-                <div class="card-body">
-                    <h6 class="fw-bold mb-2" style="color: ${color};">${esp.nombre}</h6>
-                    <div class="d-flex flex-wrap gap-1">
-                        ${badgesHTML || '<span class="text-muted small">Sin grupos</span>'}
+            <div class="card border-0 shadow-sm especialidad-card h-100" style="border-top: 3px solid ${color} !important; border-radius: 10px;">
+                <div class="card-body p-2 px-3">
+                    <h6 class="fw-bold mb-1 text-truncate" style="color: ${color}; font-size: 0.8rem; letter-spacing: 0.3px;">${esp.nombre}</h6>
+                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                        ${badgesHTML || '<span class="text-muted fst-italic" style="font-size: 0.72rem;">Sin grupos</span>'}
                     </div>
                 </div>
             </div>
