@@ -40,6 +40,7 @@ public class ConfiguracionController {
                 doc.put("cct_escuela", "12DCT0001L");
                 doc.put("telefono_escuela", "747 47 2 34 64");
                 doc.put("vigencia_actual", "Agosto 2026");
+                doc.put("jefe_personal", "LIC. JUANA MORALES APARICIO");
                 mongoTemplate.save(doc, "configuracion");
             } else if ("escolar".equals(id)) {
                 doc.put("especialidades", List.of(

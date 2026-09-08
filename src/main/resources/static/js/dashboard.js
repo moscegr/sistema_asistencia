@@ -581,7 +581,7 @@ function renderizarTablaAlertaRiesgo() {
                     <button class="btn btn-outline-success btn-sm" onclick="enviarWhatsappTutorDesercion('${a.matricula}')" title="Contactar Tutor por WhatsApp">
                         <i class="bi bi-whatsapp"></i>
                     </button>
-                    <a href="/admin/expediente_alumno?matricula=${encodeURIComponent(a.matricula)}" class="btn btn-outline-secondary btn-sm" title="Ver Expediente">
+                    <a href="/admin/alumnos/expediente?matricula=${encodeURIComponent(a.matricula)}" class="btn btn-outline-secondary btn-sm" title="Ver Expediente">
                         <i class="bi bi-folder2-open"></i>
                     </a>
                 </div>
@@ -654,47 +654,40 @@ window.enviarWhatsappTutorDesercion = enviarWhatsappTutorDesercion;
 const PALETA_COLORES_CALENDARIO = [
     { nombre: 'Institucional Guinda', valor: '#7b1b37' },
     { nombre: 'Inhábiles / Suspensión Oficial', valor: '#dc3545' },
-    { nombre: 'Evaluaciones / Exámenes', valor: '#0d6efd' },
-    { nombre: 'Actividad Cívica / Efemérides', valor: '#198754' },
-    { nombre: 'Consejo Técnico Escolar (CTE)', valor: '#6f42c1' },
-    { nombre: 'Avisos y Calificaciones', valor: '#fd7e14' }
+    { nombre: 'Inicio / Fin Semestre DGETI', valor: '#198754' },
+    { nombre: 'Periodos y Recesos DGETI', valor: '#0d6efd' },
+    { nombre: 'Avisos Institucionales', valor: '#fd7e14' }
 ];
 
-// Catálogo base oficial SEP / DGETI de eventos escolares y académicos
-const EVENTOS_CALENDARIO_SEP = [
-    // 2025 - 2026
-    { id: 'SEP_2025_01', title: "🇲🇽 Inicio de Semestre Ago-Dic", start: "2025-08-25", color: "#198754", tipo: "SEP", descripcion: "Apertura oficial del semestre escolar DGETI" },
-    { id: 'SEP_2025_02', title: "🇲🇽 Aniversario de la Independencia", start: "2025-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
-    { id: 'SEP_2025_03', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2025-09-29", end: "2025-10-04", color: "#0d6efd", tipo: "EVAL", descripcion: "Aplicación de exámenes del 1er Parcial" },
-    { id: 'SEP_2025_04', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2025-10-31", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión ordinaria de Consejo Técnico" },
-    { id: 'SEP_2025_05', title: "🇲🇽 Día de Muertos", start: "2025-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
-    { id: 'SEP_2025_06', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2025-11-03", end: "2025-11-08", color: "#0d6efd", tipo: "EVAL", descripcion: "Exámenes y corte del 2do Parcial" },
-    { id: 'SEP_2025_07', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2025-11-17", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
-    { id: 'SEP_2025_08', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2025-11-28", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión de Consejo Técnico" },
-    { id: 'SEP_2025_09', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2025-12-08", end: "2025-12-13", color: "#0d6efd", tipo: "EVAL", descripcion: "Cierre de periodo y evaluaciones finales" },
-    { id: 'SEP_2025_10', title: "❄️ Periodo Vacacional de Invierno", start: "2025-12-22", end: "2026-01-10", color: "#dc3545", tipo: "SEP", descripcion: "Receso escolar de invierno" },
+// Catálogo base oficial DGETI de suspensiones y periodos escolares
+const EVENTOS_CALENDARIO_DGETI = [
+    // 2025
+    { id: 'DGETI_2025_01', title: "🇲🇽 Inicio de Cursos Semestre Ago-Dic 2025", start: "2025-08-25", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre escolar DGETI" },
+    { id: 'DGETI_2025_02', title: "🏫 Aniversario de la DGETI", start: "2025-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
+    { id: 'DGETI_2025_03', title: "🇲🇽 Aniversario de la Independencia", start: "2025-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'DGETI_2025_04', title: "🇲🇽 Día de Muertos", start: "2025-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'DGETI_2025_05', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2025-11-17", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
+    { id: 'DGETI_2025_06', title: "🎓 Fin de Cursos Semestre Ago-Dic 2025", start: "2025-12-12", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de actividades académicas" },
+    { id: 'DGETI_2025_07', title: "❄️ Periodo Vacacional de Invierno", start: "2025-12-22", end: "2026-01-10", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de fin de año" },
+    
     // 2026
-    { id: 'SEP_2026_01', title: "🇲🇽 Inicio de Cursos Feb-Jul 2026", start: "2026-02-03", color: "#198754", tipo: "SEP", descripcion: "Inicio de clases para semestres pares" },
-    { id: 'SEP_2026_02', title: "🇲🇽 Día de la Constitución Mexicana", start: "2026-02-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
-    { id: 'SEP_2026_03', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2026-03-09", end: "2026-03-14", color: "#0d6efd", tipo: "EVAL", descripcion: "1er Parcial semestres pares" },
-    { id: 'SEP_2026_04', title: "🇲🇽 Natalicio de Benito Juárez", start: "2026-03-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
-    { id: 'SEP_2026_05', title: "🌴 Receso Escolar de Semana Santa", start: "2026-03-30", end: "2026-04-11", color: "#dc3545", tipo: "SEP", descripcion: "Periodo vacacional de primavera" },
-    { id: 'SEP_2026_06', title: "🇲🇽 Día del Trabajo", start: "2026-05-01", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
-    { id: 'SEP_2026_07', title: "🇲🇽 Batalla de Puebla", start: "2026-05-05", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica" },
-    { id: 'SEP_2026_08', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2026-05-11", end: "2026-05-16", color: "#0d6efd", tipo: "EVAL", descripcion: "2do Parcial" },
-    { id: 'SEP_2026_09', title: "👩‍🏫 Día del Maestro", start: "2026-05-15", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil del magisterio" },
-    { id: 'SEP_2026_10', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2026-06-15", end: "2026-06-20", color: "#0d6efd", tipo: "EVAL", descripcion: "Evaluaciones finales ordinarias" },
-    { id: 'SEP_2026_11', title: "🎓 Fin de Cursos y Graduación", start: "2026-07-10", color: "#198754", tipo: "SEP", descripcion: "Clausura oficial del ciclo escolar" },
-    { id: 'SEP_2026_12', title: "🇲🇽 Inicio de Semestre Ago-Dic 2026", start: "2026-08-24", color: "#198754", tipo: "SEP", descripcion: "Apertura oficial del semestre escolar DGETI" },
-    { id: 'SEP_2026_13', title: "🇲🇽 Aniversario de la Independencia", start: "2026-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
-    { id: 'SEP_2026_14', title: "📝 1er Periodo de Evaluaciones Parciales", start: "2026-09-28", end: "2026-10-03", color: "#0d6efd", tipo: "EVAL", descripcion: "Aplicación de exámenes 1er Parcial" },
-    { id: 'SEP_2026_15', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2026-10-30", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión ordinaria de Consejo Técnico" },
-    { id: 'SEP_2026_16', title: "🇲🇽 Día de Muertos", start: "2026-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
-    { id: 'SEP_2026_17', title: "📝 2do Periodo de Evaluaciones Parciales", start: "2026-11-03", end: "2026-11-07", color: "#0d6efd", tipo: "EVAL", descripcion: "2do Parcial" },
-    { id: 'SEP_2026_18', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2026-11-16", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
-    { id: 'SEP_2026_19', title: "🟣 Consejo Técnico Escolar (CTE)", start: "2026-11-27", color: "#6f42c1", tipo: "SEP", descripcion: "Sesión de Consejo Técnico" },
-    { id: 'SEP_2026_20', title: "📝 3er Periodo de Evaluaciones Parciales", start: "2026-12-07", end: "2026-12-12", color: "#0d6efd", tipo: "EVAL", descripcion: "Evaluaciones finales" },
-    { id: 'SEP_2026_21', title: "❄️ Periodo Vacacional de Invierno", start: "2026-12-21", end: "2027-01-09", color: "#dc3545", tipo: "SEP", descripcion: "Receso escolar de invierno" }
+    { id: 'DGETI_2026_01', title: "🇲🇽 Día de la Constitución Mexicana", start: "2026-02-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'DGETI_2026_02', title: "🇲🇽 Inicio de Cursos Semestre Feb-Jul 2026", start: "2026-02-03", color: "#198754", tipo: "PERIODOS", descripcion: "Inicio de clases para semestres pares DGETI" },
+    { id: 'DGETI_2026_03', title: "🇲🇽 Natalicio de Benito Juárez", start: "2026-03-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial (3er lunes de marzo)" },
+    { id: 'DGETI_2026_04', title: "🌴 Receso Escolar de Semana Santa", start: "2026-03-30", end: "2026-04-11", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Periodo vacacional de primavera DGETI" },
+    { id: 'DGETI_2026_05', title: "🇲🇽 Día del Trabajo", start: "2026-05-01", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
+    { id: 'DGETI_2026_06', title: "🇲🇽 Batalla de Puebla", start: "2026-05-05", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'DGETI_2026_07', title: "👩‍🏫 Día del Maestro", start: "2026-05-15", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial del magisterio" },
+    { id: 'DGETI_2026_08', title: "🎓 Fin de Cursos Semestre Feb-Jul 2026", start: "2026-07-03", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
+    { id: 'DGETI_2026_09', title: "🏛️ Ceremonia de Graduación CBTis 134", start: "2026-07-10", color: "#7b1b37", tipo: "PLANTEL", descripcion: "Clausura y entrega de constancias/certificados" },
+    { id: 'DGETI_2026_10', title: "🛠️ Cursos Intersemestrales y Planeación DGETI", start: "2026-07-13", end: "2026-07-25", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Capacitación y planeación docente DGETI" },
+    { id: 'DGETI_2026_11', title: "🇲🇽 Inicio de Cursos Semestre Ago 2026 - Ene 2027", start: "2026-08-24", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre nones DGETI" },
+    { id: 'DGETI_2026_12', title: "🏫 Aniversario de la DGETI", start: "2026-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
+    { id: 'DGETI_2026_13', title: "🇲🇽 Aniversario de la Independencia", start: "2026-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'DGETI_2026_14', title: "🇲🇽 Día de Muertos", start: "2026-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'DGETI_2026_15', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2026-11-16", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
+    { id: 'DGETI_2026_16', title: "🎓 Fin de Cursos Semestre Ago 2026", start: "2026-12-11", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
+    { id: 'DGETI_2026_17', title: "❄️ Periodo Vacacional de Invierno", start: "2026-12-21", end: "2027-01-09", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de invierno" }
 ];
 
 async function inicializarCalendario(userRole) {
@@ -782,11 +775,11 @@ async function inicializarCalendario(userRole) {
                         }
                     });
                 } catch (e) {
-                    console.warn("Feriados API no disponible, usando catálogo SEP interno");
+                    console.warn("Feriados API no disponible, usando catálogo DGETI interno");
                 }
 
-                // 3. Mapear eventos oficiales SEP / DGETI
-                const sepMapeados = EVENTOS_CALENDARIO_SEP.map(s => ({
+                // 3. Mapear eventos oficiales DGETI
+                const dgetiMapeados = EVENTOS_CALENDARIO_DGETI.map(s => ({
                     id: s.id,
                     title: s.title,
                     start: s.start,
@@ -797,59 +790,31 @@ async function inicializarCalendario(userRole) {
                     textColor: '#ffffff',
                     extendedProps: {
                         descripcion: s.descripcion,
-                        creadoPor: 'SEP / DGETI',
-                        origen: 'SEP',
-                        tipo: s.tipo || 'SEP'
+                        creadoPor: 'DGETI Oficial',
+                        origen: s.tipo === 'SEP' ? 'SEP' : 'DGETI',
+                        tipo: s.tipo
                     }
                 }));
 
-                // 4. Consolidar y deduplicar por título y fecha
-                const setKeys = new Set();
-                todosEventosCalendario = [];
+                // Deduplicar feriados de API si ya existen en catálogo DGETI
+                const fechasDgeti = new Set(dgetiMapeados.filter(d => d.extendedProps.tipo === 'SEP').map(d => d.start));
+                const feriadosUnicos = feriadosApiMapeados.filter(f => !fechasDgeti.has(f.start));
 
-                [...localesMapeados, ...feriadosApiMapeados, ...sepMapeados].forEach(ev => {
-                    const key = `${ev.title}_${ev.start}`;
-                    if (!setKeys.has(key)) {
-                        setKeys.add(key);
-                        todosEventosCalendario.push(ev);
-                    }
-                });
-
-                // 5. Aplicar filtro seleccionado
+                todosEventosCalendario = [...localesMapeados, ...dgetiMapeados, ...feriadosUnicos];
                 const eventosFiltrados = filtrarEventosPorTipo(todosEventosCalendario, filtroCalendarioActual);
                 successCallback(eventosFiltrados);
-
             } catch (err) {
-                console.error("Error al cargar eventos del calendario:", err);
+                console.error("Error cargando eventos en calendario:", err);
                 failureCallback(err);
             }
         },
-        select: function(selectionInfo) {
-            if (!esAdmin) return;
-            abrirModalNuevoEvento(selectionInfo.startStr, selectionInfo.endStr, selectionInfo.allDay);
+        eventClick: function(info) {
+            abrirModalDetalleEvento(info.event, esAdmin);
         },
-        eventClick: function(clickInfo) {
-            abrirModalDetalleEvento(clickInfo.event, esAdmin);
-        },
-        eventDrop: async function(changeInfo) {
-            if (!esAdmin || changeInfo.event.extendedProps.origen === 'SEP') {
-                if (changeInfo.event.extendedProps.origen === 'SEP') {
-                    Swal.fire("Aviso", "Los eventos oficiales de la SEP no pueden ser movidos.", "info");
-                }
-                changeInfo.revert();
-                return;
+        dateClick: function(info) {
+            if (esAdmin) {
+                abrirModalNuevoEvento(info.dateStr, info.dateStr, true);
             }
-            await actualizarFechasEvento(changeInfo.event, changeInfo.revert);
-        },
-        eventResize: async function(changeInfo) {
-            if (!esAdmin || changeInfo.event.extendedProps.origen === 'SEP') {
-                if (changeInfo.event.extendedProps.origen === 'SEP') {
-                    Swal.fire("Aviso", "Los eventos oficiales de la SEP no pueden ser modificados.", "info");
-                }
-                changeInfo.revert();
-                return;
-            }
-            await actualizarFechasEvento(changeInfo.event, changeInfo.revert);
         }
     });
 
@@ -858,9 +823,9 @@ async function inicializarCalendario(userRole) {
 
 function filtrarEventosPorTipo(eventos, filtro) {
     if (filtro === 'TODOS') return eventos;
-    if (filtro === 'SEP') return eventos.filter(e => e.extendedProps.origen === 'SEP' && e.extendedProps.tipo !== 'EVAL');
-    if (filtro === 'EVAL') return eventos.filter(e => e.extendedProps.tipo === 'EVAL' || (e.title && e.title.toLowerCase().includes('evaluaci')));
-    if (filtro === 'PLANTEL') return eventos.filter(e => e.extendedProps.origen === 'PLANTEL');
+    if (filtro === 'SEP') return eventos.filter(e => e.extendedProps.tipo === 'SEP' || e.extendedProps.origen === 'SEP');
+    if (filtro === 'PERIODOS') return eventos.filter(e => e.extendedProps.tipo === 'PERIODOS' || e.extendedProps.origen === 'DGETI');
+    if (filtro === 'PLANTEL') return eventos.filter(e => e.extendedProps.origen === 'PLANTEL' || e.extendedProps.tipo === 'PLANTEL');
     return eventos;
 }
 
@@ -868,12 +833,12 @@ function filtrarEventosCalendario(tipo) {
     filtroCalendarioActual = tipo;
     const btnTodos = document.getElementById('btnCalFiltroTodos');
     const btnSEP = document.getElementById('btnCalFiltroSEP');
-    const btnEval = document.getElementById('btnCalFiltroEval');
+    const btnPeriodos = document.getElementById('btnCalFiltroPeriodos');
     const btnPlantel = document.getElementById('btnCalFiltroPlantel');
 
     if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-secondary active' : 'btn btn-outline-secondary';
     if (btnSEP) btnSEP.className = (tipo === 'SEP') ? 'btn btn-danger active' : 'btn btn-outline-danger';
-    if (btnEval) btnEval.className = (tipo === 'EVAL') ? 'btn btn-primary active' : 'btn btn-outline-primary';
+    if (btnPeriodos) btnPeriodos.className = (tipo === 'PERIODOS') ? 'btn btn-primary active' : 'btn btn-outline-primary';
     if (btnPlantel) btnPlantel.className = (tipo === 'PLANTEL') ? 'btn btn-dark active' : 'btn btn-outline-dark';
 
     if (calendarioInstancia) {

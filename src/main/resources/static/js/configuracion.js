@@ -70,6 +70,7 @@ async function cargarDatosInstitucionales() {
             const data = await res.json();
             if (document.getElementById('confDirector')) document.getElementById('confDirector').value = data.nombre_director || "JOSE MARTIN RODEA ZUÑIGA";
             if (document.getElementById('confOrientacion')) document.getElementById('confOrientacion').value = data.responsable_orientacion || "MATILDE ABIGAIL GARCIA NAJERA";
+            if (document.getElementById('confJefePersonal')) document.getElementById('confJefePersonal').value = data.jefe_personal || data.nombre_jefe_personal || "LIC. JUANA MORALES APARICIO";
             if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "12DCT0001L";
             if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "747 47 2 34 64";
             if (document.getElementById('confVigencia')) document.getElementById('confVigencia').value = data.vigencia_actual || "Agosto 2026";
@@ -90,6 +91,7 @@ if (formInst) {
         const actualizaciones = {
             nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),
             responsable_orientacion: document.getElementById('confOrientacion').value.trim().toUpperCase(),
+            jefe_personal: document.getElementById('confJefePersonal') ? document.getElementById('confJefePersonal').value.trim().toUpperCase() : '',
             cct_escuela: document.getElementById('confCCT').value.trim().toUpperCase(),
             telefono_escuela: document.getElementById('confTelefono').value.trim(),
             vigencia_actual: document.getElementById('confVigencia').value.trim(),

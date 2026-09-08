@@ -69,7 +69,7 @@ public class VistaController {
         return "admin/gestion_excel";
     }
 
-    @GetMapping("/admin/alumnos/expediente")
+    @GetMapping({"/admin/alumnos/expediente", "/admin/expediente_alumno"})
     public String expedienteAlumno() {
         return "admin/expediente_alumno";
     }

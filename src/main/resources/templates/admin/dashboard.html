@@ -521,26 +521,26 @@
                 </div>
             </div>
 
-            <!-- ── 3. CALENDARIO OFICIAL SEP Y AGENDA ESCOLAR ── -->
+            <!-- ── 3. CALENDARIO OFICIAL DGETI Y AGENDA ESCOLAR ── -->
             <div class="row g-4 mb-4 anim-up anim-d5">
                 <div class="col-12">
                     <div class="card-dash p-4">
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                             <div>
                                 <h5 class="section-title mb-1" style="color: var(--guinda);">
-                                    <i class="bi bi-calendar-check-fill me-2"></i>Agenda Escolar y Calendario Oficial SEP
+                                    <i class="bi bi-calendar-check-fill me-2"></i>Agenda Escolar y Calendario Oficial DGETI
                                 </h5>
-                                <p class="section-sub mb-0">Sincronización en tiempo real con días festivos federales, periodos de evaluación DGETI y eventos institucionales</p>
+                                <p class="section-sub mb-0">Sincronización en tiempo real con días festivos oficiales y calendario escolar DGETI</p>
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <div class="btn-group btn-group-sm shadow-sm" role="group">
                                     <button type="button" class="btn btn-secondary active" id="btnCalFiltroTodos" onclick="filtrarEventosCalendario('TODOS')">Todos</button>
-                                    <button type="button" class="btn btn-outline-danger" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">🇲🇽 Feriados SEP</button>
-                                    <button type="button" class="btn btn-outline-primary" id="btnCalFiltroEval" onclick="filtrarEventosCalendario('EVAL')">📝 Evaluaciones</button>
+                                    <button type="button" class="btn btn-outline-danger" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">🇲🇽 Suspensiones DGETI</button>
+                                    <button type="button" class="btn btn-outline-primary" id="btnCalFiltroPeriodos" onclick="filtrarEventosCalendario('PERIODOS')">📘 Periodos DGETI</button>
                                     <button type="button" class="btn btn-outline-dark" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">🏫 CBTis 134</button>
                                 </div>
                                 <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="sincronizarCalendarioSEP()" title="Recargar eventos y festivos">
-                                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar SEP
+                                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar DGETI
                                 </button>
                                 <button class="btn btn-sm btn-guinda rounded-pill px-3 shadow-sm requiere-permiso" data-roles="ADMIN,ORIENTACION" onclick="abrirModalNuevoEvento()">
                                     <i class="bi bi-calendar-plus-fill me-1"></i> Agregar Evento
@@ -551,10 +551,9 @@
                         <!-- Leyenda de colores del calendario -->
                         <div class="d-flex align-items-center gap-3 mb-3 p-2 bg-light rounded-3 border x-small flex-wrap">
                             <span class="fw-bold text-muted text-uppercase" style="font-size: 0.72rem;"><i class="bi bi-tags-fill me-1"></i>Categorías:</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #dc3545; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inhábiles / Feriados SEP</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #0d6efd; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Evaluaciones Parciales</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #6f42c1; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Consejos Técnicos (CTE)</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #198754; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Días Cívicos / Efemérides</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #dc3545; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inhábiles / Suspensión Oficial</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #198754; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inicio / Fin Semestre DGETI</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #0d6efd; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Periodos y Recesos DGETI</span>
                             <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #7b1b37; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Eventos Locales CBTis 134</span>
                         </div>
 

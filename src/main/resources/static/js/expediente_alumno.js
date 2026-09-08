@@ -4,7 +4,17 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarEspecialidades();
-    cargarAlumnosBusqueda();
+    await cargarAlumnosBusqueda();
+
+    // Si viene con parámetro matricula o ncontrol en la URL, abrir su expediente directamente
+    const params = new URLSearchParams(window.location.search);
+    const matriculaParam = params.get('matricula') || params.get('ncontrol');
+    if (matriculaParam) {
+        const inputBusqueda = document.getElementById('busquedaGeneral');
+        if (inputBusqueda) inputBusqueda.value = matriculaParam;
+        filtrarYMostrarAlumnos();
+        verExpedienteDetalle(matriculaParam);
+    }
 });
 
 async function cargarEspecialidades() {

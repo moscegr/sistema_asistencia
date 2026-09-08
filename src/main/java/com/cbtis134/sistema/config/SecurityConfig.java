@@ -106,7 +106,7 @@ public class SecurityConfig {
 
                 // --- RUTAS VISTAS HTML POR ROL ---
                 .requestMatchers("/admin/configuracion", "/admin/usuarios", "/admin/alumnos", "/admin/alumnos/nuevo", "/admin/alumnos/gestion-archivos", "/admin/alumnos/credenciales").hasRole("ADMIN")
-                .requestMatchers("/admin/dashboard", "/admin/alumnos/expediente", "/admin/alumnos/seguimiento-conductual", "/admin/alumnos/monitoreo-salud", "/admin/pases").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
+                .requestMatchers("/admin/dashboard", "/admin/alumnos/expediente", "/admin/expediente_alumno", "/admin/alumnos/seguimiento-conductual", "/admin/alumnos/monitoreo-salud", "/admin/pases").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
                 .requestMatchers("/admin/justificantes", "/admin/incidencias/orientacion").hasAnyRole("ADMIN", "ORIENTACION")
                 .requestMatchers("/admin/incidencias/prefectura").hasAnyRole("ADMIN", "PREFECTO")
                 .requestMatchers("/admin/escaneo").hasAnyRole("ADMIN", "GUARDIA")

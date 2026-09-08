@@ -8,12 +8,13 @@ const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('fechaIncidenciaPref')) {
         document.getElementById('fechaIncidenciaPref').value = obtenerHoy();
     }
     generarFilasModulos();
     escucharHistorialPersonal();
+    cargarJefePersonalConfig();
 
     const fInteresado = document.getElementById('filtroInteresado');
     const fFecha = document.getElementById('filtroFechaPref');
@@ -23,6 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fFecha) fFecha.addEventListener('input', filtrarHistorialPrefectura);
     if (fTurno) fTurno.addEventListener('change', filtrarHistorialPrefectura);
 });
+
+async function cargarJefePersonalConfig() {
+    try {
+        const res = await fetch('/api/configuracion/sistema');
+        if (res.ok) {
+            const data = await res.json();
+            const inputJefe = document.getElementById('jefePersonal');
+            if (inputJefe && data.jefe_personal) {
+                inputJefe.value = data.jefe_personal;
+            }
+        }
+    } catch (e) {
+        console.warn("No se pudo sincronizar jefe de personal:", e);
+    }
+}
 
 function generarFilasModulos() {
     const tbody = document.getElementById('tablaModulosIncidencias');
