@@ -724,7 +724,7 @@ function limpiarBusqueda() {
 
 function renderizarListaFiltrada(filtro) {
     const tbody = document.getElementById('tablaSimpleAlumnos');
-    const placeholderVacio = document.getElementById('busquedaVaciaPlaceholder');
+    const contResultados = document.getElementById('contenedorResultadosBusqueda');
     const placeholderSinRes = document.getElementById('busquedaSinResultados');
     const btnLimpiar = document.getElementById('btnLimpiarFiltro');
     const contador = document.getElementById('contadorResultadosBusqueda');
@@ -737,15 +737,15 @@ function renderizarListaFiltrada(filtro) {
 
     if (btnLimpiar) btnLimpiar.style.display = (query.length > 0) ? 'inline-block' : 'none';
 
-    // No renderizar todo el universo en el DOM si no hay al menos 2 caracteres (Ahorro de memoria y rendimiento)
+    // Ocultar panel si no hay al menos 2 caracteres (Ahorro de memoria y espacio limpio en pantalla)
     if (f.length < 2) {
-        if (placeholderVacio) placeholderVacio.style.display = 'block';
+        if (contResultados) contResultados.style.display = 'none';
         if (placeholderSinRes) placeholderSinRes.style.display = 'none';
         if (contador) contador.innerText = "0 resultados";
         return;
     }
 
-    if (placeholderVacio) placeholderVacio.style.display = 'none';
+    if (contResultados) contResultados.style.display = 'block';
 
     const resultados = [];
 
@@ -811,25 +811,25 @@ function renderizarListaFiltrada(filtro) {
 
         const estaDentro = estaDentroHoy(item.idKey);
         const estadoBadge = estaDentro 
-            ? '<span class="badge bg-success">DENTRO</span>' 
-            : '<span class="badge bg-danger">FUERA</span>';
+            ? '<span class="badge bg-success px-3 py-1">DENTRO</span>' 
+            : '<span class="badge bg-danger px-3 py-1">FUERA</span>';
 
         const esAlumno = (item.tipo === 'ALUMNO');
         const rolBadge = esAlumno 
-            ? '<span class="badge bg-secondary me-1" style="font-size: 0.65rem;">ALUMNO</span>'
-            : `<span class="badge me-1 text-white" style="font-size: 0.65rem; ${item.tipo === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${item.tipo}</span>`;
+            ? '<span class="badge bg-secondary me-1" style="font-size: 0.7rem;">ALUMNO</span>'
+            : `<span class="badge me-1 text-white" style="font-size: 0.7rem; ${item.tipo === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${item.tipo}</span>`;
 
         tr.innerHTML = `
-            <td style="width: 44px;" class="py-2 ps-2">
-                <img src="${item.foto}" class="rounded-circle border" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
+            <td style="width: 46px;" class="py-2 ps-3">
+                <img src="${item.foto}" class="rounded-circle border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
             </td>
             <td class="py-2">
-                <div class="fw-bold text-dark text-truncate" style="max-width: 190px;">${item.nombre}</div>
-                <div class="x-small text-muted text-truncate" style="max-width: 190px;">
+                <div class="fw-bold text-dark fs-6">${item.nombre}</div>
+                <div class="small text-muted">
                     ${rolBadge}${item.detalle}
                 </div>
             </td>
-            <td class="text-end align-middle pe-2">
+            <td class="text-end align-middle pe-3">
                 ${estadoBadge}
             </td>
         `;

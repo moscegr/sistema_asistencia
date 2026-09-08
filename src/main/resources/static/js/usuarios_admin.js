@@ -1076,24 +1076,34 @@ async function generarImagenGafetePersonal(user) {
             ctx.textAlign = "center";
             ctx.fillText((user.nombre || '').toUpperCase(), 200, 122);
 
-            // Fotografía de la persona (Circular balanceada con el QR)
+            // Fotografía de la persona (Cuadrada con esquinas redondeadas igual al QR)
+            const fotoX = 50, fotoY = 173, fotoW = 130, fotoH = 130, fotoR = 8;
             ctx.save();
             ctx.beginPath();
-            ctx.arc(115, 238, 65, 0, Math.PI * 2, true);
+            if (ctx.roundRect) {
+                ctx.roundRect(fotoX, fotoY, fotoW, fotoH, fotoR);
+            } else {
+                ctx.rect(fotoX, fotoY, fotoW, fotoH);
+            }
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(imgFoto, 50, 173, 130, 130);
+            ctx.drawImage(imgFoto, fotoX, fotoY, fotoW, fotoH);
             ctx.restore();
 
+            // Marco cuadrado institucional
             ctx.save();
             ctx.beginPath();
-            ctx.arc(115, 238, 65, 0, Math.PI * 2, true);
+            if (ctx.roundRect) {
+                ctx.roundRect(fotoX, fotoY, fotoW, fotoH, fotoR);
+            } else {
+                ctx.rect(fotoX, fotoY, fotoW, fotoH);
+            }
             ctx.strokeStyle = "#7b1b37";
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2.5;
             ctx.stroke();
             ctx.restore();
 
-            // Código QR (Lado Derecho, dimensiones idénticas a la foto: 130x130)
+            // Código QR (Lado Derecho, dimensiones cuadradas idénticas a la foto: 130x130)
             const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
             generarQRConTigrePersonal(qrTexto).then(qrDataUrl => {
                 const imgQR = new Image();
