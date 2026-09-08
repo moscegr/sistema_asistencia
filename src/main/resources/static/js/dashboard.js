@@ -43,7 +43,10 @@ async function cargarClimaPlantel() {
         // Coordenadas oficiales de Chilpancingo de los Bravo, Guerrero (Plantel CBTis 134)
         const lat = 17.5513;
         const lon = -99.5005;
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&timezone=America%2FMexico_City`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&timezone=America%2FMexico_City`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         
         if (!res.ok) throw new Error("Error en API Open-Meteo");
         const data = await res.json();
@@ -147,15 +150,19 @@ async function inicializarSesion() {
 async function cargarDashboardCompleto() {
     try {
         const hoy = new Date().toLocaleDateString('en-CA');
-        const [alumnos, registrosHoy, usuarios, pases, configEscolar] = await Promise.all([
-            safeFetchJson('/api/alumnos') || [],
-            safeFetchJson(`/api/registros-diarios/fecha/${hoy}`) || [],
-            safeFetchJson('/api/usuarios') || [],
-            safeFetchJson('/api/pases') || [],
-            safeFetchJson('/api/configuracion/escolar') || {}
+        const [rawAlumnos, rawRegistros, rawUsuarios, rawPases, rawConfig] = await Promise.all([
+            safeFetchJson('/api/alumnos'),
+            safeFetchJson(`/api/registros-diarios/fecha/${hoy}`),
+            safeFetchJson('/api/usuarios'),
+            safeFetchJson('/api/pases'),
+            safeFetchJson('/api/configuracion/escolar')
         ]);
 
-        if (!Array.isArray(alumnos)) return;
+        const alumnos = Array.isArray(rawAlumnos) ? rawAlumnos : [];
+        const registrosHoy = Array.isArray(rawRegistros) ? rawRegistros : [];
+        const usuarios = Array.isArray(rawUsuarios) ? rawUsuarios : [];
+        const pases = Array.isArray(rawPases) ? rawPases : [];
+        const configEscolar = (rawConfig && typeof rawConfig === 'object') ? rawConfig : {};
 
         const activos = alumnos.filter(al => (al.estatus_escolar || al.estatus || 'Activo') === 'Activo');
         const totalRegistrados = activos.length;
@@ -736,12 +743,23 @@ async function inicializarCalendario(userRole) {
                     }
                 }));
 
-                // 2. Obtener días festivos de México desde API Nager.Date
+                // 2. Obtener días festivos de México desde API Nager.Date con timeout seguro
                 let feriadosApiMapeados = [];
                 try {
+                    const fetchConTimeout = async (url, ms = 2000) => {
+                        try {
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), ms);
+                            const res = await fetch(url, { signal: controller.signal });
+                            clearTimeout(timeoutId);
+                            if (res.ok) return await res.json();
+                        } catch(e){}
+                        return null;
+                    };
+
                     const currentYear = new Date().getFullYear();
                     const years = [currentYear - 1, currentYear, currentYear + 1];
-                    const promesasFeriados = years.map(y => safeFetchJson(`https://date.nager.at/api/v3/PublicHolidays/${y}/MX`));
+                    const promesasFeriados = years.map(y => fetchConTimeout(`https://date.nager.at/api/v3/PublicHolidays/${y}/MX`, 1800));
                     const resultadosFeriados = await Promise.all(promesasFeriados);
                     
                     resultadosFeriados.forEach(lista => {
@@ -1289,11 +1307,18 @@ function verificarIntegridadSistema() {
 async function safeFetchJson(url) {
     try {
         const res = await fetch(url);
-        const contentType = res.headers.get('content-type');
-        if (res.ok && contentType && contentType.includes('application/json')) {
-            return await res.json();
+        if (res.ok) {
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                return await res.json();
+            } else {
+                const text = await res.text();
+                try { return JSON.parse(text); } catch(e) { return null; }
+            }
         }
-    } catch(e){}
+    } catch(e){
+        console.warn("safeFetchJson warning for URL:", url, e);
+    }
     return null;
 }
 
@@ -1301,32 +1326,41 @@ async function cargarEstadisticas() {
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
     const hoy = new Date().toLocaleDateString('en-CA');
 
-    const listAlumnos = await safeFetchJson('/api/alumnos');
-    if (listAlumnos) setVal('totalAlumnos', listAlumnos.length);
+    try {
+        const [listAlumnos, listPases, listJustificantes, listIncidencias] = await Promise.all([
+            safeFetchJson('/api/alumnos'),
+            safeFetchJson('/api/pases'),
+            safeFetchJson('/api/justificantes'),
+            safeFetchJson('/api/incidencias')
+        ]);
 
-    const listPases = await safeFetchJson('/api/pases');
-    if (listPases) {
-        const pasesActivos = listPases.filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO'));
-        setVal('totalPases', pasesActivos.length);
+        setVal('totalAlumnos', Array.isArray(listAlumnos) ? listAlumnos.length : 0);
+
+        if (Array.isArray(listPases)) {
+            const pasesActivos = listPases.filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO'));
+            setVal('totalPases', pasesActivos.length);
+        } else {
+            setVal('totalPases', 0);
+        }
+
+        setVal('totalJustificantes', Array.isArray(listJustificantes) ? listJustificantes.length : 0);
+        setVal('totalIncidencias', Array.isArray(listIncidencias) ? listIncidencias.length : 0);
+    } catch(e) {
+        console.error("Error en cargarEstadisticas:", e);
     }
-
-    const listJustificantes = await safeFetchJson('/api/justificantes');
-    if (listJustificantes) setVal('totalJustificantes', listJustificantes.length);
-
-    const listIncidencias = await safeFetchJson('/api/incidencias');
-    if (listIncidencias) setVal('totalIncidencias', listIncidencias.length);
 }
 
 async function cargarEstadisticasPersonal() {
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
     const hoy = new Date().toLocaleDateString('en-CA');
     try {
-        const [usuarios, registrosHoy] = await Promise.all([
-            safeFetchJson('/api/usuarios') || [],
-            safeFetchJson('/api/registros-diarios/fecha/' + hoy) || []
+        const [rawUsuarios, rawRegistros] = await Promise.all([
+            safeFetchJson('/api/usuarios'),
+            safeFetchJson('/api/registros-diarios/fecha/' + hoy)
         ]);
 
-        if (!usuarios || !Array.isArray(usuarios)) return;
+        const usuarios = Array.isArray(rawUsuarios) ? rawUsuarios : [];
+        const registrosHoy = Array.isArray(rawRegistros) ? rawRegistros : [];
 
         let docentes = 0;
         let adminis = 0;
@@ -1335,16 +1369,14 @@ async function cargarEstadisticasPersonal() {
         let dentroCount = 0;
 
         const dentroMap = new Set();
-        if (Array.isArray(registrosHoy)) {
-            registrosHoy.forEach(r => {
-                const esDentro = (r.estatus_actual === 'DENTRO') || (r.hora_entrada && !r.hora_salida);
-                if (esDentro) {
-                    if (r.matricula) dentroMap.add(r.matricula.trim().toUpperCase());
-                    if (r.ncontrol) dentroMap.add(r.ncontrol.trim().toUpperCase());
-                    if (r.id) dentroMap.add(r.id.trim().toUpperCase());
-                }
-            });
-        }
+        registrosHoy.forEach(r => {
+            const esDentro = (r.estatus_actual === 'DENTRO') || (r.hora_entrada && !r.hora_salida);
+            if (esDentro) {
+                if (r.matricula) dentroMap.add(r.matricula.trim().toUpperCase());
+                if (r.ncontrol) dentroMap.add(r.ncontrol.trim().toUpperCase());
+                if (r.id) dentroMap.add(r.id.trim().toUpperCase());
+            }
+        });
 
         usuarios.forEach(u => {
             const rol = (u.rol || '').toUpperCase();
