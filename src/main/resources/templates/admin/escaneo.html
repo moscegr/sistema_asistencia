@@ -99,21 +99,54 @@
 						</div>
 					
 					    <div class="card border-0 shadow-sm" style="border-radius: 15px;">
-					        <div class="card-header bg-white border-0 pt-3">
-					            <h6 class="fw-bold text-muted mb-0">Directorio de Estudiantes</h6>
+					        <div class="card-header bg-white border-0 pt-3 pb-2">
+					            <div class="d-flex justify-content-between align-items-center mb-2">
+					                <h6 class="fw-bold mb-0" style="color: var(--guinda);">
+					                    <i class="bi bi-search me-2"></i>Búsqueda de Accesos
+					                </h6>
+					                <span class="badge bg-light text-muted border small" id="contadorResultadosBusqueda">0 resultados</span>
+					            </div>
+					            <!-- Selector de Tipo: Todos, Alumnos, Personal -->
+					            <div class="btn-group w-100 shadow-sm" role="group" aria-label="Filtro de tipo">
+					                <button type="button" class="btn btn-sm btn-guinda active" id="btnFiltroTipoTodos" onclick="cambiarFiltroTipo('TODOS')">
+					                    <i class="bi bi-people me-1"></i>Todos
+					                </button>
+					                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFiltroTipoAlumnos" onclick="cambiarFiltroTipo('ALUMNOS')">
+					                    <i class="bi bi-mortarboard me-1"></i>Alumnos
+					                </button>
+					                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFiltroTipoPersonal" onclick="cambiarFiltroTipo('PERSONAL')">
+					                    <i class="bi bi-person-badge me-1"></i>Personal
+					                </button>
+					            </div>
 					        </div>
-					        <div class="card-body">
-					            <input type="text" id="filtroRapido" class="form-control form-control-sm mb-3 shadow-sm" 
-					                   placeholder="Buscar por nombre o matrícula...">
+					        <div class="card-body pt-2">
+					            <div class="input-group input-group-sm mb-2 shadow-sm">
+					                <span class="input-group-text bg-white border-end-0 text-muted">
+					                    <i class="bi bi-search"></i>
+					                </span>
+					                <input type="text" id="filtroRapido" class="form-control border-start-0 ps-0" 
+					                       placeholder="Escriba nombre, matrícula o RFC..." autocomplete="off">
+					                <button class="btn btn-outline-secondary border-start-0" type="button" id="btnLimpiarFiltro" onclick="limpiarBusqueda()" style="display: none;">
+					                    <i class="bi bi-x-lg"></i>
+					                </button>
+					            </div>
 					            
-					            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+					            <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
 					                <table class="table table-sm table-hover align-middle mb-0">
 					                    <tbody id="tablaSimpleAlumnos">
-					                        </tbody>
+					                    </tbody>
 					                </table>
+					                <div id="busquedaVaciaPlaceholder" class="text-center py-4 text-muted">
+					                    <i class="bi bi-keyboard fs-2 d-block mb-1 text-secondary opacity-50"></i>
+					                    <span class="small">Escriba al menos 2 caracteres para buscar.</span>
+					                </div>
+					                <div id="busquedaSinResultados" class="text-center py-4 text-muted" style="display: none;">
+					                    <i class="bi bi-exclamation-circle fs-2 d-block mb-1 text-danger opacity-50"></i>
+					                    <span class="small">No se encontraron coincidencias.</span>
+					                </div>
 					            </div>
 					            <div class="mt-2 text-center">
-					                <span class="x-small text-muted">Haga clic en un alumno para consultar su estatus en tiempo real.</span>
+					                <span class="x-small text-muted"><i class="bi bi-hand-index-thumb me-1"></i>Haga clic en un registro para validar su acceso.</span>
 					            </div>
 					        </div>
 					    </div>

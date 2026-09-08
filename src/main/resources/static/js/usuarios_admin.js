@@ -178,6 +178,9 @@ function renderizarTablaUsuarios() {
                 </td>
                 <td class="text-center pe-4">
                     <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-success border-0" onclick="enviarWhatsappPersonalPersonalizado('${idDoc}')" title="Enviar WhatsApp a Personal / Docente">
+                            <i class="bi bi-whatsapp fs-5"></i>
+                        </button>
                         <button class="btn btn-sm btn-outline-guinda border-0" onclick="abrirModalGafeteCredencialPersonal('${idDoc}')" title="Generar Gafete y Credencial">
                             <i class="bi bi-person-badge fs-5"></i>
                         </button>
@@ -1073,34 +1076,34 @@ async function generarImagenGafetePersonal(user) {
             ctx.textAlign = "center";
             ctx.fillText((user.nombre || '').toUpperCase(), 200, 122);
 
-            // Fotografía de la persona (Circular)
+            // Fotografía de la persona (Circular balanceada con el QR)
             ctx.save();
             ctx.beginPath();
-            ctx.arc(120, 245, 65, 0, Math.PI * 2, true);
+            ctx.arc(115, 238, 65, 0, Math.PI * 2, true);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(imgFoto, 55, 180, 130, 130);
+            ctx.drawImage(imgFoto, 50, 173, 130, 130);
             ctx.restore();
 
             ctx.save();
             ctx.beginPath();
-            ctx.arc(120, 245, 65, 0, Math.PI * 2, true);
+            ctx.arc(115, 238, 65, 0, Math.PI * 2, true);
             ctx.strokeStyle = "#7b1b37";
             ctx.lineWidth = 3;
             ctx.stroke();
             ctx.restore();
 
-            // Código QR (Lado Derecho)
+            // Código QR (Lado Derecho, dimensiones idénticas a la foto: 130x130)
             const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
             generarQRConTigrePersonal(qrTexto).then(qrDataUrl => {
                 const imgQR = new Image();
                 imgQR.src = qrDataUrl;
                 imgQR.onload = () => {
-                    ctx.drawImage(imgQR, 220, 165, 150, 150);
+                    ctx.drawImage(imgQR, 220, 173, 130, 130);
                     ctx.fillStyle = "#7b1b37";
-                    ctx.font = "bold 10px Arial";
+                    ctx.font = "bold 9.5px Arial";
                     ctx.textAlign = "center";
-                    ctx.fillText("ESCANEAME PARA ACCESO", 295, 330);
+                    ctx.fillText("ESCANEAME PARA ACCESO", 285, 320);
 
                     // Información de la persona
                     const rfc = user.rfc || 'SIN RFC';
@@ -1108,20 +1111,20 @@ async function generarImagenGafetePersonal(user) {
                     const turno = user.turno || 'Matutino';
 
                     ctx.fillStyle = "#7b1b37"; 
-                    ctx.font = "bold 24px monospace";
+                    ctx.font = "bold 23px monospace";
                     ctx.textAlign = "center";
-                    ctx.fillText(rfc, 200, 385);
+                    ctx.fillText(rfc, 200, 368);
 
                     // Badge de Rol
                     ctx.fillStyle = (rol === 'DOCENTE') ? "#6f42c1" : ((rol === 'ADMINISTRATIVO') ? "#0d6efd" : "#7b1b37");
-                    ctx.fillRect(80, 410, 240, 32);
+                    ctx.fillRect(70, 390, 260, 32);
                     ctx.fillStyle = "#FFFFFF";
                     ctx.font = "bold 16px Arial";
-                    ctx.fillText(rol, 200, 432);
+                    ctx.fillText(rol, 200, 412);
                     
                     ctx.fillStyle = "#444444"; 
                     ctx.font = "bold 14px Arial";
-                    ctx.fillText(`TURNO: ${turno.toUpperCase()}`, 200, 475);
+                    ctx.fillText(`TURNO: ${turno.toUpperCase()}`, 200, 452);
 
                     // Pie de página institucional
                     ctx.fillStyle = "#7b1b37";
@@ -1471,6 +1474,75 @@ async function descargarPlanillaGafetesTodoPersonal() {
     }
 }
 
+async function enviarWhatsappPersonalPersonalizado(id) {
+    const user = usuariosCache.find(u => (u.id || u.uid || u.correo) === id);
+    if (!user) return Swal.fire("Error", "No se encontró el registro del usuario.", "error");
+
+    const tel = user.telefono;
+    if (!tel) {
+        return Swal.fire("Sin número de teléfono", `El docente/personal ${user.nombre} no tiene registrado un número de teléfono/WhatsApp.`, "warning");
+    }
+
+    const rol = (user.rol || 'DOCENTE').toUpperCase();
+    const nombre = user.nombre || 'Personal';
+
+    const { value: mensajeTxt } = await Swal.fire({
+        title: `<div class="fs-5 fw-bold text-dark mb-0"><i class="bi bi-whatsapp text-success me-2"></i>Enviar WhatsApp a Personal</div>`,
+        html: `
+            <div class="text-start small mb-2 p-2 bg-light rounded border">
+                <div class="mb-1"><b>Nombre:</b> <span class="fw-bold text-dark">${nombre}</span></div>
+                <div class="mb-1"><b>Cargo / Rol:</b> <span class="badge ${rol === 'DOCENTE' ? 'bg-purple' : 'bg-primary'} text-white">${rol}</span></div>
+                <div><b>Teléfono:</b> <code class="text-success fw-bold">${tel}</code></div>
+            </div>
+            <textarea id="swalWsMensajePersonal" class="form-control form-control-sm border-success mt-2" placeholder="Escribe tu mensaje aquí..." rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">🏫 *[CBTis 134 - AVISO INSTITUCIONAL]*:\nEstimado(a) ${nombre},\n</textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Mensaje',
+        confirmButtonColor: '#198754',
+        cancelButtonText: 'Cancelar',
+        focusConfirm: false,
+        preConfirm: () => {
+            const val = document.getElementById('swalWsMensajePersonal').value.trim();
+            if (!val) Swal.showValidationMessage('Ingresa el texto del mensaje.');
+            return val;
+        }
+    });
+
+    if (!mensajeTxt) return;
+
+    Swal.fire({ title: 'Despachando mensaje por WhatsApp...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const resWs = await fetch('/api/configuracion/whatsapp');
+        if (!resWs.ok) throw new Error("No hay API de WhatsApp configurada.");
+        const configWs = await resWs.json();
+
+        const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
+
+        const res = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: configWs.apiUrl || configWs.serverUrl,
+                apiKey: configWs.apiKey || configWs.token,
+                token: configWs.token || configWs.apiKey,
+                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                to: tel,
+                body: mensajeTxt
+            })
+        });
+
+        const resText = await res.text();
+        if (res.ok) {
+            Swal.fire("¡Mensaje Enviado!", `El mensaje ha sido entregado a ${nombre} con éxito.`, "success");
+        } else {
+            Swal.fire("Error al Enviar", `La API respondió con error (HTTP ${res.status}): ${resText}`, "error");
+        }
+    } catch(e) {
+        Swal.fire("Error", e.message, "error");
+    }
+}
+
 window.descargarCredencialPersonalPVC = descargarCredencialPersonalPVC;
 window.descargarCredencialesTermicasMasivasPersonal = descargarCredencialesTermicasMasivasPersonal;
 window.descargarPlanillaGafetesTodoPersonal = descargarPlanillaGafetesTodoPersonal;
@@ -1479,3 +1551,4 @@ window.abrirModalGafeteCredencialPersonal = abrirModalGafeteCredencialPersonal;
 window.descargarPlantillaLayoutExcel = descargarPlantillaLayoutExcel;
 window.descargarListaPersonalExcel = descargarListaPersonalExcel;
 window.descargarListaPersonalPDF = descargarListaPersonalPDF;
+window.enviarWhatsappPersonalPersonalizado = enviarWhatsappPersonalPersonalizado;

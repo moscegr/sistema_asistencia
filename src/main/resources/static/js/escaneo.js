@@ -697,45 +697,153 @@ function generarTableroDinamico() {
     });
 }
 
+let filtroTipoSeleccionado = 'TODOS';
+
+function cambiarFiltroTipo(tipo) {
+    filtroTipoSeleccionado = tipo;
+    const btnTodos = document.getElementById('btnFiltroTipoTodos');
+    const btnAlumnos = document.getElementById('btnFiltroTipoAlumnos');
+    const btnPersonal = document.getElementById('btnFiltroTipoPersonal');
+
+    if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-sm btn-guinda active' : 'btn btn-sm btn-outline-secondary';
+    if (btnAlumnos) btnAlumnos.className = (tipo === 'ALUMNOS') ? 'btn btn-sm btn-guinda active' : 'btn btn-sm btn-outline-secondary';
+    if (btnPersonal) btnPersonal.className = (tipo === 'PERSONAL') ? 'btn btn-sm btn-guinda active' : 'btn btn-sm btn-outline-secondary';
+
+    const query = document.getElementById('filtroRapido')?.value || '';
+    renderizarListaFiltrada(query);
+}
+
+function limpiarBusqueda() {
+    const input = document.getElementById('filtroRapido');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    renderizarListaFiltrada('');
+}
+
 function renderizarListaFiltrada(filtro) {
     const tbody = document.getElementById('tablaSimpleAlumnos');
-    if (!tbody) return;
+    const placeholderVacio = document.getElementById('busquedaVaciaPlaceholder');
+    const placeholderSinRes = document.getElementById('busquedaSinResultados');
+    const btnLimpiar = document.getElementById('btnLimpiarFiltro');
+    const contador = document.getElementById('contadorResultadosBusqueda');
 
+    if (!tbody) return;
     tbody.innerHTML = "";
 
-    const f = normalizarTexto(filtro);
-    const filtradosAlumnos = alumnosCache.filter(a => {
-        const nom = normalizarTexto(`${a.nombre} ${a.apepat || a.primerApellido || ''} ${a.apemat || a.segundoApellido || ''}`);
-        const mat = normalizarTexto(a.ncontrol || a.matricula);
-        return nom.includes(f) || mat.includes(f);
-    });
+    const query = (filtro || "").trim();
+    const f = normalizarTexto(query);
 
-    filtradosAlumnos.slice(0, 50).forEach(al => {
+    if (btnLimpiar) btnLimpiar.style.display = (query.length > 0) ? 'inline-block' : 'none';
+
+    // No renderizar todo el universo en el DOM si no hay al menos 2 caracteres (Ahorro de memoria y rendimiento)
+    if (f.length < 2) {
+        if (placeholderVacio) placeholderVacio.style.display = 'block';
+        if (placeholderSinRes) placeholderSinRes.style.display = 'none';
+        if (contador) contador.innerText = "0 resultados";
+        return;
+    }
+
+    if (placeholderVacio) placeholderVacio.style.display = 'none';
+
+    const resultados = [];
+
+    // 1. Filtrar Alumnos si corresponde
+    if (filtroTipoSeleccionado === 'TODOS' || filtroTipoSeleccionado === 'ALUMNOS') {
+        alumnosCache.forEach(a => {
+            const nom = normalizarTexto(`${a.nombre} ${a.apepat || a.primerApellido || ''} ${a.apemat || a.segundoApellido || ''}`);
+            const mat = normalizarTexto(a.ncontrol || a.matricula);
+            const curp = normalizarTexto(a.curp);
+            const esp = normalizarTexto(a.especialidad);
+            const gpo = normalizarTexto(`${a.grado || ''}${a.grupo || ''}`);
+
+            if (nom.includes(f) || mat.includes(f) || curp.includes(f) || esp.includes(f) || gpo.includes(f)) {
+                resultados.push({
+                    tipo: 'ALUMNO',
+                    idKey: a.ncontrol || a.matricula,
+                    nombre: `${a.nombre} ${a.apepat || a.primerApellido || ''}`.trim(),
+                    detalle: `${a.ncontrol || a.matricula} • ${a.grado || ''}°"${a.grupo || ''}" ${a.especialidad || ''}`,
+                    foto: a.fotoUrl || a.foto_url || a.foto || '/img/logo_aniversario.jpg',
+                    raw: a
+                });
+            }
+        });
+    }
+
+    // 2. Filtrar Personal / Docentes si corresponde
+    if (filtroTipoSeleccionado === 'TODOS' || filtroTipoSeleccionado === 'PERSONAL') {
+        personalCache.forEach(p => {
+            const nom = normalizarTexto(p.nombre);
+            const rfc = normalizarTexto(p.rfc);
+            const correo = normalizarTexto(p.correo);
+            const rol = normalizarTexto(p.rol);
+            const turno = normalizarTexto(p.turno);
+            const uid = normalizarTexto(p.uid || p.id);
+
+            if (nom.includes(f) || rfc.includes(f) || correo.includes(f) || rol.includes(f) || turno.includes(f) || uid.includes(f)) {
+                resultados.push({
+                    tipo: (p.rol || 'DOCENTE').toUpperCase(),
+                    idKey: p.rfc || p.uid || p.id,
+                    nombre: p.nombre,
+                    detalle: `${p.rfc || 'SIN RFC'} • ${(p.rol || 'DOCENTE').toUpperCase()} • ${p.turno || 'Matutino'}`,
+                    foto: p.fotoUrl || '/img/logo_aniversario.jpg',
+                    raw: p
+                });
+            }
+        });
+    }
+
+    if (contador) contador.innerText = `${resultados.length} resultado${resultados.length === 1 ? '' : 's'}`;
+
+    if (resultados.length === 0) {
+        if (placeholderSinRes) placeholderSinRes.style.display = 'block';
+        return;
+    }
+
+    if (placeholderSinRes) placeholderSinRes.style.display = 'none';
+
+    // Limitar a los 15 más relevantes para fluidez instantánea
+    resultados.slice(0, 15).forEach(item => {
         const tr = document.createElement('tr');
         tr.className = "table-active-hover";
-        const pat = al.apepat || al.primerApellido || '';
-        const estaDentro = estaDentroHoy(al.ncontrol || al.matricula);
-        const estadoLabel = estaDentro 
+        tr.style.cursor = "pointer";
+
+        const estaDentro = estaDentroHoy(item.idKey);
+        const estadoBadge = estaDentro 
             ? '<span class="badge bg-success">DENTRO</span>' 
             : '<span class="badge bg-danger">FUERA</span>';
 
+        const esAlumno = (item.tipo === 'ALUMNO');
+        const rolBadge = esAlumno 
+            ? '<span class="badge bg-secondary me-1" style="font-size: 0.65rem;">ALUMNO</span>'
+            : `<span class="badge me-1 text-white" style="font-size: 0.65rem; ${item.tipo === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${item.tipo}</span>`;
+
         tr.innerHTML = `
-            <td>
-                <div class="fw-bold">${al.nombre} ${pat}</div>
-                <div class="x-small text-muted">${al.ncontrol || al.matricula}</div>
+            <td style="width: 44px;" class="py-2 ps-2">
+                <img src="${item.foto}" class="rounded-circle border" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
             </td>
-            <td class="text-end align-middle">
-                ${estadoLabel}
+            <td class="py-2">
+                <div class="fw-bold text-dark text-truncate" style="max-width: 190px;">${item.nombre}</div>
+                <div class="x-small text-muted text-truncate" style="max-width: 190px;">
+                    ${rolBadge}${item.detalle}
+                </div>
+            </td>
+            <td class="text-end align-middle pe-2">
+                ${estadoBadge}
             </td>
         `;
 
         tr.onclick = () => {
-            onScanSuccess(al.ncontrol || al.matricula, true);
+            onScanSuccess(item.idKey, true);
         };
 
         tbody.appendChild(tr);
     });
 }
+
+window.cambiarFiltroTipo = cambiarFiltroTipo;
+window.limpiarBusqueda = limpiarBusqueda;
 
 // -------------------------------------------------------------
 // ARQUITECTURA BIOMÉTRICA EMPRESARIAL (EDGE-BIOMETRICS)
