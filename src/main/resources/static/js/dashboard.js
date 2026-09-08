@@ -1,9 +1,9 @@
-/**
- * Dashboard Logic - CBTis 134 (Self-hosted Spring Boot + MongoDB)
- */
 let chartEsp = null;
-let chartEst = null;
+let chartFlujo = null;
 let chartGpo = null;
+let chartPersonal = null;
+let listaAlumnosRiesgoGlobal = [];
+let filtroRiesgoActual = 'TODOS';
 
 document.addEventListener('DOMContentLoaded', () => {
     inicializarVistaCiclo();
@@ -56,6 +56,481 @@ async function inicializarSesion() {
     inicializarCalendario(userRole);
     inicializarSwitchSalida();
 }
+
+async function cargarDashboardCompleto() {
+    try {
+        const hoy = new Date().toLocaleDateString('en-CA');
+        const [alumnos, registrosHoy, usuarios, pases, configEscolar] = await Promise.all([
+            safeFetchJson('/api/alumnos') || [],
+            safeFetchJson(`/api/registros-diarios/fecha/${hoy}`) || [],
+            safeFetchJson('/api/usuarios') || [],
+            safeFetchJson('/api/pases') || [],
+            safeFetchJson('/api/configuracion/escolar') || {}
+        ]);
+
+        if (!Array.isArray(alumnos)) return;
+
+        const activos = alumnos.filter(al => (al.estatus_escolar || al.estatus || 'Activo') === 'Activo');
+        const totalRegistrados = activos.length;
+        
+        // Alumnos presentes hoy en el plantel
+        const matriculasPresentesHoy = new Set(
+            (registrosHoy || [])
+                .filter(r => String(r.estatus_actual || '').toUpperCase() === 'DENTRO' && r.grupo !== 'PERSONAL')
+                .map(r => String(r.matricula || r.ncontrol || '').trim().toUpperCase())
+        );
+
+        let totalDentro = 0;
+        const conteoCarrerasTotal = {};
+        const conteoCarrerasPresentes = {};
+
+        // Inicializar especialidades
+        const especialidades = (configEscolar.especialidades || []).map(e => e.nombre);
+        if (especialidades.length === 0) {
+            ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN", "LABORATORISTA CLÍNICO", "E-COMMERCE", "INTELIGENCIA ARTIFICIAL", "ADMINISTRACIÓN"].forEach(esp => {
+                conteoCarrerasTotal[esp] = 0;
+                conteoCarrerasPresentes[esp] = 0;
+            });
+        } else {
+            especialidades.forEach(esp => {
+                conteoCarrerasTotal[esp] = 0;
+                conteoCarrerasPresentes[esp] = 0;
+            });
+        }
+
+        activos.forEach(al => {
+            const esp = (al.especialidad || 'OTRA').toUpperCase();
+            conteoCarrerasTotal[esp] = (conteoCarrerasTotal[esp] || 0) + 1;
+            
+            const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
+            if (matriculasPresentesHoy.has(mat) || al.estado === "DENTRO") {
+                totalDentro++;
+                conteoCarrerasPresentes[esp] = (conteoCarrerasPresentes[esp] || 0) + 1;
+            }
+        });
+
+        // 1. Mini KPIs
+        const pctPermanencia = totalRegistrados > 0 ? ((totalDentro / totalRegistrados) * 100).toFixed(1) : 0;
+        const elKpiPerm = document.getElementById('kpiPermanencia');
+        const elKpiPermSub = document.getElementById('kpiPermanenciaSub');
+        if (elKpiPerm) elKpiPerm.innerText = `${pctPermanencia}%`;
+        if (elKpiPermSub) elKpiPermSub.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>${totalDentro} de ${totalRegistrados} alumnos`;
+
+        const pasesHoyCount = (pases || []).filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO')).length;
+        const elKpiPases = document.getElementById('kpiPasesHoy');
+        if (elKpiPases) elKpiPases.innerText = pasesHoyCount;
+
+        // 2. Personal hoy
+        let docMat = 0, docVesp = 0, admMat = 0, admVesp = 0, personalPresenteCount = 0;
+        const personalHoySet = new Set(
+            (registrosHoy || [])
+                .filter(r => String(r.estatus_actual || '').toUpperCase() === 'DENTRO' && (r.grupo === 'PERSONAL' || r.especialidad === 'DOCENTE' || r.especialidad === 'ADMINISTRATIVO'))
+                .map(r => String(r.matricula || r.ncontrol || '').trim().toUpperCase())
+        );
+
+        (usuarios || []).forEach(u => {
+            const rol = (u.rol || 'DOCENTE').toUpperCase();
+            const turno = (u.turno || 'Matutino').toUpperCase();
+            const rfc = String(u.rfc || u.uid || u.id || '').trim().toUpperCase();
+
+            if (rol === 'DOCENTE') {
+                if (turno.includes('VESP') || turno === 'VESPERTINO') docVesp++;
+                else docMat++;
+            } else {
+                if (turno.includes('VESP') || turno === 'VESPERTINO') admVesp++;
+                else admMat++;
+            }
+
+            if (personalHoySet.has(rfc) || u.estado === 'DENTRO') {
+                personalPresenteCount++;
+            }
+        });
+
+        const elKpiPers = document.getElementById('kpiPersonalPresente');
+        const elKpiPersSub = document.getElementById('kpiPersonalPresenteSub');
+        if (elKpiPers) elKpiPers.innerText = personalPresenteCount;
+        if (elKpiPersSub) elKpiPersSub.innerText = `${docMat + docVesp} Docentes / ${admMat + admVesp} Admin`;
+
+        // 3. Renderizar Gráfica 1: Afluencia por Carrera (Inscritos vs Presentes)
+        renderizarGraficoBarras(conteoCarrerasTotal, conteoCarrerasPresentes);
+
+        // 4. Renderizar Gráfica 2: Curva de Flujo Horario (Entradas vs Salidas por hora)
+        renderizarGraficoFlujoHorario(registrosHoy);
+
+        // 5. Renderizar Gráfica 4: Personal & Turnos
+        renderizarGraficoPersonal(docMat, docVesp, admMat, admVesp);
+
+        // 6. Actualizar Gráfica 3: Incidencias por Semestre
+        actualizarGraficaGrupos();
+
+        // 7. Calcular y renderizar Alerta Temprana de Deserción Escolar (EWS)
+        const todosRegistrosHistoricos = await safeFetchJson('/api/registros-diarios') || [];
+        calcularAlertaTempranaDesercion(activos, todosRegistrosHistoricos);
+
+        const elAct = document.getElementById('ultimaAct');
+        if (elAct) elAct.innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    } catch (e) {
+        console.error("Error en Dashboard:", e);
+    }
+}
+
+function renderizarGraficoBarras(datosTotal, datosPresentes) {
+    const ctx = document.getElementById('graficoEspecialidades');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (chartEsp) chartEsp.destroy();
+
+    const labels = Object.keys(datosTotal);
+    const valTotal = labels.map(k => datosTotal[k] || 0);
+    const valPresentes = labels.map(k => datosPresentes[k] || 0);
+
+    chartEsp = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Presentes Hoy',
+                    data: valPresentes,
+                    backgroundColor: '#7b1b37',
+                    borderRadius: 4,
+                    barPercentage: 0.7
+                },
+                {
+                    label: 'Matrícula Total',
+                    data: valTotal,
+                    backgroundColor: '#e5e7eb',
+                    borderRadius: 4,
+                    barPercentage: 0.7
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'DM Sans', size: 11 } } },
+                tooltip: { padding: 8 }
+            },
+            scales: { 
+                y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                x: { grid: { display: false }, ticks: { font: { size: 9.5 } } }
+            }
+        }
+    });
+}
+
+function renderizarGraficoFlujoHorario(registrosHoy) {
+    const ctx = document.getElementById('graficoFlujoHorario');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (chartFlujo) chartFlujo.destroy();
+
+    const horasLabels = ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+    const entradas = new Array(horasLabels.length).fill(0);
+    const salidas = new Array(horasLabels.length).fill(0);
+
+    (registrosHoy || []).forEach(r => {
+        if (r.hora_entrada) {
+            const h = parseInt(r.hora_entrada.split(':')[0]);
+            if (h >= 6 && h <= 20) {
+                entradas[h - 6]++;
+            }
+        }
+        if (r.hora_salida) {
+            const h = parseInt(r.hora_salida.split(':')[0]);
+            if (h >= 6 && h <= 20) {
+                salidas[h - 6]++;
+            }
+        }
+    });
+
+    chartFlujo = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: horasLabels,
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: entradas,
+                    borderColor: '#198754',
+                    backgroundColor: 'rgba(25, 135, 84, 0.12)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 3
+                },
+                {
+                    label: 'Salidas',
+                    data: salidas,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.08)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'DM Sans', size: 11 } } },
+                tooltip: { padding: 8 }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { stepSize: 1 } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+function renderizarGraficoPersonal(docMat, docVesp, admMat, admVesp) {
+    const ctx = document.getElementById('graficoPersonalTurnos');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (chartPersonal) chartPersonal.destroy();
+
+    const totalDoc = docMat + docVesp;
+    const totalAdm = admMat + admVesp;
+    const valores = (totalDoc + totalAdm > 0) ? [docMat, docVesp, admMat, admVesp] : [1, 0, 0, 0];
+
+    chartPersonal = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Docentes Mat.', 'Docentes Vesp.', 'Admin. Mat.', 'Admin. Vesp.'],
+            datasets: [{
+                data: valores,
+                backgroundColor: ['#6f42c1', '#a855f7', '#0d6efd', '#38bdf8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, font: { family: 'DM Sans', size: 10.5 } } }
+            }
+        }
+    });
+}
+
+// -------------------------------------------------------------
+// SISTEMA DE ALERTA TEMPRANA DE DESERCIÓN ESCOLAR (EWS)
+// -------------------------------------------------------------
+function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
+    listaAlumnosRiesgoGlobal = [];
+
+    // Obtener las últimas fechas escolares registradas en la base de datos
+    const fechasUnicas = [...new Set((registrosHistoricos || []).map(r => r.fecha).filter(Boolean))].sort().reverse();
+    const mapaAsistenciasPorAlumno = {};
+
+    (registrosHistoricos || []).forEach(r => {
+        const mat = String(r.matricula || r.ncontrol || '').trim().toUpperCase();
+        if (mat) {
+            if (!mapaAsistenciasPorAlumno[mat]) mapaAsistenciasPorAlumno[mat] = new Set();
+            if (r.fecha) mapaAsistenciasPorAlumno[mat].add(r.fecha);
+        }
+    });
+
+    alumnos.forEach(al => {
+        const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
+        const asistenciasSet = mapaAsistenciasPorAlumno[mat] || new Set();
+
+        // Contar inasistencias en las fechas más recientes
+        let diasSinRegistro = 0;
+        for (let i = 0; i < Math.min(fechasUnicas.length, 10); i++) {
+            const f = fechasUnicas[i];
+            if (!asistenciasSet.has(f)) {
+                diasSinRegistro++;
+            } else {
+                break; // Se detiene al encontrar su última asistencia
+            }
+        }
+
+        // Si la base de datos es muy reciente y no tiene histórico, evaluar alumnos con ausencia reciente
+        if (fechasUnicas.length === 0 && al.estado === "FUERA") {
+            diasSinRegistro = 3;
+        }
+
+        if (diasSinRegistro >= 3) {
+            const nivelRiesgo = diasSinRegistro >= 5 ? 'CRITICO' : 'MODERADO';
+            listaAlumnosRiesgoGlobal.push({
+                matricula: al.ncontrol || al.matricula || 'S/N',
+                nombre: `${al.nombre} ${al.apepat || al.primerApellido || ''} ${al.apemat || al.segundoApellido || ''}`.trim(),
+                especialidad: al.especialidad || 'Tronco Común',
+                grado: al.grado || '1',
+                grupo: al.grupo || 'A',
+                turno: al.turno || 'Matutino',
+                foto: al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg',
+                diasSinRegistro: diasSinRegistro,
+                nivelRiesgo: nivelRiesgo,
+                tutor: al.nombretutor || al.nombre_tutor || 'Tutor Registrado',
+                telefonoTutor: al.teltutor || (al.tutor && al.tutor.telefono) || al.celular || 'S/T'
+            });
+        }
+    });
+
+    // Ordenar de mayor a menor riesgo
+    listaAlumnosRiesgoGlobal.sort((a, b) => b.diasSinRegistro - a.diasSinRegistro);
+
+    // Contadores
+    const criticos = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'CRITICO').length;
+    const moderados = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'MODERADO').length;
+    const total = listaAlumnosRiesgoGlobal.length;
+
+    const elCountTotal = document.getElementById('countRiesgoTotal');
+    const elCountCrit = document.getElementById('countRiesgoCritico');
+    const elCountMod = document.getElementById('countRiesgoModerado');
+    const elKpiRiesgo = document.getElementById('kpiRiesgoDesercion');
+
+    if (elCountTotal) elCountTotal.innerText = total;
+    if (elCountCrit) elCountCrit.innerText = criticos;
+    if (elCountMod) elCountMod.innerText = moderados;
+    if (elKpiRiesgo) elKpiRiesgo.innerText = total;
+
+    renderizarTablaAlertaRiesgo();
+}
+
+function filtrarAlertaRiesgo(tipo) {
+    filtroRiesgoActual = tipo;
+    const btnTodos = document.getElementById('btnFiltroRiesgoTodos');
+    const btnCrit = document.getElementById('btnFiltroRiesgoCritico');
+    const btnMod = document.getElementById('btnFiltroRiesgoModerado');
+
+    if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-secondary active' : 'btn btn-outline-secondary';
+    if (btnCrit) btnCrit.className = (tipo === 'CRITICO') ? 'btn btn-danger active' : 'btn btn-outline-danger';
+    if (btnMod) btnMod.className = (tipo === 'MODERADO') ? 'btn btn-warning text-dark active' : 'btn btn-outline-warning text-dark';
+
+    renderizarTablaAlertaRiesgo();
+}
+window.filtrarAlertaRiesgo = filtrarAlertaRiesgo;
+
+function renderizarTablaAlertaRiesgo() {
+    const tbody = document.getElementById('tablaAlertaDesercionBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    const filtrados = listaAlumnosRiesgoGlobal.filter(a => {
+        if (filtroRiesgoActual === 'CRITICO') return a.nivelRiesgo === 'CRITICO';
+        if (filtroRiesgoActual === 'MODERADO') return a.nivelRiesgo === 'MODERADO';
+        return true;
+    });
+
+    if (filtrados.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4 text-success fw-bold">
+                    <i class="bi bi-check-circle-fill me-1 fs-5"></i>
+                    No hay estudiantes en situación de riesgo con el filtro actual.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    filtrados.slice(0, 30).forEach(a => {
+        const tr = document.createElement('tr');
+        const badgeRiesgo = (a.nivelRiesgo === 'CRITICO')
+            ? '<span class="badge bg-danger px-2 py-1"><i class="bi bi-exclamation-octagon-fill me-1"></i>Crítico</span>'
+            : '<span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Moderado</span>';
+
+        tr.innerHTML = `
+            <td class="ps-3 py-2">
+                <div class="d-flex align-items-center">
+                    <img src="${a.foto}" class="rounded-circle border me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
+                    <div>
+                        <span class="d-block fw-bold text-dark">${a.nombre}</span>
+                        <span class="x-small text-muted">Tutor: ${a.tutor}</span>
+                    </div>
+                </div>
+            </td>
+            <td><span class="font-monospace fw-bold text-dark">${a.matricula}</span></td>
+            <td>
+                <span class="d-block fw-semibold text-dark">${a.especialidad}</span>
+                <span class="x-small text-muted">${a.grado}° "${a.grupo}" • ${a.turno}</span>
+            </td>
+            <td class="text-center">
+                <span class="badge bg-light text-danger border border-danger fw-bold px-2 py-1">${a.diasSinRegistro} días</span>
+            </td>
+            <td class="text-center">${badgeRiesgo}</td>
+            <td class="text-center pe-3">
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-success btn-sm" onclick="enviarWhatsappTutorDesercion('${a.matricula}')" title="Contactar Tutor por WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </button>
+                    <a href="/admin/expediente_alumno?matricula=${encodeURIComponent(a.matricula)}" class="btn btn-outline-secondary btn-sm" title="Ver Expediente">
+                        <i class="bi bi-folder2-open"></i>
+                    </a>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+async function enviarWhatsappTutorDesercion(matricula) {
+    const alumno = listaAlumnosRiesgoGlobal.find(a => a.matricula === matricula);
+    if (!alumno) return;
+
+    const tel = alumno.telefonoTutor;
+    if (!tel || tel === 'S/T') {
+        return Swal.fire("Sin número de teléfono", "El estudiante no tiene registrado un número telefónico de tutor.", "warning");
+    }
+
+    const { value: mensajeTxt } = await Swal.fire({
+        title: `<div class="fs-5 fw-bold text-dark mb-0"><i class="bi bi-whatsapp text-success me-2"></i>Aviso de Inasistencias a Tutor</div>`,
+        html: `
+            <div class="text-start small mb-2 p-2 bg-light rounded border">
+                <div class="mb-1"><b>Estudiante:</b> ${alumno.nombre} (${alumno.matricula})</div>
+                <div class="mb-1"><b>Tutor:</b> <span class="fw-bold text-dark">${alumno.tutor}</span></div>
+                <div class="mb-1"><b>Teléfono:</b> <code class="text-success fw-bold">${tel}</code></div>
+                <div><b>Inasistencias continuas:</b> <span class="badge bg-danger">${alumno.diasSinRegistro} días</span></div>
+            </div>
+            <textarea id="swalWsMensajeDesercion" class="form-control form-control-sm border-danger mt-2" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">🏫 *[CBTis 134 - AVISO URGENTE DE ORIENTACIÓN EDUCATIVA]*:\nEstimado(a) ${alumno.tutor}, le informamos que el alumno(a) ${alumno.nombre} ha acumulado ${alumno.diasSinRegistro} días consecutivos sin registro de asistencia en el plantel. Favor de comunicarse al departamento de Orientación Educativa.</textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Alerta WhatsApp',
+        confirmButtonColor: '#198754',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!mensajeTxt) return;
+
+    Swal.fire({ title: 'Despachando mensaje...', didOpen: () => Swal.showLoading() });
+
+    try {
+        const resWs = await fetch('/api/configuracion/whatsapp');
+        if (!resWs.ok) throw new Error("No hay API de WhatsApp configurada.");
+        const configWs = await resWs.json();
+        const tipoEndpoint = (configWs.tipo_api || 'EVOLUTION').toLowerCase();
+
+        const res = await fetch(`/api/whatsapp/${tipoEndpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                apiUrl: configWs.apiUrl || configWs.serverUrl,
+                apiKey: configWs.apiKey || configWs.token,
+                token: configWs.token || configWs.apiKey,
+                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                to: tel,
+                body: mensajeTxt
+            })
+        });
+
+        if (res.ok) {
+            Swal.fire("¡Alerta Enviada!", `El mensaje de inasistencia ha sido despachado al tutor con éxito.`, "success");
+        } else {
+            Swal.fire("Error", `La API respondió con error.`, "error");
+        }
+    } catch(e) {
+        Swal.fire("Error", e.message, "error");
+    }
+}
+window.enviarWhatsappTutorDesercion = enviarWhatsappTutorDesercion;
 
 let calendarioInstancia = null;
 
@@ -1289,3 +1764,216 @@ async function generarExcelModulos() {
     }
 }
 window.generarExcelModulos = generarExcelModulos;
+
+async function generarExcelRiesgoDesercion() {
+    Swal.fire({ title: 'Generando padrón de riesgo en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        if (!listaAlumnosRiesgoGlobal || listaAlumnosRiesgoGlobal.length === 0) {
+            return Swal.fire("Aviso", "No hay alumnos identificados en riesgo de deserción en este momento.", "info");
+        }
+
+        const filasExcel = listaAlumnosRiesgoGlobal.map((a, index) => ({
+            'No.': index + 1,
+            'No. Control': a.matricula,
+            'Nombre Completo': a.nombre,
+            'Especialidad': a.especialidad,
+            'Semestre': `${a.grado}°`,
+            'Grupo': `"${a.grupo}"`,
+            'Turno': a.turno,
+            'Días Sin Asistencia': a.diasSinRegistro,
+            'Nivel de Riesgo': a.nivelRiesgo,
+            'Nombre del Tutor': a.tutor,
+            'Teléfono Tutor': a.telefonoTutor
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(filasExcel);
+        ws['!cols'] = [
+            { wch: 6 },  // No.
+            { wch: 18 }, // No. Control
+            { wch: 38 }, // Nombre
+            { wch: 28 }, // Especialidad
+            { wch: 10 }, // Semestre
+            { wch: 8 },  // Grupo
+            { wch: 14 }, // Turno
+            { wch: 20 }, // Días Sin Asistencia
+            { wch: 16 }, // Nivel de Riesgo
+            { wch: 32 }, // Tutor
+            { wch: 18 }  // Teléfono Tutor
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Alumnos_Riesgo_EWS");
+        const nombreArchivo = `Padron_Alumnos_Riesgo_Desercion_CBTIS134_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+        XLSX.writeFile(wb, nombreArchivo);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Padrón Descargado',
+            text: `Se exportaron ${filasExcel.length} estudiantes en "${nombreArchivo}".`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } catch(e) {
+        console.error("Error al exportar padrón:", e);
+        Swal.fire("Error", "Fallo al exportar el padrón de riesgo: " + e.message, "error");
+    }
+}
+window.generarExcelRiesgoDesercion = generarExcelRiesgoDesercion;
+
+async function generarExcelPasesSalida() {
+    Swal.fire({ title: 'Generando bitácora de pases en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const pases = await safeFetchJson('/api/pases') || [];
+        if (pases.length === 0) {
+            return Swal.fire("Aviso", "No se encontraron pases de salida registrados.", "info");
+        }
+
+        const filasExcel = pases.map((p, index) => {
+            const mat = p.id_alumno || p.matricula || p.no_control || 'GRUPAL';
+            const alumnosNombres = p.nombre_alumno || (Array.isArray(p.alumnos) ? p.alumnos.map(a => a.nombre || a).join(', ') : 'Varios');
+            return {
+                'No.': index + 1,
+                'Folio / ID': p.id || p._id || `PASE-${index + 1}`,
+                'Tipo de Pase': p.tipo || (p.grupo ? 'GRUPAL' : 'INDIVIDUAL'),
+                'Matrícula / No. Control': mat,
+                'Nombre(s) Estudiante': alumnosNombres,
+                'Especialidad': p.especialidad || 'N/A',
+                'Semestre': p.grado ? `${p.grado}°` : 'N/A',
+                'Grupo': p.grupo ? `"${p.grupo}"` : 'N/A',
+                'Motivo de Salida': p.motivo || 'Sin especificar',
+                'Fecha': p.fecha || 'S/F',
+                'Hora Salida': p.hora || p.hora_salida || 'S/H',
+                'Estatus': p.estatus || (p.estatus_vigencia ? 'AUTORIZADO' : 'CONCLUIDO'),
+                'Autorizado Por': p.autorizado_por || p.usuario_autoriza || 'ADMIN'
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(filasExcel);
+        ws['!cols'] = [
+            { wch: 6 },  // No.
+            { wch: 22 }, // Folio
+            { wch: 14 }, // Tipo
+            { wch: 18 }, // Matricula
+            { wch: 35 }, // Nombre
+            { wch: 25 }, // Especialidad
+            { wch: 10 }, // Semestre
+            { wch: 8 },  // Grupo
+            { wch: 35 }, // Motivo
+            { wch: 14 }, // Fecha
+            { wch: 12 }, // Hora
+            { wch: 16 }, // Estatus
+            { wch: 25 }  // Autorizado por
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pases_Salida");
+        const nombreArchivo = `Bitacora_Pases_Salida_CBTIS134_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+        XLSX.writeFile(wb, nombreArchivo);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Bitácora Descargada',
+            text: `Se descargaron ${filasExcel.length} pases de salida en "${nombreArchivo}".`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } catch(e) {
+        console.error("Error al exportar pases:", e);
+        Swal.fire("Error", "Fallo al exportar pases: " + e.message, "error");
+    }
+}
+window.generarExcelPasesSalida = generarExcelPasesSalida;
+
+async function generarExcelAsistenciaPersonal() {
+    Swal.fire({ title: 'Generando asistencia de personal en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const [usuarios, registros] = await Promise.all([
+            safeFetchJson('/api/usuarios') || [],
+            safeFetchJson('/api/registros-diarios') || []
+        ]);
+
+        const personalRegistros = registros.filter(r => r.grupo === 'PERSONAL' || r.especialidad === 'DOCENTE' || r.especialidad === 'ADMINISTRATIVO');
+        
+        const personalMap = {};
+        usuarios.forEach(u => {
+            const keyRfc = (u.rfc || u.uid || u.id || '').toUpperCase();
+            if (keyRfc) {
+                personalMap[keyRfc] = {
+                    nombre: u.nombre,
+                    rol: u.rol || 'DOCENTE',
+                    turno: u.turno || 'Matutino',
+                    correo: u.correo || ''
+                };
+            }
+        });
+
+        if (personalRegistros.length === 0 && usuarios.length === 0) {
+            return Swal.fire("Aviso", "No hay registros de asistencia de personal para exportar.", "info");
+        }
+
+        const filasExcel = personalRegistros.map((r, index) => {
+            const key = (r.matricula || r.ncontrol || '').toUpperCase();
+            const infoUser = personalMap[key] || {};
+            return {
+                'No.': index + 1,
+                'RFC / Identificador': r.matricula || r.ncontrol || 'S/N',
+                'Nombre del Personal': r.nombre || infoUser.nombre || 'PERSONAL REGISTRADO',
+                'Rol / Cargo': infoUser.rol || r.especialidad || 'DOCENTE',
+                'Turno': infoUser.turno || 'Matutino',
+                'Fecha': r.fecha || 'S/F',
+                'Hora Entrada': r.hora_entrada || 'S/E',
+                'Hora Salida': r.hora_salida || (r.estatus_actual === 'DENTRO' ? 'EN PLANTEL' : 'S/S'),
+                'Estatus Actual': r.estatus_actual || (r.hora_salida ? 'FUERA' : 'DENTRO'),
+                'Método de Checado': r.metodo || 'BIOMÉTRICO / QR'
+            };
+        });
+
+        if (filasExcel.length === 0) {
+            usuarios.forEach((u, index) => {
+                filasExcel.push({
+                    'No.': index + 1,
+                    'RFC / Identificador': u.rfc || u.uid || u.id || 'S/N',
+                    'Nombre del Personal': u.nombre,
+                    'Rol / Cargo': u.rol || 'DOCENTE',
+                    'Turno': u.turno || 'Matutino',
+                    'Fecha': new Date().toLocaleDateString('es-MX'),
+                    'Hora Entrada': '---',
+                    'Hora Salida': '---',
+                    'Estatus Actual': u.estado || 'FUERA',
+                    'Método de Checado': 'CATÁLOGO'
+                });
+            });
+        }
+
+        const ws = XLSX.utils.json_to_sheet(filasExcel);
+        ws['!cols'] = [
+            { wch: 6 },  // No.
+            { wch: 22 }, // RFC
+            { wch: 35 }, // Nombre
+            { wch: 20 }, // Rol
+            { wch: 14 }, // Turno
+            { wch: 14 }, // Fecha
+            { wch: 14 }, // Hora Entrada
+            { wch: 14 }, // Hora Salida
+            { wch: 16 }, // Estatus
+            { wch: 22 }  // Método
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Asistencia_Personal");
+        const nombreArchivo = `Asistencia_Personal_Docentes_CBTIS134_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+        XLSX.writeFile(wb, nombreArchivo);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Asistencia Descargada',
+            text: `Se exportaron ${filasExcel.length} registros en "${nombreArchivo}".`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+    } catch(e) {
+        console.error("Error al exportar asistencia de personal:", e);
+        Swal.fire("Error", "Fallo al exportar asistencia de personal: " + e.message, "error");
+    }
+}
+window.generarExcelAsistenciaPersonal = generarExcelAsistenciaPersonal;

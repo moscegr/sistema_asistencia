@@ -630,111 +630,298 @@
                 </div>
             </div>
 
-            <!-- ── 5. CENTRO DE INTELIGENCIA ── -->
-            <div class="row mb-4 anim-up anim-d7">
+            <!-- ── 5. CENTRO DE INTELIGENCIA Y ANALÍTICA DE DATOS ── -->
+            <div class="row mb-4 anim-up anim-d7" id="centroInteligencia">
                 <div class="col-12">
-                    <div class="intel-card">
-                        <div class="intel-header">
+                    <div class="intel-card border-0 shadow-sm" style="border-radius: var(--radius-card); background: #ffffff;">
+                        
+                        <!-- Encabezado Principal del Centro de Inteligencia -->
+                        <div class="intel-header p-4 pb-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #ffffff 0%, #fdf8f9 100%);">
                             <div>
-                                <h5 class="section-title">
-                                    <i class="bi bi-graph-up-arrow"></i> Centro de Inteligencia y Reportes
-                                </h5>
-                                <p class="section-sub">Monitoreo de actividad y exportación masiva a Excel</p>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-guinda p-2 rounded-3 text-white">
+                                        <i class="bi bi-graph-up-arrow fs-6"></i>
+                                    </span>
+                                    <div>
+                                        <h5 class="section-title fw-bold mb-0" style="color: var(--guinda);">
+                                            Centro de Inteligencia y Analítica Educativa
+                                        </h5>
+                                        <p class="section-sub mb-0 text-muted small">
+                                            Monitoreo predictivo de afluencia, detección de deserción escolar (EWS) y reportes ejecutivos oficiales
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="corte-badge">
-                                <i class="bi bi-clock-history"></i>
-                                Corte: <span id="ultimaAct">Sincronizando...</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="corte-badge shadow-sm">
+                                    <i class="bi bi-clock-history text-guinda"></i>
+                                    Corte en Vivo: <strong id="ultimaAct" class="text-dark">Sincronizando...</strong>
+                                </div>
+                                <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="cargarDashboardCompleto()" title="Actualizar datos en tiempo real">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+                                </button>
                             </div>
                         </div>
 
                         <div class="p-4">
-                            <!-- Gráficas -->
-                            <div class="row mb-4 g-3">
-                                <div class="col-12 col-xl-8">
-                                    <div class="chart-box" style="height: 300px;">
-                                        <p class="chart-label">
-                                            <i class="bi bi-bar-chart-line-fill me-1 text-guinda"></i>
-                                            Alumnos en Plantel por Especialidad
-                                        </p>
-                                        <canvas id="graficoEspecialidades"></canvas>
+                            <!-- Mini KPIs de Alto Impacto -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-6 col-md-3">
+                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Permanencia Hoy</span>
+                                            <h4 class="fw-bold mb-0 text-dark" id="kpiPermanencia">0%</h4>
+                                            <small class="text-success x-small" id="kpiPermanenciaSub"><i class="bi bi-check-circle-fill me-1"></i>0 presentes</small>
+                                        </div>
+                                        <div class="stat-icon s-blue rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-person-check-fill"></i></div>
                                     </div>
                                 </div>
-                                <div class="col-12 col-xl-4">
-                                    <div class="chart-box" style="height: 300px;">
-                                        <p class="chart-label">
-                                            <i class="bi bi-pie-chart-fill me-1 text-primary"></i>
-                                            Estatus de Asistencia
-                                        </p>
-                                        <canvas id="graficoEstatus"></canvas>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Alerta Deserción (EWS)</span>
+                                            <h4 class="fw-bold mb-0 text-danger" id="kpiRiesgoDesercion">0</h4>
+                                            <small class="text-danger x-small" id="kpiRiesgoDesercionSub"><i class="bi bi-exclamation-triangle-fill me-1"></i>Inasistencias &ge; 3 días</small>
+                                        </div>
+                                        <div class="stat-icon s-red rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-person-x-fill"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Pases Autorizados</span>
+                                            <h4 class="fw-bold mb-0 text-success" id="kpiPasesHoy">0</h4>
+                                            <small class="text-muted x-small">Pases vigentes hoy</small>
+                                        </div>
+                                        <div class="stat-icon s-green rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-card-checklist"></i></div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Personal en Plantel</span>
+                                            <h4 class="fw-bold mb-0" style="color: #6f42c1;" id="kpiPersonalPresente">0</h4>
+                                            <small class="text-muted x-small" id="kpiPersonalPresenteSub">0 Docentes / 0 Admin</small>
+                                        </div>
+                                        <div class="stat-icon rounded-3" style="width: 42px; height: 42px; background: #f3e8ff; color: #6f42c1;"><i class="bi bi-person-workspace"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ── SUITE DE GRÁFICAS ANALÍTICAS (2x2) ── -->
+                            <div class="row g-4 mb-4">
+                                <!-- Gráfica 1: Afluencia por Carrera (Inscritos vs Presentes) -->
+                                <div class="col-12 col-xl-6">
+                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <p class="chart-label mb-0">
+                                                <i class="bi bi-bar-chart-fill me-1 text-guinda"></i>
+                                                Afluencia por Carrera (Inscritos vs Presentes)
+                                            </p>
+                                            <span class="badge bg-light text-muted border x-small">Hoy</span>
+                                        </div>
+                                        <div style="height: 250px; position: relative;">
+                                            <canvas id="graficoEspecialidades"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gráfica 2: Curva de Flujo Horario de Accesos -->
+                                <div class="col-12 col-xl-6">
+                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <p class="chart-label mb-0">
+                                                <i class="bi bi-activity me-1 text-primary"></i>
+                                                Curva de Afluencia Horaria (06:00 - 20:00 hrs)
+                                            </p>
+                                            <span class="badge bg-light text-muted border x-small">Entradas vs Salidas</span>
+                                        </div>
+                                        <div style="height: 250px; position: relative;">
+                                            <canvas id="graficoFlujoHorario"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gráfica 3: Incidencias Conductuales por Semestre -->
+                                <div class="col-12 col-xl-6">
+                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <p class="chart-label mb-0">
+                                                <i class="bi bi-diagram-3-fill me-1 text-danger"></i>
+                                                Faltas Conductuales por Semestre
+                                            </p>
+                                            <div class="d-flex align-items-center gap-1">
+                                                <select id="selectFiltroModulo" class="form-select form-select-sm" style="max-width: 170px;" onchange="actualizarGraficaGrupos()">
+                                                    <option value="" selected>Todas las Carreras</option>
+                                                </select>
+                                                <span class="badge bg-danger rounded-pill px-2 py-1" id="totalEvidenciasModulo">0</span>
+                                            </div>
+                                        </div>
+                                        <div style="height: 245px; position: relative;">
+                                            <canvas id="graficoGruposModulo"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Gráfica 4: Personal y Cumplimiento de Turnos -->
+                                <div class="col-12 col-xl-6">
+                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <p class="chart-label mb-0">
+                                                <i class="bi bi-pie-chart-fill me-1 text-success"></i>
+                                                Distribución de Personal y Turnos
+                                            </p>
+                                            <span class="badge bg-light text-muted border x-small">Docentes vs Admin</span>
+                                        </div>
+                                        <div style="height: 245px; position: relative;">
+                                            <canvas id="graficoPersonalTurnos"></canvas>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             <hr class="inner-divider">
 
-                            <!-- Asistencias + Especialidad -->
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3 x-small text-uppercase" style="letter-spacing:1px; color:#374151;">
-                                        <i class="bi bi-calendar-x-fill me-2 text-danger"></i>Control de Asistencias y Riesgo
-                                    </h6>
-
-                                    <div class="chart-box mb-3">
-                                        <label class="x-small fw-bold text-muted mb-2 d-block">1. Historial Mensual (Excel)</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="month" id="mesReporteAsistencia" class="form-control">
-                                            <button class="btn btn-success px-3" onclick="generarExcelAsistencias()"
-                                                    style="border-radius:0 7px 7px 0; font-size:12px;">
-                                                <i class="bi bi-file-earmark-excel-fill me-1"></i>Descargar
-                                            </button>
-                                        </div>
+                            <!-- ── 5.1 SISTEMA DE ALERTA TEMPRANA DE DESERCIÓN (EWS) ── -->
+                            <div class="card border-0 bg-light rounded-4 p-4 mb-4 shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-shield-exclamation text-danger me-2"></i>Sistema de Alerta Temprana de Deserción Escolar (EWS)
+                                        </h6>
+                                        <p class="x-small text-muted mb-0">Detección algorítmica de estudiantes con ausentismo recurrente (&ge; 3 inasistencias consecutivas)</p>
                                     </div>
-
-                                    <div class="chart-box">
-                                        <label class="x-small fw-bold text-muted mb-2 d-block">
-                                            2. Alerta de Inasistencias (Posible Baja)
-                                        </label>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="small text-muted" style="font-size:12px;">
-                                                Alumnos sin registro en los últimos 5 días:
-                                            </span>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="calcularRiesgoDesercion()"
-                                                    style="font-size:12px; border-radius:7px;">
-                                                <i class="bi bi-search me-1"></i>Analizar
-                                            </button>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                            <button type="button" class="btn btn-outline-secondary active" id="btnFiltroRiesgoTodos" onclick="filtrarAlertaRiesgo('TODOS')">Todos (<span id="countRiesgoTotal">0</span>)</button>
+                                            <button type="button" class="btn btn-outline-danger" id="btnFiltroRiesgoCritico" onclick="filtrarAlertaRiesgo('CRITICO')">🔴 Crítico &ge;5d (<span id="countRiesgoCritico">0</span>)</button>
+                                            <button type="button" class="btn btn-outline-warning text-dark" id="btnFiltroRiesgoModerado" onclick="filtrarAlertaRiesgo('MODERADO')">🟡 Moderado 3-4d (<span id="countRiesgoModerado">0</span>)</button>
                                         </div>
-                                        <div id="listaDesercion" class="mt-3" style="display:none; max-height:150px; overflow-y:auto;">
-                                            <ul class="list-group list-group-flush small" id="ulAlertaDesercion"></ul>
-                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold shadow-sm" onclick="generarExcelRiesgoDesercion()">
+                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar Padrón
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3 x-small text-uppercase" style="letter-spacing:1px; color:#374151;">
-                                        <i class="bi bi-diagram-3-fill me-2 text-primary"></i>Rendimiento por Especialidad
-                                    </h6>
+                                <div class="table-responsive bg-white rounded-3 border shadow-sm" style="max-height: 280px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0 small">
+                                        <thead class="table-light text-uppercase x-small text-muted sticky-top">
+                                            <tr>
+                                                <th class="ps-3 py-2">Estudiante</th>
+                                                <th class="py-2">No. Control</th>
+                                                <th class="py-2">Carrera / Semestre</th>
+                                                <th class="py-2 text-center">Días Sin Registro</th>
+                                                <th class="py-2 text-center">Nivel de Riesgo</th>
+                                                <th class="py-2 text-center pe-3">Acción Inmediata</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tablaAlertaDesercionBody">
+                                            <tr>
+                                                <td colspan="6" class="text-center py-3 text-muted">
+                                                    <div class="spinner-border spinner-border-sm text-guinda me-2" role="status"></div>
+                                                    Calculando índice de permanencia escolar...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
 
-                                    <div class="input-group input-group-sm mb-3">
-                                        <select id="selectFiltroModulo" class="form-select"
-                                                onchange="actualizarGraficaGrupos()">
-                                            <option value="" disabled selected>Selecciona una Especialidad...</option>
-                                        </select>
-                                        <button class="btn btn-outline-dark px-3" onclick="generarExcelModulos()"
-                                                style="font-size:12px; border-radius:0 7px 7px 0;">
-                                            <i class="bi bi-download me-1"></i>Evidencias
-                                        </button>
+                            <!-- ── 5.2 HUB DE REPORTES Y EXPORTACIONES MASIVAS EN EXCEL ── -->
+                            <div class="card border-0 bg-white rounded-4 p-4 shadow-sm" style="border-left: 4px solid var(--guinda) !important;">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <div>
+                                        <h6 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i>Hub de Reportes Ejecutivos y Exportaciones Masivas
+                                        </h6>
+                                        <p class="x-small text-muted mb-0">Generación y descarga de sábanas oficiales en formato Excel (.xlsx)</p>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <!-- 1. Sábana Mensual de Asistencia -->
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <span class="badge bg-success mb-2"><i class="bi bi-calendar3 me-1"></i>Asistencias</span>
+                                                <h6 class="fw-bold text-dark mb-1 small">Sábana Mensual de Asistencias</h6>
+                                                <p class="x-small text-muted mb-2">Histórico consolidado con horas de entrada, salida y estatus diario.</p>
+                                            </div>
+                                            <div>
+                                                <input type="month" id="mesReporteAsistencia" class="form-control form-control-sm mb-2">
+                                                <button class="btn btn-sm btn-success w-100 fw-bold shadow-sm" onclick="generarExcelAsistencias()">
+                                                    <i class="bi bi-download me-1"></i>Descargar Excel
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="chart-box" style="height:200px;">
-                                        <canvas id="graficoGruposModulo"></canvas>
+                                    <!-- 2. Padrón de Riesgo / Deserción -->
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <span class="badge bg-danger mb-2"><i class="bi bi-shield-exclamation me-1"></i>Orientación</span>
+                                                <h6 class="fw-bold text-dark mb-1 small">Padrón de Alumnos en Riesgo</h6>
+                                                <p class="x-small text-muted mb-2">Listado nominal con teléfonos de tutores para intervención inmediata.</p>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-danger w-100 fw-bold shadow-sm" onclick="generarExcelRiesgoDesercion()">
+                                                    <i class="bi bi-download me-1"></i>Descargar Padrón (EWS)
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="d-flex justify-content-between mt-2 px-1">
-                                        <span class="x-small text-muted fw-bold">Total de Evidencias (Incidencias):</span>
-                                        <span class="badge bg-guinda" id="totalEvidenciasModulo"
-                                              style="border-radius:6px; font-size:11px;">0</span>
+
+                                    <!-- 3. Sábana de Incidencias Conductuales -->
+                                    <div class="col-md-4 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <span class="badge bg-primary mb-2"><i class="bi bi-journal-text me-1"></i>Prefectura</span>
+                                                <h6 class="fw-bold text-dark mb-1 small">Sábana de Incidencias / Faltas</h6>
+                                                <p class="x-small text-muted mb-2">Bitácora de reportes disciplinarios por carrera y semestre.</p>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary w-100 fw-bold shadow-sm" onclick="generarExcelModulos()">
+                                                    <i class="bi bi-download me-1"></i>Descargar Incidencias
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. Bitácora de Pases de Salida -->
+                                    <div class="col-md-6 col-sm-6">
+                                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <span class="badge bg-warning text-dark mb-2"><i class="bi bi-door-open me-1"></i>Control Escolar</span>
+                                                <h6 class="fw-bold text-dark mb-1 small">Bitácora de Pases de Salida</h6>
+                                                <p class="x-small text-muted mb-2">Registro de permisos individuales, grupales y salidas médicas del ciclo.</p>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-dark w-100 fw-bold shadow-sm" onclick="generarExcelPasesSalida()">
+                                                    <i class="bi bi-download me-1"></i>Descargar Pases de Salida
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5. Asistencia de Personal y Docentes -->
+                                    <div class="col-md-6 col-sm-12">
+                                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <span class="badge text-white mb-2" style="background-color: #6f42c1;"><i class="bi bi-person-workspace me-1"></i>Recursos Humanos</span>
+                                                <h6 class="fw-bold text-dark mb-1 small">Asistencia de Personal y Docentes</h6>
+                                                <p class="x-small text-muted mb-2">Registro de checadas biométricas/QR, puntualidad y cumplimiento de turno.</p>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm text-white w-100 fw-bold shadow-sm" style="background-color: #6f42c1;" onclick="generarExcelAsistenciaPersonal()">
+                                                    <i class="bi bi-download me-1"></i>Descargar Asistencia Personal
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 </div>
