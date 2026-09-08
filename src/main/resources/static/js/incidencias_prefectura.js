@@ -2,10 +2,11 @@
 
 const obtenerHoy = () => new Date().toLocaleDateString('en-CA');
 let historialPrefecturaCache = [];
+let catalogoPersonalCache = [];
 let limiteHistorialPref = 10;
 
 const normalizar = (texto) => {
-    return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+    return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,15 +15,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     generarFilasModulos();
     escucharHistorialPersonal();
-    cargarJefePersonalConfig();
+    await cargarJefePersonalConfig();
+    await cargarCatalogoPersonal();
 
     const fInteresado = document.getElementById('filtroInteresado');
     const fFecha = document.getElementById('filtroFechaPref');
     const fTurno = document.getElementById('filtroTurnoPref');
+    const inputInteresado = document.getElementById('nombreInteresado');
 
     if (fInteresado) fInteresado.addEventListener('input', filtrarHistorialPrefectura);
     if (fFecha) fFecha.addEventListener('input', filtrarHistorialPrefectura);
     if (fTurno) fTurno.addEventListener('change', filtrarHistorialPrefectura);
+
+    if (inputInteresado) {
+        inputInteresado.addEventListener('input', sincronizarInfoPersonalSeleccionado);
+        inputInteresado.addEventListener('change', sincronizarInfoPersonalSeleccionado);
+    }
 });
 
 async function cargarJefePersonalConfig() {
@@ -31,12 +39,87 @@ async function cargarJefePersonalConfig() {
         if (res.ok) {
             const data = await res.json();
             const inputJefe = document.getElementById('jefePersonal');
-            if (inputJefe && data.jefe_personal) {
-                inputJefe.value = data.jefe_personal;
+            if (inputJefe) {
+                inputJefe.value = data.jefe_personal || data.nombre_jefe_personal || "LIC. JUANA MORALES APARICIO";
             }
         }
     } catch (e) {
         console.warn("No se pudo sincronizar jefe de personal:", e);
+    }
+}
+
+async function cargarCatalogoPersonal() {
+    try {
+        const res = await fetch('/api/usuarios');
+        if (res.ok) {
+            const list = await res.json();
+            if (Array.isArray(list)) {
+                catalogoPersonalCache = list.filter(u => u.nombre && u.nombre.trim() !== '');
+                poblarDatalistPersonal();
+            }
+        }
+    } catch (e) {
+        console.error("Error al cargar personal de MongoDB:", e);
+    }
+}
+
+function poblarDatalistPersonal() {
+    const datalist = document.getElementById('listaPersonalDatalist');
+    if (!datalist) return;
+    datalist.innerHTML = '';
+
+    catalogoPersonalCache.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.nombre;
+        const rolTxt = (p.rol || 'PERSONAL').toUpperCase();
+        const turnoTxt = (p.turno || 'REGULAR').toUpperCase();
+        opt.label = `${rolTxt} • ${turnoTxt}`;
+        datalist.appendChild(opt);
+    });
+}
+
+function sincronizarInfoPersonalSeleccionado() {
+    const input = document.getElementById('nombreInteresado');
+    const badge = document.getElementById('badgeInfoPersonal');
+    const selectTurno = document.getElementById('turnoSelect');
+    if (!input) return;
+
+    const val = normalizar(input.value);
+    if (!val) {
+        if (badge) {
+            badge.innerText = '';
+            badge.classList.add('d-none');
+        }
+        return;
+    }
+
+    const persona = catalogoPersonalCache.find(p => normalizar(p.nombre) === val || normalizar(p.nombre).includes(val));
+    if (persona) {
+        const rol = (persona.rol || 'PERSONAL').toUpperCase();
+        const turno = (persona.turno || '').toUpperCase();
+
+        if (badge) {
+            badge.innerHTML = `<i class="bi bi-person-check-fill me-1"></i>${rol}${turno ? ' • ' + turno : ''}`;
+            badge.classList.remove('d-none');
+        }
+
+        // Auto-sincronizar turno si coincide con las opciones
+        if (selectTurno && turno) {
+            if (turno.includes('TIEMPO COMPLETO') || turno === 'TC') {
+                selectTurno.value = 'TIEMPO COMPLETO';
+            } else if (turno.includes('MIXTO')) {
+                selectTurno.value = 'MIXTO';
+            } else if (turno.includes('MATUTINO') || turno === 'MAT') {
+                selectTurno.value = 'MATUTINO';
+            } else if (turno.includes('VESPERTINO') || turno === 'VES') {
+                selectTurno.value = 'VESPERTINO';
+            }
+        }
+    } else {
+        if (badge) {
+            badge.innerText = '';
+            badge.classList.add('d-none');
+        }
     }
 }
 

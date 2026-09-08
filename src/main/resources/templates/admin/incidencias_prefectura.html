@@ -30,23 +30,42 @@
                             <h6 class="fw-bold mb-3 text-guinda">Configuración del Reporte</h6>
                             
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Jefe de Personal</label>
-                                <input type="text" id="jefePersonal" class="form-control" value="C. LIC. JUANA MORALES APARICIO">
+                                <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
+                                    <span>Jefe de Personal</span>
+                                    <span class="badge bg-light text-muted border" style="font-size: 10px;"><i class="bi bi-shield-lock-fill me-1"></i>Institucional</span>
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
+                                    <input type="text" id="jefePersonal" class="form-control" value="LIC. JUANA MORALES APARICIO" readonly style="background-color: #f8f9fa; cursor: not-allowed; font-weight: 500;">
+                                </div>
+                                <small class="text-muted" style="font-size: 11px;"><i class="bi bi-info-circle me-1"></i>Configurado desde Datos de la Institución</small>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Turno</label>
+                                <label class="form-label small fw-bold">Turno / Jornada</label>
                                 <select id="turnoSelect" class="form-select">
                                     <option value="MATUTINO">MATUTINO</option>
                                     <option value="VESPERTINO" selected>VESPERTINO</option>
+                                    <option value="MIXTO">MIXTO</option>
+                                    <option value="TIEMPO COMPLETO">TIEMPO COMPLETO</option>
                                 </select>
                             </div>
 
-                            <hr>
+                            <hr class="my-3">
 
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">C. Interesado</label>
-                                <input type="text" id="nombreInteresado" class="form-control" placeholder="Nombre completo">
+                            <div class="mb-3 position-relative">
+                                <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
+                                    <span>C. Interesado (Personal / Docente)</span>
+                                    <span id="badgeInfoPersonal" class="badge bg-light text-guinda border d-none" style="font-size: 10.5px;"></span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="bi bi-person-search"></i></span>
+                                    <input type="text" id="nombreInteresado" class="form-control" list="listaPersonalDatalist" placeholder="Buscar o escribir nombre del personal..." autocomplete="off">
+                                </div>
+                                <datalist id="listaPersonalDatalist"></datalist>
+                                <small class="text-muted d-block mt-1" style="font-size: 11px;">
+                                    <i class="bi bi-database-check me-1 text-success"></i>Sincronizado en tiempo real con MongoDB
+                                </small>
                             </div>
                             
                             <div class="mb-3">
@@ -91,10 +110,11 @@
 					                    <input type="date" id="filtroFechaPref" class="form-control form-control-sm shadow-sm">
 					                </div>
 					                <div class="col-md-3">
-					                    <select id="filtroTurnoPref" class="form-select form-select-sm shadow-sm">
-					                        <option value="">Turnos</option>
+					                        <option value="">Todos los Turnos</option>
 					                        <option value="MATUTINO">MATUTINO</option>
 					                        <option value="VESPERTINO">VESPERTINO</option>
+					                        <option value="MIXTO">MIXTO</option>
+					                        <option value="TIEMPO COMPLETO">TIEMPO COMPLETO</option>
 					                    </select>
 					                </div>
 					            </div>
