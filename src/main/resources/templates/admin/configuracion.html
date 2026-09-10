@@ -91,6 +91,21 @@
 				            <form id="formInstitucional">
 				                <div class="row g-3">
 				                    <div class="col-md-4">
+				                        <label class="form-label small fw-bold">Nombre Corto del Plantel</label>
+				                        <input type="text" id="confNombrePlantel" class="form-control" placeholder="EJ: CBTis 134" required>
+				                        <small class="text-muted x-small">Se mostrará en títulos, menú lateral y credenciales.</small>
+				                    </div>
+				                    <div class="col-md-8">
+				                        <label class="form-label small fw-bold">Nombre Oficial Completo del Plantel</label>
+				                        <input type="text" id="confNombreOficialPlantel" class="form-control" placeholder="EJ: CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134">
+				                        <small class="text-muted x-small">Aparecerá en justificantes, pases de salida y documentos oficiales.</small>
+				                    </div>
+				                    <div class="col-md-12">
+				                        <label class="form-label small fw-bold">Slogan o Lema Institucional</label>
+				                        <input type="text" id="confSloganPlantel" class="form-control" placeholder="EJ: &quot;POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134&quot;">
+				                        <small class="text-muted x-small">Aparecerá en el inicio de sesión, pie de página y credenciales.</small>
+				                    </div>
+				                    <div class="col-md-4">
 				                        <label class="form-label small fw-bold">Nombre del Director(a)</label>
 				                        <input type="text" id="confDirector" class="form-control" placeholder="EJ: JOSE MARTIN RODEA ZUÑIGA">
 				                    </div>
@@ -115,21 +130,34 @@
 				                        <input type="text" id="confVigencia" class="form-control" placeholder="EJ: Agosto 2026">
 				                    </div>
 				                    
-				                    <div class="col-md-12 mt-3">
-				                        <div class="p-3 bg-light rounded border shadow-sm">
-				                            <label class="form-label small fw-bold text-guinda mb-2"><i class="bi bi-image-fill me-2"></i>Logotipo del Plantel (Persistente en BD y Sistema)</label>
+				                    <div class="col-md-6 mt-3">
+				                        <div class="p-3 bg-light rounded border shadow-sm h-100">
+				                            <label class="form-label small fw-bold text-guinda mb-2"><i class="bi bi-image-fill me-2"></i>Logotipo Oficial del Plantel (Escudo/Emblema)</label>
 				                            <div class="d-flex align-items-center gap-3">
-				                                <img id="imgPreviewLogoPlantel" src="/img/logo_aniversario.jpg" class="rounded-circle border shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+				                                <img id="imgPreviewLogoPlantel" src="/img/logo-cbtis.png" class="rounded-circle border shadow-sm bg-white p-1" style="width: 65px; height: 65px; object-fit: contain;">
 				                                <div class="flex-grow-1">
-				                                    <input type="file" id="inputLogoPlantelConfig" class="form-control form-control-sm" accept="image/png, image/jpeg" onchange="previewLogoPlantel(event)">
-				                                    <small class="text-muted x-small">Se actualizará dinámicamente en credenciales, gafetes y toda la interfaz.</small>
+				                                    <input type="file" id="inputLogoPlantelConfig" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp" onchange="previewLogoPlantel(event)">
+				                                    <small class="text-muted x-small">Se actualizará en credenciales, gafetes, encabezados y reportes.</small>
+				                                </div>
+				                            </div>
+				                        </div>
+				                    </div>
+
+				                    <div class="col-md-6 mt-3">
+				                        <div class="p-3 bg-light rounded border shadow-sm h-100">
+				                            <label class="form-label small fw-bold text-guinda mb-2"><i class="bi bi-star-fill me-2"></i>Logotipo de Inicio / Mascota Institucional</label>
+				                            <div class="d-flex align-items-center gap-3">
+				                                <img id="imgPreviewLogoInicio" src="/img/logo.png" class="rounded-circle border shadow-sm bg-white p-1" style="width: 65px; height: 65px; object-fit: contain;">
+				                                <div class="flex-grow-1">
+				                                    <input type="file" id="inputLogoInicioConfig" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp" onchange="previewLogoInicio(event)">
+				                                    <small class="text-muted x-small">Se mostrará en la pantalla de Login y en el menú de navegación lateral.</small>
 				                                </div>
 				                            </div>
 				                        </div>
 				                    </div>
 				                </div>
 				                <div class="text-end mt-4">
-				                    <button type="submit" class="btn btn-guinda w-100 mt-2 rounded-pill px-4">
+				                    <button type="submit" class="btn btn-guinda w-100 mt-2 rounded-pill px-4 shadow-sm">
 				                        <i class="bi bi-save me-2"></i>Guardar Cambios Institucionales
 				                    </button>
 				                </div>

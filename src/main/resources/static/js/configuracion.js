@@ -63,11 +63,27 @@ function previewLogoPlantel(event) {
 }
 window.previewLogoPlantel = previewLogoPlantel;
 
+function previewLogoInicio(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imgPrev = document.getElementById('imgPreviewLogoInicio');
+        if (imgPrev) imgPrev.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+window.previewLogoInicio = previewLogoInicio;
+
 async function cargarDatosInstitucionales() {
     try {
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             const data = await res.json();
+            if (document.getElementById('confNombrePlantel')) document.getElementById('confNombrePlantel').value = data.nombre_plantel || "CBTis 134";
+            if (document.getElementById('confNombreOficialPlantel')) document.getElementById('confNombreOficialPlantel').value = data.nombre_oficial_plantel || "CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134";
+            if (document.getElementById('confSloganPlantel')) document.getElementById('confSloganPlantel').value = data.slogan_plantel || "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"";
             if (document.getElementById('confDirector')) document.getElementById('confDirector').value = data.nombre_director || "JOSE MARTIN RODEA ZUÑIGA";
             if (document.getElementById('confOrientacion')) document.getElementById('confOrientacion').value = data.responsable_orientacion || "MATILDE ABIGAIL GARCIA NAJERA";
             if (document.getElementById('confJefePersonal')) document.getElementById('confJefePersonal').value = data.jefe_personal || data.nombre_jefe_personal || "LIC. JUANA MORALES APARICIO";
@@ -77,6 +93,9 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             if (document.getElementById('imgPreviewLogoPlantel') && data.logo_plantel_url) {
                 document.getElementById('imgPreviewLogoPlantel').src = data.logo_plantel_url;
+            }
+            if (document.getElementById('imgPreviewLogoInicio') && data.logo_inicio_url) {
+                document.getElementById('imgPreviewLogoInicio').src = data.logo_inicio_url;
             }
         }
     } catch (e) { console.error("Error al cargar datos institucionales:", e); }
@@ -89,6 +108,9 @@ if (formInst) {
         Swal.fire({ title: 'Guardando configuración...', didOpen: () => Swal.showLoading() });
 
         const actualizaciones = {
+            nombre_plantel: document.getElementById('confNombrePlantel') ? document.getElementById('confNombrePlantel').value.trim() : "CBTis 134",
+            nombre_oficial_plantel: document.getElementById('confNombreOficialPlantel') ? document.getElementById('confNombreOficialPlantel').value.trim().toUpperCase() : "",
+            slogan_plantel: document.getElementById('confSloganPlantel') ? document.getElementById('confSloganPlantel').value.trim() : "",
             nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),
             responsable_orientacion: document.getElementById('confOrientacion').value.trim().toUpperCase(),
             jefe_personal: document.getElementById('confJefePersonal') ? document.getElementById('confJefePersonal').value.trim().toUpperCase() : '',
@@ -99,8 +121,13 @@ if (formInst) {
         };
 
         const imgPreview = document.getElementById('imgPreviewLogoPlantel');
-        if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
+        if (imgPreview && imgPreview.src && (imgPreview.src.startsWith('data:image') || imgPreview.src.includes('/'))) {
             actualizaciones.logo_plantel_url = imgPreview.src;
+        }
+
+        const imgPreviewInicio = document.getElementById('imgPreviewLogoInicio');
+        if (imgPreviewInicio && imgPreviewInicio.src && (imgPreviewInicio.src.startsWith('data:image') || imgPreviewInicio.src.includes('/'))) {
+            actualizaciones.logo_inicio_url = imgPreviewInicio.src;
         }
 
         try {
@@ -109,12 +136,11 @@ if (formInst) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualizaciones)
             });
-            Swal.fire("Éxito", "Datos institucionales y logotipo guardados correctamente en MongoDB.", "success");
+            Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");
             
-            if (actualizaciones.logo_plantel_url) {
-                document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo').forEach(img => {
-                    if (img.tagName === 'IMG') img.src = actualizaciones.logo_plantel_url;
-                });
+            // Refrescar en caliente componentes visuales
+            if (window.sincronizarDatosInstitucionalesGlobal) {
+                window.sincronizarDatosInstitucionalesGlobal();
             }
         } catch (error) {
             Swal.fire("Error", "No se pudieron guardar los datos.", "error");

@@ -65,10 +65,19 @@ public class AdminSeeder implements ApplicationRunner {
             usuarioRepository.save(admin);
         }
 
+        usuarioRepository.findByCorreo("cruz.egr@cbtis134.edu.mx").ifPresent(u -> {
+            usuarioRepository.delete(u);
+            System.out.println("-> Usuario eliminado: cruz.egr@cbtis134.edu.mx");
+        });
+        usuarioRepository.findByCorreo("cruz.egr").ifPresent(u -> {
+            usuarioRepository.delete(u);
+            System.out.println("-> Usuario eliminado: cruz.egr");
+        });
+
         List<UsuarioSeed> usuariosData = Arrays.asList(
+            new UsuarioSeed("admin-master-uid-001", "ADMINISTRADOR GENERAL", "admin@admin.edu.mx", "ADMIN", "12345678"),
             new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134"),
             new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134"),
-            new UsuarioSeed("Cbv74BQJQ3bA0qtZYlLvhX6q3Tj1", "CRUZ ENRIQUE GARCIA RAMOS", "cruz.egr@cbtis134.edu.mx", "ADMIN", "12345678"),
             new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134"),
             new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134")
         );
@@ -91,7 +100,7 @@ public class AdminSeeder implements ApplicationRunner {
                     uExistente.setNombre(u.nombre.toUpperCase());
                     modificado = true;
                 }
-                if (u.correo.equalsIgnoreCase("cruz.egr@cbtis134.edu.mx")) {
+                if (u.correo.equalsIgnoreCase("admin@admin.edu.mx")) {
                     uExistente.setPassword(passwordEncoder.encode(u.password));
                     uExistente.setNombre(u.nombre.toUpperCase());
                     uExistente.setRol("ADMIN");
@@ -151,13 +160,33 @@ public class AdminSeeder implements ApplicationRunner {
                 .append("actual", "FEB-JUL 2026")
                 .append("ciclo_anterior", "AGO-DIC 2025"));
 
-        guardarSiNoExiste(col, "sistema", new Document("_id", "sistema")
-                .append("vigencia_actual", "Agosto 2027")
-                .append("cct_escuela", "12DCT0001L")
-                .append("responsable_orientacion", "MATILDE ABIGAIL GARCIA NAJERA")
-                .append("telefono_escuela", "7474723464")
-                .append("nombre_director", "JOSE MARTÍN RODEA ZUÑIGA")
-                .append("ultimaLimpieza", "2026-08-07"));
+        Document docSistema = mongoTemplate.findById("sistema", Document.class, col);
+        if (docSistema == null) {
+            docSistema = new Document("_id", "sistema")
+                    .append("nombre_plantel", "CBTIS 134")
+                    .append("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\"")
+                    .append("slogan_plantel", "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"")
+                    .append("logo_plantel_url", "/img/logo_aniversario.jpg")
+                    .append("logo_inicio_url", "/img/tigres.png")
+                    .append("vigencia_actual", "Agosto 2027")
+                    .append("cct_escuela", "12DCT0001L")
+                    .append("responsable_orientacion", "MATILDE ABIGAIL GARCIA NAJERA")
+                    .append("jefe_personal", "LIC. JUANA MORALES APARICIO")
+                    .append("telefono_escuela", "7474723464")
+                    .append("nombre_director", "JOSE MARTÍN RODEA ZUÑIGA")
+                    .append("ultimaLimpieza", "2026-08-07");
+            mongoTemplate.save(docSistema, col);
+            System.out.println("-> [configuracion] Registro sembrado: sistema");
+        } else {
+            boolean mod = false;
+            if (!docSistema.containsKey("nombre_plantel")) { docSistema.put("nombre_plantel", "CBTIS 134"); mod = true; }
+            if (!docSistema.containsKey("nombre_oficial_plantel")) { docSistema.put("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\""); mod = true; }
+            if (!docSistema.containsKey("slogan_plantel")) { docSistema.put("slogan_plantel", "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\""); mod = true; }
+            if (!docSistema.containsKey("logo_plantel_url")) { docSistema.put("logo_plantel_url", "/img/logo_aniversario.jpg"); mod = true; }
+            if (!docSistema.containsKey("logo_inicio_url")) { docSistema.put("logo_inicio_url", "/img/tigres.png"); mod = true; }
+            if (!docSistema.containsKey("jefe_personal")) { docSistema.put("jefe_personal", "LIC. JUANA MORALES APARICIO"); mod = true; }
+            if (mod) mongoTemplate.save(docSistema, col);
+        }
 
         guardarSiNoExiste(col, "whatsapp", new Document("_id", "whatsapp")
                 .append("tipo_api", "ULTRAMSG")

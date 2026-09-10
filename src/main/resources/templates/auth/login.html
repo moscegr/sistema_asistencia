@@ -148,7 +148,7 @@
 <body>
 <div id="loader-overlay" class="loader-overlay d-none">
     <div class="loader-content text-center">
-        <img th:src="@{/img/tigres.png}" alt="Cargando..." class="loader-logo mb-4">
+        <img id="loaderLogo" th:src="@{/img/tigres.png}" alt="Cargando..." class="loader-logo mb-4">
         <h2 id="lbl-saludo-usuario" class="text-white fw-light mb-1" style="display: none; font-size: 1.5rem;"></h2>
         <h3 class="text-white fw-bold" style="letter-spacing: 1px;">
             Preparando <span id="lbl-rol-destino" class="fw-bold text-white"></span>
@@ -161,18 +161,18 @@
 
     <div class="glass-container row mx-0">
         <div class="col-md-5 d-none d-md-flex left-panel">
-            <img th:src="@{/img/logo_aniversario.jpg}" alt="Logo CBTis 134" class="img-fluid mb-4" style="max-height: 160px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); border-radius: 10px;">
-            <h4 class="fw-bold mb-3">CBTIS 134</h4>
-            <p class="mb-0 text-white-50 system-title">
+            <img id="loginLogoPlantel" th:src="@{/img/logo_aniversario.jpg}" alt="Logo Plantel" class="img-fluid mb-4" style="max-height: 160px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); border-radius: 10px; object-fit: contain;">
+            <h4 id="loginNombrePlantel" class="fw-bold mb-3">CBTIS 134</h4>
+            <p id="loginSloganPlantel" class="mb-0 text-white-50 system-title">
                 "POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134"
             </p>
         </div>
 
         <div class="col-md-7 right-panel d-flex flex-column justify-content-center">
             <div class="text-center mb-5">
-                <img th:src="@{/img/tigres.png}" alt="Mascota Tigre" class="img-fluid mb-3" style="max-height: 100px;">
+                <img id="loginLogoInicio" th:src="@{/img/tigres.png}" alt="Logo / Mascota" class="img-fluid mb-3" style="max-height: 100px; object-fit: contain;">
                 <h4 class="fw-bold text-uppercase" style="color: #7b1b37;">Iniciar Sesión</h4>
-                <p class="mb-1 small text-muted fw-semibold">SISTEMA DE CONTROL DE ACCESO INTELIGENTE Y GESTIÓN COMPLEMENTARIA DEL ALUMNADO EN CBTIS NO. 134</p>
+                <p id="loginDescripcionPlantel" class="mb-1 small text-muted fw-semibold">SISTEMA DE CONTROL DE ACCESO INTELIGENTE Y GESTIÓN COMPLEMENTARIA DEL ALUMNADO EN CBTIS NO. 134</p>
             </div>
 
             <form id="loginForm" action="/login" method="POST">

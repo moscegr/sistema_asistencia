@@ -35,6 +35,11 @@ public class ConfiguracionController {
             doc = new Document("_id", id);
             
             if ("sistema".equals(id)) {
+                doc.put("nombre_plantel", "CBTis 134");
+                doc.put("nombre_oficial_plantel", "CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134");
+                doc.put("slogan_plantel", "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"");
+                doc.put("logo_plantel_url", "/img/logo-cbtis.png");
+                doc.put("logo_inicio_url", "/img/logo.png");
                 doc.put("nombre_director", "JOSE MARTIN RODEA ZUÑIGA");
                 doc.put("responsable_orientacion", "MATILDE ABIGAIL GARCIA NAJERA");
                 doc.put("cct_escuela", "12DCT0001L");
