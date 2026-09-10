@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Requisitos de Despliegue en Coolify - CBTis 134</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #202124; max-width: 800px; margin: 40px auto; padding: 20px; }
+        h1 { color: #7b1b37; border-bottom: 2px solid #7b1b37; padding-bottom: 8px; font-size: 24px; }
+        h2 { color: #5a1228; margin-top: 25px; font-size: 18px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #dadce0; padding: 10px; text-align: left; font-size: 13px; }
+        th { background-color: #f8f9fa; color: #3c4043; font-weight: bold; }
+        pre, code { background-color: #f1f3f4; font-family: 'Consolas', monospace; padding: 3px 6px; border-radius: 4px; font-size: 12px; }
+        pre { padding: 15px; overflow-x: auto; border-radius: 8px; border: 1px solid #dadce0; }
+        .badge { background: #7b1b37; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <h1>📄 Requisitos de Despliegue en Coolify (Docker)</h1>
+    <p><strong>Sistema de Control de Acceso y Gestión Escolar</strong> | <em>Stack: Spring Boot 3.4 (Java 17) + MongoDB 7.0 + Traefik</em></p>
+
+    <h2>1. Requisitos del Servidor (VPS / Instancia Cloud)</h2>
+    <table>
+        <tr>
+            <th>Recurso</th>
+            <th>Requisito Mínimo (Pruebas)</th>
+            <th>Requisito Recomendado (Producción +1,500 Alumnos)</th>
+        </tr>
+        <tr>
+            <td><strong>Sistema Operativo</strong></td>
+            <td>Ubuntu Server 22.04 LTS (x86_64)</td>
+            <td>Ubuntu Server 24.04 LTS (x86_64)</td>
+        </tr>
+        <tr>
+            <td><strong>Núcleos de CPU</strong></td>
+            <td>2 vCPUs</td>
+            <td>4 vCPUs</td>
+        </tr>
+        <tr>
+            <td><strong>Memoria RAM</strong></td>
+            <td>4 GB RAM (+ 2 GB Swap)</td>
+            <td>8 GB RAM (+ 4 GB Swap)</td>
+        </tr>
+        <tr>
+            <td><strong>Almacenamiento</strong></td>
+            <td>40 GB SSD / NVMe</td>
+            <td>80+ GB NVMe</td>
+        </tr>
+        <tr>
+            <td><strong>Puertos de Red</strong></td>
+            <td>80 (HTTP), 443 (HTTPS), 22 (SSH)</td>
+            <td>80, 443, 22 y 8000 (Panel Coolify)</td>
+        </tr>
+    </table>
+
+    <h2>2. Variables de Entorno en Coolify</h2>
+    <table>
+        <tr>
+            <th>Variable</th>
+            <th>Valor / Ejemplo</th>
+            <th>Propósito</th>
+        </tr>
+        <tr>
+            <td><code>SPRING_DATA_MONGODB_URI</code></td>
+            <td><code>mongodb://admin_mongo:Password@mongodb:27017/residencia_cbtis?authSource=admin</code></td>
+            <td>Conexión con MongoDB</td>
+        </tr>
+        <tr>
+            <td><code>APP_UPLOAD_DIR</code></td>
+            <td><code>/app/uploads</code></td>
+            <td>Ruta para almacenar fotos y credenciales</td>
+        </tr>
+        <tr>
+            <td><code>SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE</code></td>
+            <td><code>50MB</code></td>
+            <td>Tamaño máximo por archivo</td>
+        </tr>
+        <tr>
+            <td><code>SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE</code></td>
+            <td><code>50MB</code></td>
+            <td>Tamaño máximo del payload</td>
+        </tr>
+        <tr>
+            <td><code>ADMIN_EMAIL</code></td>
+            <td><code>admin@admin.edu.mx</code></td>
+            <td>Usuario administrador inicial</td>
+        </tr>
+        <tr>
+            <td><code>ADMIN_PASSWORD</code></td>
+            <td><code>12345678</code></td>
+            <td>Contraseña inicial encriptada con BCrypt</td>
+        </tr>
+    </table>
+
+    <h2>3. Volúmenes Persistentes (Storages en Coolify)</h2>
+    <table>
+        <tr>
+            <th>Volumen</th>
+            <th>Ruta en el Contenedor (Mount Path)</th>
+            <th>Descripción</th>
+        </tr>
+        <tr>
+            <td><code>app_uploads</code></td>
+            <td><code>/app/uploads</code></td>
+            <td>Fotos de alumnos, docentes y archivos subidos</td>
+        </tr>
+        <tr>
+            <td><code>mongo_data</code></td>
+            <td><code>/data/db</code></td>
+            <td>Base de datos de MongoDB</td>
+        </tr>
+    </table>
+
+    <h2>4. docker-compose.yml para Coolify</h2>
+    <pre><code>version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: cbtis_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: \
+      MONGO_INITDB_ROOT_PASSWORD: \
+      MONGO_INITDB_DATABASE: residencia_cbtis
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cbtis_app
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://\:\@mongodb:27017/residencia_cbtis?authSource=admin
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: 50MB
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: 50MB
+      APP_UPLOAD_DIR: /app/uploads
+      ADMIN_EMAIL: \
+      ADMIN_PASSWORD: \
+    volumes:
+      - app_uploads:/app/uploads
+    expose:
+      - "8080"
+
+volumes:
+  mongo_data:
+  app_uploads:</code></pre>
+</body>
+</html>
