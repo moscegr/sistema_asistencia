@@ -8,8 +8,22 @@ let fotoBase64Temporal = null;
 let descriptorFacialTemporal = null;
 let filtroRolActual = 'TODOS';
 let datosExcelMasivoPendientes = [];
+let cfgSistemaPersonal = {};
+
+async function cargarConfiguracionSistemaPersonal() {
+    try {
+        const res = await fetch('/api/configuracion/sistema');
+        if (res.ok) {
+            cfgSistemaPersonal = await res.json();
+            window.cfgSistemaGlobal = cfgSistemaPersonal;
+        }
+    } catch (e) {
+        console.warn("No se pudo cargar la configuración del sistema:", e);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+    await cargarConfiguracionSistemaPersonal();
     listarUsuarios();
     inicializarModelosFacialesSilencioso();
 
@@ -1087,12 +1101,16 @@ async function generarImagenGafetePersonal(user) {
         ctx.fillStyle = "#d4af37";
         ctx.fillRect(0, 88, 400, 3);
 
+        const logoEscuelaSrc = cfgSistemaPersonal.logo_plantel_url || '/img/logo-cbtis.png';
+        const logoInicioSrc = cfgSistemaPersonal.logo_inicio_url || '/img/logo.png';
+        const nomPlantel = cfgSistemaPersonal.nombre_plantel || 'CBTis No. 134';
+
         const imgEscuela = new Image();
         const imgTigre = new Image();
         const imgFoto = new Image();
         
-        imgEscuela.src = '/img/logo_aniversario.jpg';
-        imgTigre.src = '/img/tigres.png';
+        imgEscuela.src = logoEscuelaSrc;
+        imgTigre.src = logoInicioSrc;
         imgFoto.src = user.fotoUrl || '/img/logo_aniversario.jpg';
 
         let cargas = 0;
@@ -1119,14 +1137,14 @@ async function generarImagenGafetePersonal(user) {
             ctx.stroke();
             ctx.restore();
             
-            // Logo Tigre
+            // Logo Inicio / Mascota
             ctx.drawImage(imgTigre, 322, 14, 60, 60);
 
             // Cabecera Central
             ctx.fillStyle = "#FFFFFF"; 
             ctx.font = "bold 20px Arial"; 
             ctx.textAlign = "center";
-            ctx.fillText("CBTis No. 134", 200, 42);
+            ctx.fillText(nomPlantel, 200, 42);
             ctx.fillStyle = "#ffe699"; 
             ctx.font = "bold 11px Arial";
             ctx.fillText("CREDENCIAL OFICIAL DE PERSONAL", 200, 64);
@@ -1202,7 +1220,7 @@ async function generarImagenGafetePersonal(user) {
                     ctx.fillRect(0, 515, 400, 45);
                     ctx.fillStyle = "#FFFFFF"; 
                     ctx.font = "bold 11px Arial";
-                    ctx.fillText("CBTIS 134 • SISTEMA DE CONTROL DE ACCESOS Y REGISTRO", 200, 542);
+                    ctx.fillText(`${nomPlantel.toUpperCase()} • SISTEMA DE CONTROL DE ACCESOS Y REGISTRO`, 200, 542);
 
                     resolve(canvas.toDataURL("image/png"));
                 };
@@ -1234,10 +1252,12 @@ async function descargarGafetePersonalPDF() {
         const x = (215.9 - widthGafete) / 2;
         const y = (279.4 - heightGafete) / 2;
 
+        const nomPlantel = cfgSistemaPersonal.nombre_plantel || 'CBTis No. 134';
+
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(10);
         pdf.setTextColor(123, 27, 55);
-        pdf.text("CBTis No. 134 • GAFETE OFICIAL DE PERSONAL", 107.95, 45, { align: "center" });
+        pdf.text(`${nomPlantel} • GAFETE OFICIAL DE PERSONAL`, 107.95, 45, { align: "center" });
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
@@ -1277,15 +1297,20 @@ async function generarCanvasCredencialPersonalFrente(user) {
         const fotoSrc = user.fotoUrl || '/img/logo_aniversario.jpg';
         const colorRol = (rol === 'DOCENTE') ? '#6f42c1' : ((rol === 'ADMINISTRATIVO') ? '#0d6efd' : '#7b1b37');
 
+        const logoEscuelaSrc = cfgSistemaPersonal.logo_plantel_url || '/img/logo-cbtis.png';
+        const logoInicioSrc = cfgSistemaPersonal.logo_inicio_url || '/img/logo.png';
+        const nomPlantel = cfgSistemaPersonal.nombre_plantel || 'CBTis 134';
+        const vigencia = cfgSistemaPersonal.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
+
         container.innerHTML = `
             <div id="cardPersFrenteTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                    <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
                     <div style="text-align: center; flex: 1; margin: 0 4px;">
-                        <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis No. 134</div>
+                        <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">${nomPlantel}</div>
                         <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE PERSONAL</div>
                     </div>
-                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+                    <img src="${logoInicioSrc}" style="width: 24px; height: 24px; object-fit: contain;">
                 </div>
                 
                 <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
@@ -1311,13 +1336,16 @@ async function generarCanvasCredencialPersonalFrente(user) {
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: #64748b; font-weight: 700;">ADSCRIPCIÓN:</span>
-                            <span style="color: #334155; font-weight: 800;">PLANTEL CBTIS 134</span>
+                            <span style="color: #334155; font-weight: 800;">PLANTEL ${nomPlantel.toUpperCase()}</span>
                         </div>
                     </div>
                 </div>
                 
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
-                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px;">
+                        <span>VIGENCIA: <strong style="color: #ffe699;">${vigencia}</strong></span>
+                        <span>${nomPlantel}</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -1349,12 +1377,18 @@ async function generarCanvasCredencialPersonalReverso(user) {
         const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
         const qrImgData = await generarQRConTigrePersonal(qrTexto);
 
+        const logoEscuelaSrc = cfgSistemaPersonal.logo_plantel_url || '/img/logo-cbtis.png';
+        const logoInicioSrc = cfgSistemaPersonal.logo_inicio_url || '/img/logo.png';
+        const nomPlantel = cfgSistemaPersonal.nombre_plantel || 'CBTis 134';
+        const director = cfgSistemaPersonal.nombre_director || 'JOSE MARTÍN RODEA ZUÑIGA';
+        const cct = cfgSistemaPersonal.cct_escuela || '12DCT0001L';
+
         container.innerHTML = `
             <div id="cardPersReversoTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
-                    <img src="/img/logo_aniversario.jpg" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
                     <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
-                    <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
+                    <img src="${logoInicioSrc}" style="width: 20px; height: 20px; object-fit: contain;">
                 </div>
                 
                 <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
@@ -1366,18 +1400,18 @@ async function generarCanvasCredencialPersonalReverso(user) {
                     </div>
                     
                     <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
-                        Esta credencial es personal e intransferible. Acredita al portador como personal adscrito al plantel educativo CBTis No. 134.
+                        Esta credencial es personal e intransferible. Acredita al portador como personal adscrito al plantel educativo ${nomPlantel}.
                     </div>
                     
                     <div style="width: 100%; margin-top: 2px;">
                         <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
-                        <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">JOSE MARTÍN RODEA ZUÑIGA</div>
-                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel CBTis No. 134</div>
+                        <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>
+                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel ${nomPlantel}</div>
                     </div>
                 </div>
                 
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
-                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: ${cct}</div>
                 </div>
             </div>
         `;

@@ -254,12 +254,12 @@
 								            <!-- Frente -->
 								            <div id="vistaPreviaPvcFrente" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 8px 18px rgba(0,0,0,0.18); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
 								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-								                    <img src="/img/logo_aniversario.jpg" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+								                    <img src="/img/logo-cbtis.png" class="img-logo-plantel" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
 								                    <div style="text-align: center; flex: 1; margin: 0 4px;">
-								                        <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis No. 134</div>
+								                        <div class="nombre-plantel" style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">CBTis 134</div>
 								                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE ESTUDIANTE</div>
 								                    </div>
-								                    <img src="/img/tigres.png" style="width: 24px; height: 24px; object-fit: contain;">
+								                    <img src="/img/logo.png" class="img-logo-inicio" style="width: 24px; height: 24px; object-fit: contain;">
 								                </div>
 								                
 								                <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
@@ -297,7 +297,7 @@
 								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
 								                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 5.5px; font-weight: 800; letter-spacing: 0.3px;">
 								                        <span>VIGENCIA: <strong id="pvcVigencia" style="color: #ffe699;">AGOSTO 2026 - JULIO 2027</strong></span>
-								                        <span>CBTIS 134</span>
+								                        <span class="nombre-plantel">CBTIS 134</span>
 								                    </div>
 								                </div>
 								            </div>
@@ -305,9 +305,9 @@
 								            <!-- Reverso -->
 								            <div id="vistaPreviaPvcReverso" class="d-none" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid var(--guinda); margin: 0 auto; border-radius: 8px; position: relative; box-shadow: 0 8px 18px rgba(0,0,0,0.18); overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
 								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
-								                    <img src="/img/logo_aniversario.jpg" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+								                    <img src="/img/logo-cbtis.png" class="img-logo-plantel" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
 								                    <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
-								                    <img src="/img/tigres.png" style="width: 20px; height: 20px; object-fit: contain;">
+								                    <img src="/img/logo.png" class="img-logo-inicio" style="width: 20px; height: 20px; object-fit: contain;">
 								                </div>
 								                
 								                <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
@@ -319,18 +319,18 @@
 								                    </div>
 								                    
 								                    <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
-								                        Esta credencial es personal e intransferible. Acredita al portador como alumno regular inscrito en el plantel CBTis No. 134.
+								                        Esta credencial es personal e intransferible. Acredita al portador como alumno regular inscrito en el plantel <span class="nombre-plantel">CBTis 134</span>.
 								                    </div>
 								                    
 								                    <div style="width: 100%; margin-top: 2px;">
 								                        <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
-								                        <div id="pvcDirector" style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">JOSE MARTÍN RODEA ZUÑIGA</div>
-								                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel CBTis No. 134</div>
+								                        <div id="pvcDirector" class="director-plantel" style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">JOSE MARTÍN RODEA ZUÑIGA</div>
+								                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel <span class="nombre-plantel">CBTis 134</span></div>
 								                    </div>
 								                </div>
 								                
 								                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
-								                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: 12DCT0001L • CHILPANCINGO, GUERRERO</div>
+								                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: <span class="cct-escuela">12DCT0001L</span></div>
 								                </div>
 								            </div>
 								        </div>
