@@ -191,12 +191,12 @@
                                     <img id="prevFotoUsuario" src="/img/logo_aniversario.jpg" class="rounded-circle border" style="width: 75px; height: 75px; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
                                     <div class="flex-grow-1">
                                         <input type="file" id="inputFotoUsuario" class="form-control form-control-sm" accept="image/*" onchange="procesarFotoUsuario(this)">
-                                        <div class="d-flex gap-2 mt-2">
+                                        <div class="d-flex gap-2 mt-2 flex-wrap">
                                             <button type="button" class="btn btn-sm btn-outline-guinda rounded-pill" onclick="abrirCamaraWebcamPersonal()">
                                                 <i class="bi bi-camera-video-fill me-1"></i>Tomar Foto con Webcam
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" id="btnQuitarFotoPersonal" onclick="eliminarFotoPersonal()" style="display: none;">
-                                                <i class="bi bi-trash me-1"></i>Quitar Foto
+                                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" id="btnQuitarFotoPersonal" onclick="eliminarFotoPersonal()" style="display: none;" title="Eliminar foto de perfil de la base de datos">
+                                                <i class="bi bi-trash3-fill me-1"></i>Eliminar Foto de BD
                                             </button>
                                         </div>
                                         <small class="text-muted d-block mt-1">Sube una foto clara o tómala directamente con la webcam para FaceID y Credenciales.</small>

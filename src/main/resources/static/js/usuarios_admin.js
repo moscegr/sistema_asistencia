@@ -315,15 +315,65 @@ async function capturarFotoWebcamPersonal() {
     });
 }
 
-function eliminarFotoPersonal() {
+async function eliminarFotoPersonal(confirmarBD = true) {
+    const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
+    const inputFoto = document.getElementById('inputFotoUsuario');
+
+    if (confirmarBD && editUserUID && fotoBase64Temporal && !fotoBase64Temporal.includes('logo_aniversario')) {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Eliminar foto de perfil?',
+            text: 'Se eliminará la fotografía y el vector de FaceID de este usuario directamente de la base de datos.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-trash3-fill me-1"></i>Sí, eliminar de BD',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (!isConfirmed) return;
+
+        try {
+            Swal.fire({ title: 'Eliminando foto de la base de datos...', didOpen: () => Swal.showLoading() });
+            const res = await fetch(`/api/usuarios/${encodeURIComponent(editUserUID)}/foto`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) {
+                const errTxt = await res.text();
+                throw new Error(errTxt || "Error al eliminar la foto");
+            }
+
+            fotoBase64Temporal = null;
+            descriptorFacialTemporal = null;
+            document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
+            if (inputFoto) inputFoto.value = '';
+            if (btnQuitar) btnQuitar.style.display = 'none';
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Foto Eliminada',
+                text: 'La fotografía de perfil se eliminó de la base de datos con éxito.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+
+            listarUsuarios();
+            return;
+        } catch (err) {
+            console.error(err);
+            return Swal.fire("Error", "No se pudo eliminar la foto: " + err.message, "error");
+        }
+    }
+
+    // Reset local
     fotoBase64Temporal = null;
     descriptorFacialTemporal = null;
     document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
-    const inputFoto = document.getElementById('inputFotoUsuario');
     if (inputFoto) inputFoto.value = '';
-    const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
     if (btnQuitar) btnQuitar.style.display = 'none';
 }
+window.eliminarFotoPersonal = eliminarFotoPersonal;
 
 async function procesarFotoUsuario(input) {
     const file = input.files[0];
@@ -382,7 +432,13 @@ async function guardarUsuarioFormulario() {
         estatus: 'Activo'
     };
 
-    if (fotoBase64Temporal) payload.fotoUrl = fotoBase64Temporal;
+    if (fotoBase64Temporal) {
+        payload.fotoUrl = fotoBase64Temporal;
+    } else if (editUserUID) {
+        payload.fotoUrl = "";
+        payload.descriptor_facial = [];
+    }
+
     if (descriptorFacialTemporal) payload.descriptor_facial = descriptorFacialTemporal;
 
     if (!esSinPlataforma && password && password.trim() !== '') {
@@ -409,7 +465,7 @@ async function guardarUsuarioFormulario() {
         Swal.fire("Éxito", `Registro de ${nombre} guardado correctamente.`, "success");
         
         document.getElementById('formNuevoUsuario').reset();
-        eliminarFotoPersonal();
+        eliminarFotoPersonal(false);
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
         if (modal) modal.hide();
         listarUsuarios();
@@ -440,6 +496,11 @@ async function prepararEdicion(id) {
         fotoBase64Temporal = u.fotoUrl || null;
         descriptorFacialTemporal = u.descriptor_facial || null;
         document.getElementById('prevFotoUsuario').src = u.fotoUrl || '/img/logo_aniversario.jpg';
+
+        const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
+        if (btnQuitar) {
+            btnQuitar.style.display = (u.fotoUrl && u.fotoUrl.trim() !== '' && !u.fotoUrl.includes('logo_aniversario')) ? 'inline-block' : 'none';
+        }
 
         const lblPass = document.getElementById('lblRegPassword');
         const descPass = document.getElementById('descRegPassword');

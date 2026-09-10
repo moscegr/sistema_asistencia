@@ -218,8 +218,21 @@ public class UsuarioController {
                     if (usuarioActualizado.getRfc() != null) usuario.setRfc(usuarioActualizado.getRfc().trim().toUpperCase());
                     if (usuarioActualizado.getTurno() != null) usuario.setTurno(usuarioActualizado.getTurno());
                     if (usuarioActualizado.getTelefono() != null) usuario.setTelefono(usuarioActualizado.getTelefono());
-                    if (usuarioActualizado.getFotoUrl() != null) usuario.setFotoUrl(usuarioActualizado.getFotoUrl());
-                    if (usuarioActualizado.getDescriptor_facial() != null) usuario.setDescriptor_facial(usuarioActualizado.getDescriptor_facial());
+                    if (usuarioActualizado.getFotoUrl() != null) {
+                        if (usuarioActualizado.getFotoUrl().trim().isEmpty()) {
+                            usuario.setFotoUrl(null);
+                            usuario.setDescriptor_facial(null);
+                        } else {
+                            usuario.setFotoUrl(usuarioActualizado.getFotoUrl());
+                        }
+                    }
+                    if (usuarioActualizado.getDescriptor_facial() != null) {
+                        if (usuarioActualizado.getDescriptor_facial().isEmpty()) {
+                            usuario.setDescriptor_facial(null);
+                        } else {
+                            usuario.setDescriptor_facial(usuarioActualizado.getDescriptor_facial());
+                        }
+                    }
                     if (usuarioActualizado.getEstado() != null) usuario.setEstado(usuarioActualizado.getEstado());
                     if (usuarioActualizado.getQrCode() != null) usuario.setQrCode(usuarioActualizado.getQrCode());
                     if (usuarioActualizado.getRol() != null) usuario.setRol(usuarioActualizado.getRol());
@@ -229,6 +242,27 @@ public class UsuarioController {
                         usuario.setPassword(passwordEncoder.encode(usuarioActualizado.getPassword()));
                     }
                     return ResponseEntity.ok(usuarioRepository.save(usuario));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id:.+}/foto")
+    public ResponseEntity<?> eliminarFoto(@PathVariable String id) {
+        String idLimpio = id != null ? id.trim() : "";
+        return usuarioRepository.findById(idLimpio)
+                .or(() -> usuarioRepository.findByUid(idLimpio))
+                .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio))
+                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .map(usuario -> {
+                    usuario.setFotoUrl(null);
+                    usuario.setDescriptor_facial(null);
+                    Usuario guardado = usuarioRepository.save(usuario);
+                    return ResponseEntity.ok(java.util.Map.of(
+                        "status", "ok",
+                        "mensaje", "Foto de perfil eliminada correctamente de la base de datos.",
+                        "id", guardado.getId() != null ? guardado.getId() : guardado.getUid()
+                    ));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
