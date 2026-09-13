@@ -56,6 +56,7 @@ body {
     color: var(--slate-800);
     background-color: #ffffff;
     line-height: 1.65;
+    padding-top: 74px; /* Espacio para navbar fija */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -85,16 +86,19 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.5px;
 }
 
-/* --- NAVBAR INSTITUCIONAL --- */
+/* --- NAVBAR INSTITUCIONAL FIJA (PERMANECE ESTÁTICA ARRIBA AL HACER SCROLL) --- */
 .landing-navbar {
     background: linear-gradient(135deg, #3d0c1c 0%, #7b1b37 50%, #4e0d20 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 2px solid rgba(212, 175, 55, 0.45);
     padding: 12px 0;
-    position: sticky;
+    position: fixed !important;
     top: 0;
-    z-index: 1040;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1050;
     transition: var(--transition-smooth);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
@@ -925,6 +929,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 575px) {
+    body {
+        padding-top: 66px;
+    }
     .brand-logo-item {
         height: 38px !important;
         width: 38px !important;
