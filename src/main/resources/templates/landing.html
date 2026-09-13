@@ -142,26 +142,26 @@
                             <h4 class="fw-bold mb-1 landing-nombre-plantel" style="color: var(--guinda-base);" th:text="${configSistema != null and configSistema.nombre_plantel != null ? configSistema.nombre_plantel : 'Tigres CBTis 134'}">Tigres CBTis 134</h4>
                             <p class="text-muted small mb-3">"Nicolás Catalán" &bull; Orgullo y Disciplina</p>
                             
-                            <div class="d-flex justify-content-around align-items-center bg-light p-3 rounded-4 border">
-                                <div class="text-center">
+                            <div class="d-flex justify-content-around align-items-center bg-light p-2 p-sm-3 rounded-4 border">
+                                <div class="text-center px-1">
                                     <span class="d-block fw-bold text-dark fs-5">+850</span>
-                                    <span class="text-muted" style="font-size: 0.75rem;">Nuevos Alumnos</span>
+                                    <span class="text-muted d-block" style="font-size: 0.7rem; line-height: 1.1;">Nuevos Alumnos</span>
                                 </div>
                                 <div class="vr"></div>
-                                <div class="text-center">
+                                <div class="text-center px-1">
                                     <span class="d-block fw-bold text-dark fs-5">6</span>
-                                    <span class="text-muted" style="font-size: 0.75rem;">Especialidades</span>
+                                    <span class="text-muted d-block" style="font-size: 0.7rem; line-height: 1.1;">Especialidades</span>
                                 </div>
                                 <div class="vr"></div>
-                                <div class="text-center">
+                                <div class="text-center px-1">
                                     <span class="d-block fw-bold text-dark fs-5">100%</span>
-                                    <span class="text-muted" style="font-size: 0.75rem;">Bivalente</span>
+                                    <span class="text-muted d-block" style="font-size: 0.7rem; line-height: 1.1;">Bivalente</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Floating Badges -->
-                        <div class="floating-badge-item badge-pos-1">
+                        <!-- Floating Badges (Solo visibles en pantallas grandes para evitar desfase en móvil) -->
+                        <div class="floating-badge-item badge-pos-1 d-none d-lg-flex">
                             <div class="floating-badge-icon bg-primary">
                                 <i class="bi bi-robot"></i>
                             </div>
@@ -171,7 +171,7 @@
                             </div>
                         </div>
 
-                        <div class="floating-badge-item badge-pos-2">
+                        <div class="floating-badge-item badge-pos-2 d-none d-lg-flex">
                             <div class="floating-badge-icon bg-warning text-dark">
                                 <i class="bi bi-award-fill"></i>
                             </div>
