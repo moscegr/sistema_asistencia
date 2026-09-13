@@ -792,24 +792,173 @@ h1, h2, h3, h4, h5, h6 {
     padding: 24px;
 }
 
-/* --- RESPONSIVIDAD --- */
+/* --- RESPONSIVIDAD INTEGRAL PARA CELULARES Y TABLETS --- */
 @media (max-width: 991px) {
     .landing-navbar .navbar-collapse {
-        background: rgba(43, 6, 18, 0.96);
-        padding: 18px;
-        border-radius: 16px;
-        margin-top: 12px;
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        background: rgba(43, 6, 18, 0.98);
+        padding: 20px;
+        border-radius: 18px;
+        margin-top: 14px;
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+        text-align: center;
+    }
+    .landing-navbar .nav-link-custom {
+        padding: 10px 18px !important;
+        display: block;
+        margin-bottom: 6px;
+    }
+    .landing-navbar .btn-portal-acceso {
+        width: 100%;
+        justify-content: center;
+        padding: 10px 20px;
     }
     .hero-section {
-        padding: 50px 0 70px;
+        padding: 50px 0 60px;
     }
     .hero-visual-wrapper {
-        margin-top: 50px;
+        margin-top: 35px;
     }
     .floating-badge-item {
         position: static;
-        margin-top: 15px;
+        margin: 12px auto 0;
+        max-width: 320px;
+        justify-content: center;
+    }
+    .badge-pos-1, .badge-pos-2 {
+        top: auto;
+        left: auto;
+        bottom: auto;
+        right: auto;
+    }
+}
+
+@media (max-width: 767px) {
+    .hero-title {
+        font-size: clamp(1.85rem, 6.5vw, 2.6rem);
+        margin-bottom: 16px;
+    }
+    .hero-subtitle {
+        font-size: 0.98rem;
+        margin-bottom: 24px;
+    }
+    .hero-cta-group {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+    .btn-cta-primary, .btn-cta-secondary {
+        width: 100%;
+        justify-content: center;
+        padding: 13px 20px;
+        font-size: 0.95rem;
+    }
+    .hero-main-card {
+        padding: 20px 15px;
+    }
+    .hero-mascot-img {
+        width: 130px;
+    }
+    .section-header-block {
+        margin-bottom: 35px;
+    }
+    .section-main-title {
+        font-size: 1.65rem;
+    }
+    .section-desc {
+        font-size: 0.95rem;
+    }
+    .bivalente-card {
+        padding: 24px 18px;
+    }
+    .dual-section {
+        padding: 50px 0;
+    }
+    .contact-card-box {
+        padding: 24px 16px;
+    }
+    .map-container {
+        min-height: 300px;
+    }
+    .landing-footer {
+        padding: 45px 0 20px;
+        text-align: center;
+    }
+    .landing-footer .footer-title {
+        margin-top: 20px;
+        margin-bottom: 12px;
+        text-align: center !important;
+    }
+    .landing-footer .d-flex.flex-column.align-items-lg-end {
+        align-items: center !important;
+    }
+    .landing-footer .social-btn {
+        margin: 0 4px;
+    }
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+        margin-top: 35px;
+    }
+    .modal-dialog {
+        margin: 10px;
+    }
+    .modal-body {
+        padding: 18px 14px !important;
+    }
+    .modal-career-header {
+        padding: 18px 14px;
+    }
+    .modal-title {
+        font-size: 1.35rem !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .brand-logo-item {
+        height: 38px !important;
+        width: 38px !important;
+    }
+    .brand-title {
+        font-size: 1.05rem;
+    }
+    .brand-sub {
+        font-size: 0.65rem;
+    }
+    .hero-badge {
+        font-size: 0.76rem;
+        padding: 4px 12px;
+    }
+    .stat-box {
+        padding: 6px 4px;
+    }
+    .stat-number {
+        font-size: 1.75rem;
+    }
+    .stat-label {
+        font-size: 0.68rem;
+    }
+    .career-card-img-wrapper {
+        height: 155px;
+    }
+    .career-card-body {
+        padding: 16px 14px;
+    }
+    .career-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3rem;
+        margin-top: -38px;
+    }
+    .career-title {
+        font-size: 1.15rem;
+    }
+    .career-desc {
+        font-size: 0.85rem;
+    }
+    .form-control, .form-select {
+        font-size: 16px; /* Evita zoom automático en iPhone/iOS */
     }
 }

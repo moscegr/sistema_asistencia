@@ -8,13 +8,13 @@ const carrerasInfo = {
         titulo: "Inteligencia Artificial",
         icono: "bi-cpu-fill",
         color: "#0284c7",
-        badge: "Vanguardia Tecnológica 4.0",
+        badge: "Alta Demanda & Vanguardia 4.0",
         duracion: "6 Semestres (3 Años)",
         promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Inteligencia Artificial",
         imagen: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80",
         objetivo: "La carrera de Técnico en Inteligencia Artificial proporciona al estudiante la preparación para aplicar técnicas de representación del conocimiento y procesamiento de información en diversos contextos industriales y de servicios, basándose en estándares y procedimientos implementados por una empresa, lo que contribuye a la satisfacción y éxito del negocio.",
-        descripcion: "Carrera pionera de vanguardia enfocada en Machine Learning, procesamiento de lenguaje natural, visión artificial, entrenamiento de redes neuronales y automatización inteligente.",
+        descripcion: "Carrera de alta demanda y vanguardia tecnológica enfocada en Machine Learning, procesamiento de lenguaje natural, visión artificial, entrenamiento de redes neuronales y automatización inteligente.",
         modulos: [
             {
                 titulo: "Módulo I: Desarrolla programación lógica para solucionar problemas",
@@ -125,7 +125,7 @@ const carrerasInfo = {
         duracion: "6 Semestres (3 Años)",
         promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Comercio Electrónico",
-        imagen: "https://images.unsplash.com/photo-1556742049-0a67e557b683?auto=format&fit=crop&w=800&q=80",
+        imagen: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=800&q=80",
         objetivo: "Formar profesionales capaces de gestionar, diseñar y operar negocios en línea, preparando a los estudiantes para las demandas del entorno digital actual.",
         descripcion: "Capacitación en gestión de tiendas en línea, análisis de mercado digital, campañas de promoción y marketing, analítica web y logística de envíos para marketplaces globales.",
         modulos: [
@@ -178,14 +178,14 @@ const carrerasInfo = {
         titulo: "Laboratorista Clínico",
         icono: "bi-eyedropper",
         color: "#059669",
-        badge: "Ciencias de la Salud",
+        badge: "Más Cotizada & Ciencias de la Salud",
         duracion: "6 Semestres (3 Años)",
         promedioMinimo: "8.5",
         cupoNota: "4 grupos matutino y 1 grupo vespertino",
         tituloOtorgado: "Técnico Laboratorista Clínico",
         imagen: "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80",
         objetivo: "Ofrece las competencias profesionales que permiten al estudiante realizar actividades dirigidas a la participación en procesos encaminados al diagnóstico, tratamiento, seguimiento y preservación de la salud del ser humano; así como a los procesos tecnológicos y de investigación inherentes a su campo laboral.",
-        descripcion: "Formación especializada en toma de muestras, microbiología, análisis hematológicos, citoquímicos, inmunohematología, química clínica y banco de sangre.",
+        descripcion: "Una de las especialidades más cotizadas, prestigiosas y con mayor demanda académica del CBTis 134. Formación especializada en toma de muestras, microbiología, análisis hematológicos, citoquímicos, inmunohematología, química clínica y banco de sangre.",
         modulos: [
             {
                 titulo: "Módulo I: Auxilia en los procesos básicos de laboratorio clínico",
@@ -235,13 +235,13 @@ const carrerasInfo = {
         titulo: "Construcción",
         icono: "bi-building-gear",
         color: "#b45309",
-        badge: "Arquitectura & Obra Civil",
+        badge: "Más Cotizada & Obra Civil",
         duracion: "6 Semestres (3 Años)",
         promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Construcción",
         imagen: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80",
         objetivo: "Ofrece las competencias profesionales que permiten al estudiante realizar actividades dirigidas a satisfacer la demanda actual de personal calificado capaz de supervisar, organizar y controlar la construcción de obras de acuerdo con las necesidades del proyecto; así como también generar su propia empresa con el propósito de auto emplearse.",
-        descripcion: "Elaboración de planos digitales (CAD/BIM), levantamientos topográficos con estación total y GPS, supervisión de procesos constructivos, instalaciones y presupuestos de obra civil.",
+        descripcion: "Especialidad emblemática y de las más cotizadas del plantel con alta inserción laboral. Elaboración de planos digitales (CAD/BIM), levantamientos topográficos con estación total y GPS, supervisión de obra civil, acabados y presupuestos.",
         modulos: [
             {
                 titulo: "Módulo I: Realizar dibujos de planos arquitectónicos con equipo básico y software",
@@ -506,18 +506,33 @@ function verDetalleCarrera(carreraKey) {
 }
 window.verDetalleCarrera = verDetalleCarrera;
 
-// 3.1 Cerrar Modal y Desplazar hacia Admisiones
-function solicitarFichaDesdeModal() {
+// 3.1 Cerrar Modal y Desplazar hacia Contacto
+function solicitarInfoDesdeModal() {
     const modalEl = document.getElementById('modalDetalleCarrera');
+    const careerTitle = document.getElementById('modalCareerTitle')?.innerText;
+    
+    // Auto seleccionar la carrera en el formulario de contacto si coincide
+    if (careerTitle) {
+        const selectEl = document.getElementById('contactCarrera');
+        if (selectEl) {
+            for (let i = 0; i < selectEl.options.length; i++) {
+                if (careerTitle.toLowerCase().includes(selectEl.options[i].value.toLowerCase())) {
+                    selectEl.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
     if (modalEl && window.bootstrap) {
         const bsModal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
         
         const ejecutarScroll = () => {
             modalEl.removeEventListener('hidden.bs.modal', ejecutarScroll);
-            const admisionesEl = document.getElementById('admisiones');
-            if (admisionesEl) {
+            const contactoEl = document.getElementById('contacto');
+            if (contactoEl) {
                 const navHeight = document.querySelector('.landing-navbar')?.offsetHeight || 70;
-                const elementPosition = admisionesEl.getBoundingClientRect().top;
+                const elementPosition = contactoEl.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - navHeight;
                 window.scrollTo({
                     top: offsetPosition,
@@ -529,11 +544,12 @@ function solicitarFichaDesdeModal() {
         modalEl.addEventListener('hidden.bs.modal', ejecutarScroll);
         bsModal.hide();
     } else {
-        const admisionesEl = document.getElementById('admisiones');
-        if (admisionesEl) admisionesEl.scrollIntoView({ behavior: 'smooth' });
+        const contactoEl = document.getElementById('contacto');
+        if (contactoEl) contactoEl.scrollIntoView({ behavior: 'smooth' });
     }
 }
-window.solicitarFichaDesdeModal = solicitarFichaDesdeModal;
+window.solicitarInfoDesdeModal = solicitarInfoDesdeModal;
+window.solicitarFichaDesdeModal = solicitarInfoDesdeModal;
 
 // 4. Animación de Contadores al hacer Scroll
 function inicializarContadoresEstadisticas() {
