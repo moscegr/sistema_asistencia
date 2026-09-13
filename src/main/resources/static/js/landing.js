@@ -1,6 +1,6 @@
 /**
  * LANDING PAGE INTERACTIVA - CBTis 134 "Nicolás Catalán"
- * Conexión dinámica con MongoDB REST API y animaciones
+ * Conexión dinámica con MongoDB REST API, información oficial de carreras y admisiones
  */
 
 const carrerasInfo = {
@@ -10,20 +10,54 @@ const carrerasInfo = {
         color: "#0284c7",
         badge: "Vanguardia Tecnológica 4.0",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Inteligencia Artificial",
-        descripcion: "Carrera pionera e innovadora en el estado de Guerrero. Desarrolla competencias en algoritmos de aprendizaje automático (Machine Learning), visión artificial, procesamiento de lenguaje natural, redes neuronales y automatización de procesos para la industria inteligente.",
+        imagen: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=800&q=80",
+        objetivo: "La carrera de Técnico en Inteligencia Artificial proporciona al estudiante la preparación para aplicar técnicas de representación del conocimiento y procesamiento de información en diversos contextos industriales y de servicios, basándose en estándares y procedimientos implementados por una empresa, lo que contribuye a la satisfacción y éxito del negocio.",
+        descripcion: "Carrera pionera de vanguardia enfocada en Machine Learning, procesamiento de lenguaje natural, visión artificial, entrenamiento de redes neuronales y automatización inteligente.",
         modulos: [
-            "Módulo I: Fundamentos de programación y estructuras de datos para IA.",
-            "Módulo II: Análisis, limpieza y procesamiento masivo de datos (Data Science).",
-            "Módulo III: Modelos de Machine Learning y algoritmos de clasificación.",
-            "Módulo IV: Visión por computadora y procesamiento de lenguaje natural.",
-            "Módulo V: Implementación de agentes inteligentes y soluciones en la nube."
+            {
+                titulo: "Módulo I: Desarrolla programación lógica para solucionar problemas",
+                submodulos: [
+                    "Submódulo 1 - Desarrolla algoritmos para solucionar problemas",
+                    "Submódulo 2 - Elabora proyectos con programación lógica"
+                ]
+            },
+            {
+                titulo: "Módulo II: Soluciona problemas con herramientas de inteligencia artificial",
+                submodulos: [
+                    "Submódulo 1 - Soluciona problemas con machine learning",
+                    "Submódulo 2 - Soluciona problemas con lenguaje natural",
+                    "Submódulo 3 - Soluciona problemas con visión artificial"
+                ]
+            },
+            {
+                titulo: "Módulo III: Entrena modelos de inteligencia artificial",
+                submodulos: [
+                    "Submódulo 1 - Construye modelos con inteligencia artificial",
+                    "Submódulo 2 - Configura parámetros operativos de modelos de inteligencia artificial"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Automatiza procesos con inteligencia artificial",
+                submodulos: [
+                    "Submódulo 1 - Automatiza procesos para el sector industrial",
+                    "Submódulo 2 - Automatiza procesos para el sector servicios"
+                ]
+            },
+            {
+                titulo: "Módulo V: Implementa sistemas inteligentes",
+                submodulos: [
+                    "Submódulo 1 - Implementa sistemas con inteligencia artificial en el sector industrial",
+                    "Submódulo 2 - Implementa sistemas con inteligencia artificial en el sector servicios"
+                ]
+            }
         ],
         campoLaboral: [
-            "Empresas desarrolladoras de software e inteligencia artificial.",
-            "Centros de analítica de datos e investigación tecnológica.",
-            "Automatización de procesos en el sector industrial y bancario.",
-            "Emprendimiento de soluciones tecnológicas y consultoría."
+            "Empresas desarrolladoras de software y soluciones de inteligencia artificial.",
+            "Centros de ciencia de datos, analítica e investigación tecnológica.",
+            "Automatización de procesos en el sector industrial, bancario y de servicios.",
+            "Emprendimiento tecnológico y consultoría en transformación digital 4.0."
         ]
     },
     prog: {
@@ -32,20 +66,55 @@ const carrerasInfo = {
         color: "#7c3aed",
         badge: "Desarrollo de Software",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Programación",
-        descripcion: "Formación especializada en desarrollo de software full-stack, aplicaciones móviles (iOS / Android), administración de bases de datos relacionales y NoSQL, desarrollo de APIs y plataformas empresariales con altos estándares de calidad.",
+        imagen: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",
+        objetivo: "Ofrece las competencias profesionales que permiten al estudiante realizar actividades dirigidas a analizar, diseñar, desarrollar, instalar y mantener software de aplicación tomando en cuenta los requerimientos del usuario.",
+        descripcion: "Formación integral en desarrollo de aplicaciones web full-stack, software estructurado y orientado a objetos, gestión de bases de datos persistentes y apps móviles para Android e iOS.",
         modulos: [
-            "Módulo I: Desarrollo de software utilizando programación estructurada y POO.",
-            "Módulo II: Diseño y gestión de bases de datos relacionales y no relacionales.",
-            "Módulo III: Desarrollo de aplicaciones web interactivas (Frontend y Backend).",
-            "Módulo IV: Creación de aplicaciones móviles nativas y multiplataforma.",
-            "Módulo V: Integración de APIs, microservicios y despliegue en la nube."
+            {
+                titulo: "Módulo I: Desarrolla software de aplicación con programación estructurada",
+                submodulos: [
+                    "Submódulo 1 - Construye algoritmos para la solución de problemas",
+                    "Submódulo 2 - Aplica estructuras de control con un lenguaje de programación",
+                    "Submódulo 3 - Aplica estructuras de datos con un lenguaje de programación"
+                ]
+            },
+            {
+                titulo: "Módulo II: Aplica metodologías de desarrollo de software con herramientas de programación visual",
+                submodulos: [
+                    "Submódulo 1 - Aplica la metodología espiral con programación orientada a objetos",
+                    "Submódulo 2 - Aplica la metodología de desarrollo rápido de aplicaciones con programación orientada a eventos"
+                ]
+            },
+            {
+                titulo: "Módulo III: Desarrolla aplicaciones web",
+                submodulos: [
+                    "Submódulo 1 - Construye páginas web",
+                    "Submódulo 2 - Desarrolla aplicaciones que se ejecutan en el cliente",
+                    "Submódulo 3 - Desarrolla aplicaciones que se ejecutan en el servidor"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Desarrolla software de aplicación web con almacenamiento persistente de datos",
+                submodulos: [
+                    "Submódulo 1 - Construye bases de datos para aplicaciones web",
+                    "Submódulo 2 - Desarrolla aplicaciones web con conexión a bases de datos"
+                ]
+            },
+            {
+                titulo: "Módulo V: Desarrolla aplicaciones para dispositivos móviles",
+                submodulos: [
+                    "Submódulo 1 - Desarrolla aplicaciones móviles para Android",
+                    "Submódulo 2 - Desarrolla aplicaciones móviles para iOS"
+                ]
+            }
         ],
         campoLaboral: [
-            "Startups y empresas de tecnología nacionales e internacionales.",
-            "Desarrollo de software independiente (Freelance global).",
-            "Departamentos de TI y sistemas de corporativos y gobierno.",
-            "Empresas de comercio electrónico, fintech y videojuegos."
+            "Empresas de desarrollo de software nacional e internacional.",
+            "Desarrollo frontend, backend o full-stack en agencias de tecnología.",
+            "Creación y mantenimiento de aplicaciones móviles y plataformas en la nube.",
+            "Departamentos de TI, sistemas de corporativos y trabajo independiente (Freelance)."
         ]
     },
     ecom: {
@@ -54,20 +123,55 @@ const carrerasInfo = {
         color: "#ea580c",
         badge: "Negocios Digitales & Marketing",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Comercio Electrónico",
-        descripcion: "Especialidad enfocada en la creación, administración y escalamiento de tiendas digitales, estrategias de marketing digital, optimización de conversiones, pasarelas de pago y logística de distribución para la economía global.",
+        imagen: "https://images.unsplash.com/photo-1556742049-0a67e557b683?auto=format&fit=crop&w=800&q=80",
+        objetivo: "Formar profesionales capaces de gestionar, diseñar y operar negocios en línea, preparando a los estudiantes para las demandas del entorno digital actual.",
+        descripcion: "Capacitación en gestión de tiendas en línea, análisis de mercado digital, campañas de promoción y marketing, analítica web y logística de envíos para marketplaces globales.",
         modulos: [
-            "Módulo I: Fundamentos de modelos de negocio digital y diseño web comercial.",
-            "Módulo II: Configuración de plataformas de e-commerce y catálogos en línea.",
-            "Módulo III: Marketing digital, pauta publicitaria (Google/Meta) y SEO.",
-            "Módulo IV: Gestión de pasarelas de pago, seguridad y analítica web.",
-            "Módulo V: Logística de envíos, servicio al cliente y fidelización digital."
+            {
+                titulo: "Módulo I: Gestiona plataformas digitales para venta de productos y servicios en línea",
+                submodulos: [
+                    "Submódulo 1 - Administra la tienda en línea para la comercialización",
+                    "Submódulo 2 - Aplica procedimientos para oportunidades de negocios en línea",
+                    "Submódulo 3 - Opera plataformas de comercio digital"
+                ]
+            },
+            {
+                titulo: "Módulo II: Colabora en el análisis de mercado para la toma de decisiones en el contexto empresarial y emprendedor",
+                submodulos: [
+                    "Submódulo 1 - Auxilia en la promoción digital de productos y servicios",
+                    "Submódulo 2 - Implementa estrategias de promoción digital de acuerdo con el modelo de negocio"
+                ]
+            },
+            {
+                titulo: "Módulo III: Evalúa el rendimiento de la tienda virtual mediante indicadores de desempeño",
+                submodulos: [
+                    "Submódulo 1 - Realiza análisis de tendencias con medidores de desempeño (KPI)",
+                    "Submódulo 2 - Elabora informes de rendimiento para la toma de decisiones"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Auxilia en los procesos logísticos para negocios en línea",
+                submodulos: [
+                    "Submódulo 1 - Verifica disponibilidad de inventarios para venta en línea",
+                    "Submódulo 2 - Gestiona el proceso de envío y devolución de productos"
+                ]
+            },
+            {
+                titulo: "Módulo V: Implementa modelos de negocios en E-commerce",
+                submodulos: [
+                    "Submódulo 1 - Comercializa bienes y servicios en tiendas en línea",
+                    "Submódulo 2 - Aplica modelos de atención al cliente en canales electrónicos",
+                    "Submódulo 3 - Aplica protocolos de seguridad en transacciones electrónicas"
+                ]
+            }
         ],
         campoLaboral: [
-            "Empresas de retail y tiendas con venta digital omnicanal.",
-            "Agencias de marketing digital y branding.",
-            "Plataformas de marketplace y marketplaces globales.",
-            "Emprendimiento y creación de tu propia marca y tienda en línea."
+            "Empresas de retail con tiendas digitales y canales omnicanal.",
+            "Agencias de marketing digital, pauta publicitaria (Google/Meta) y SEO.",
+            "Gestión logística y comercial en marketplaces (Amazon, MercadoLibre).",
+            "Creación de tu propia marca, tienda virtual y emprendimiento digital."
         ]
     },
     lab: {
@@ -76,20 +180,55 @@ const carrerasInfo = {
         color: "#059669",
         badge: "Ciencias de la Salud",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.5",
+        cupoNota: "4 grupos matutino y 1 grupo vespertino",
         tituloOtorgado: "Técnico Laboratorista Clínico",
-        descripcion: "Formación de alto rigor ético y científico en la toma, manejo y análisis de muestras biológicas (sangre, orina, tejidos) mediante técnicas bioquímicas, microbiológicas, hematológicas e inmunológicas para el diagnóstico médico.",
+        imagen: "https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80",
+        objetivo: "Ofrece las competencias profesionales que permiten al estudiante realizar actividades dirigidas a la participación en procesos encaminados al diagnóstico, tratamiento, seguimiento y preservación de la salud del ser humano; así como a los procesos tecnológicos y de investigación inherentes a su campo laboral.",
+        descripcion: "Formación especializada en toma de muestras, microbiología, análisis hematológicos, citoquímicos, inmunohematología, química clínica y banco de sangre.",
         modulos: [
-            "Módulo I: Técnicas de toma de muestras biológicas y bioseguridad.",
-            "Módulo II: Análisis hematológicos y citológicos.",
-            "Módulo III: Pruebas bioquímicas e inmunoensayos clínicos.",
-            "Módulo IV: Análisis microbiológicos y parasitológicos.",
-            "Módulo V: Control de calidad en laboratorios clínicos y banco de sangre."
+            {
+                titulo: "Módulo I: Auxilia en los procesos básicos de laboratorio clínico",
+                submodulos: [
+                    "Submódulo 1 - Prepara soluciones para las operaciones básicas del laboratorio",
+                    "Submódulo 2 - Toma muestras biológicas"
+                ]
+            },
+            {
+                titulo: "Módulo II: Identifica microorganismos con base en técnicas microbiológicas para el diagnóstico clínico",
+                submodulos: [
+                    "Submódulo 1 - Identifica microorganismos con base en técnicas bacteriológicas",
+                    "Submódulo 2 - Identifica microorganismos con base en técnicas parasitológicas"
+                ]
+            },
+            {
+                titulo: "Módulo III: Analiza fluidos corporales de interés clínico",
+                submodulos: [
+                    "Submódulo 1 - Realiza análisis hematológicos de serie roja",
+                    "Submódulo 2 - Realiza análisis inmunológicos",
+                    "Submódulo 3 - Realiza análisis citoquímicos a líquidos y secreciones corporales"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Analiza sangre con base en técnicas inmunohematológicas y hemostáticas",
+                submodulos: [
+                    "Submódulo 1 - Realiza análisis hematológicos de serie blanca y hemostasia",
+                    "Submódulo 2 - Analiza y fracciona sangre con fines transfusionales"
+                ]
+            },
+            {
+                titulo: "Módulo V: Analiza sangre con base en técnicas de química clínica y pruebas especiales",
+                submodulos: [
+                    "Submódulo 1 - Analiza sangre con base en técnicas de química clínica",
+                    "Submódulo 2 - Analiza sangre mediante pruebas hormonales, toxicológicas y de marcadores tumorales"
+                ]
+            }
         ],
         campoLaboral: [
-            "Hospitales públicos (IMSS, ISSSTE, SSA) y privados.",
-            "Laboratorios de análisis clínicos y bancos de sangre.",
-            "Centros de diagnóstico y laboratorios de investigación biomédica.",
-            "Industria farmacéutica y biotecnológica."
+            "Hospitales públicos (IMSS, ISSSTE, SSA) y clínicas privadas.",
+            "Laboratorios de análisis clínicos, banco de sangre y centros de transfusión.",
+            "Centros de diagnóstico médico y laboratorios de investigación biomédica.",
+            "Industria farmacéutica, biotecnológica y control de calidad sanitaria."
         ]
     },
     const: {
@@ -98,20 +237,54 @@ const carrerasInfo = {
         color: "#b45309",
         badge: "Arquitectura & Obra Civil",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Construcción",
-        descripcion: "Capacitación técnica en interpretación y elaboración de planos arquitectónicos digitales (AutoCAD/BIM), levantamientos topográficos, cálculo y cuantificación de materiales, supervisión de obra civil y presupuestos.",
+        imagen: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80",
+        objetivo: "Ofrece las competencias profesionales que permiten al estudiante realizar actividades dirigidas a satisfacer la demanda actual de personal calificado capaz de supervisar, organizar y controlar la construcción de obras de acuerdo con las necesidades del proyecto; así como también generar su propia empresa con el propósito de auto emplearse.",
+        descripcion: "Elaboración de planos digitales (CAD/BIM), levantamientos topográficos con estación total y GPS, supervisión de procesos constructivos, instalaciones y presupuestos de obra civil.",
         modulos: [
-            "Módulo I: Dibujo arquitectónico e ingeniería con software CAD.",
-            "Módulo II: Levantamientos topográficos con equipo digital y estación total.",
-            "Módulo III: Cuantificación de volúmenes de obra y presupuestos.",
-            "Módulo IV: Supervisión de procesos constructivos y control de calidad.",
-            "Módulo V: Administración y normatividad de obras civiles públicas y privadas."
+            {
+                titulo: "Módulo I: Realizar dibujos de planos arquitectónicos con equipo básico y software",
+                submodulos: [
+                    "Submódulo 1 - Realizar dibujos de planos arquitectónicos y constructivos con equipo básico de dibujo",
+                    "Submódulo 2 - Realizar dibujos de planos arquitectónicos y constructivos con software"
+                ]
+            },
+            {
+                titulo: "Módulo II: Supervisar obras de construcción de casa habitación",
+                submodulos: [
+                    "Submódulo 1 - Supervisar los procesos constructivos de trabajos preliminares y de obra negra",
+                    "Submódulo 2 - Supervisar los procesos de acabados de casa habitación"
+                ]
+            },
+            {
+                titulo: "Módulo III: Supervisar las instalaciones de casa habitación",
+                submodulos: [
+                    "Submódulo 1 - Supervisar la instalación hidrosanitaria",
+                    "Submódulo 2 - Supervisar la instalación eléctrica",
+                    "Submódulo 3 - Supervisar las instalaciones especiales"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Realiza levantamiento y trazo topográfico con equipo convencional, y cuantifica volúmenes de obra",
+                submodulos: [
+                    "Submódulo 1 - Realiza trazo y levantamiento topográfico con equipo convencional",
+                    "Submódulo 2 - Cuantifica volúmenes de una obra"
+                ]
+            },
+            {
+                titulo: "Módulo V: Realiza levantamiento y trazo topográfico con estación total y GPS, y presupuesto de obra",
+                submodulos: [
+                    "Submódulo 1 - Realiza trazo y levantamiento topográfico con estación total y GPS",
+                    "Submódulo 2 - Realiza el presupuesto de una obra con software"
+                ]
+            }
         ],
         campoLaboral: [
-            "Empresas constructoras y despachos de arquitectura e ingeniería.",
-            "Dependencias de obras públicas y desarrollo urbano.",
-            "Laboratorios de mecánica de suelos y control de concreto.",
-            "Despachos de topografía y contratista independiente."
+            "Empresas constructoras, despachos de arquitectura e ingeniería civil.",
+            "Supervisión y control de obra en dependencias públicas de desarrollo urbano.",
+            "Laboratorios de mecánica de suelos y control de calidad de concreto.",
+            "Despachos de topografía digital, contratista independiente y edificación."
         ]
     },
     cont: {
@@ -120,20 +293,53 @@ const carrerasInfo = {
         color: "#1d4ed8",
         badge: "Finanzas & Fiscal",
         duracion: "6 Semestres (3 Años)",
+        promedioMinimo: "8.0",
         tituloOtorgado: "Técnico en Contabilidad",
-        descripcion: "Formación profesional en gestión contable, registro de operaciones comerciales, cálculo y declaración de impuestos fiscales (SAT), elaboración de nóminas digitales y auditoría financiera mediante software contable especializado.",
+        imagen: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80",
+        objetivo: "Ofrece las competencias profesionales que permiten al estudiante registrar operaciones contables de empresas comerciales y de servicios u operaciones contables a través de un sistema electrónico, así como registrar operaciones contables de una entidad fabril, determinar contribuciones y asistir en actividades de auditoría.",
+        descripcion: "Gestión de registros contables, formulación de estados financieros, nóminas digitales, declaraciones y obligaciones fiscales (SAT) y auditoría contable.",
         modulos: [
-            "Módulo I: Registro de operaciones contables de empresas comerciales.",
-            "Módulo II: Elaboración de estados financieros y conciliaciones bancarias.",
-            "Módulo III: Determinación y cálculo de impuestos federales y estatales.",
-            "Módulo IV: Gestión y timbrado de nóminas y seguridad social (IMSS).",
-            "Módulo V: Auditoría interna, presupuestos y control de costos."
+            {
+                titulo: "Módulo I: Registra operaciones contables de empresas comerciales y de servicios",
+                submodulos: [
+                    "Submódulo 1 - Registra información contable de diversas entidades económicas",
+                    "Submódulo 2 - Formula estados financieros de las empresas"
+                ]
+            },
+            {
+                titulo: "Módulo II: Opera los procesos contables dentro de un sistema electrónico",
+                submodulos: [
+                    "Submódulo 1 - Registra información contable en forma electrónica",
+                    "Submódulo 2 - Registra información de los recursos materiales y financieros"
+                ]
+            },
+            {
+                titulo: "Módulo III: Registra operaciones contables de una entidad fabril",
+                submodulos: [
+                    "Submódulo 1 - Registra información contable de diversas entidades fabriles",
+                    "Submódulo 2 - Genera nóminas en forma electrónica"
+                ]
+            },
+            {
+                titulo: "Módulo IV: Determina las contribuciones fiscales de personas físicas y morales",
+                submodulos: [
+                    "Submódulo 1 - Genera información fiscal de las personas físicas",
+                    "Submódulo 2 - Genera información fiscal de las personas morales"
+                ]
+            },
+            {
+                titulo: "Módulo V: Asiste en actividades de auditoría de una entidad",
+                submodulos: [
+                    "Submódulo 1 - Verifica que la información contable de una entidad económica corresponda a las políticas",
+                    "Submódulo 2 - Controla cuentas por cobrar y por pagar de la entidad"
+                ]
+            }
         ],
         campoLaboral: [
-            "Despachos contables, de auditoría y consultoría fiscal.",
-            "Empresas privadas en departamentos de finanzas y tesorería.",
-            "Instituciones bancarias y financieras.",
-            "Dependencias de gobierno y administración pública."
+            "Despachos contables, de auditoría financiera y consultoría fiscal.",
+            "Departamentos de finanzas, tesorería y nóminas en empresas privadas.",
+            "Instituciones bancarias, cajas de ahorro y sector financiero.",
+            "Dependencias de gobierno y organismos de fiscalización pública."
         ]
     }
 };
@@ -250,13 +456,15 @@ function verDetalleCarrera(carreraKey) {
 
     const titleEl = document.getElementById('modalCareerTitle');
     const badgeEl = document.getElementById('modalCareerBadge');
-    const descEl = document.getElementById('modalCareerDesc');
+    const promedioEl = document.getElementById('modalCareerPromedio');
+    const objetivoEl = document.getElementById('modalCareerObjetivo');
     const tituloEl = document.getElementById('modalCareerTitulo');
     const duracionEl = document.getElementById('modalCareerDuracion');
 
     if (titleEl) titleEl.innerText = info.titulo;
     if (badgeEl) badgeEl.innerText = info.badge;
-    if (descEl) descEl.innerText = info.descripcion;
+    if (promedioEl) promedioEl.innerText = 'Promedio Mínimo: ' + info.promedioMinimo + (info.cupoNota ? ' (' + info.cupoNota + ')' : '');
+    if (objetivoEl) objetivoEl.innerText = info.objetivo;
     if (tituloEl) tituloEl.innerText = info.tituloOtorgado;
     if (duracionEl) duracionEl.innerText = info.duracion;
 
@@ -264,10 +472,16 @@ function verDetalleCarrera(carreraKey) {
     if (modulosList) {
         modulosList.innerHTML = '';
         info.modulos.forEach(m => {
-            const li = document.createElement('li');
-            li.className = 'mb-2 text-dark small d-flex align-items-start gap-2';
-            li.innerHTML = '<i class="bi bi-check-circle-fill text-success mt-1"></i><span>' + m + '</span>';
-            modulosList.appendChild(li);
+            const div = document.createElement('div');
+            div.className = 'p-3 bg-light rounded-3 border mb-3';
+            
+            let submodulosHtml = '';
+            m.submodulos.forEach(sm => {
+                submodulosHtml += '<li class="mb-1 text-secondary small d-flex align-items-start gap-2"><i class="bi bi-arrow-right-short text-primary fs-5 mt-n1"></i><span>' + sm + '</span></li>';
+            });
+
+            div.innerHTML = '<h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2"><i class="bi bi-bookmark-check-fill" style="color: ' + info.color + ';"></i> ' + m.titulo + '</h6><ul class="list-unstyled ps-3 mb-0">' + submodulosHtml + '</ul>';
+            modulosList.appendChild(div);
         });
     }
 
@@ -291,6 +505,35 @@ function verDetalleCarrera(carreraKey) {
     }
 }
 window.verDetalleCarrera = verDetalleCarrera;
+
+// 3.1 Cerrar Modal y Desplazar hacia Admisiones
+function solicitarFichaDesdeModal() {
+    const modalEl = document.getElementById('modalDetalleCarrera');
+    if (modalEl && window.bootstrap) {
+        const bsModal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+        
+        const ejecutarScroll = () => {
+            modalEl.removeEventListener('hidden.bs.modal', ejecutarScroll);
+            const admisionesEl = document.getElementById('admisiones');
+            if (admisionesEl) {
+                const navHeight = document.querySelector('.landing-navbar')?.offsetHeight || 70;
+                const elementPosition = admisionesEl.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - navHeight;
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        };
+
+        modalEl.addEventListener('hidden.bs.modal', ejecutarScroll);
+        bsModal.hide();
+    } else {
+        const admisionesEl = document.getElementById('admisiones');
+        if (admisionesEl) admisionesEl.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+window.solicitarFichaDesdeModal = solicitarFichaDesdeModal;
 
 // 4. Animación de Contadores al hacer Scroll
 function inicializarContadoresEstadisticas() {
