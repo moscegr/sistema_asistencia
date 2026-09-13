@@ -26,40 +26,25 @@
 </head>
 <body>
 
-    <!-- TOP ANNOUNCEMENT BAR -->
-    <div class="top-notice-bar py-2 text-center">
-        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="notice-badge"><i class="bi bi-megaphone-fill me-1"></i> NUEVO INGRESO 2026</span>
-                <span class="d-none d-md-inline">¡Convocatoria de Pre-Fichas para el ciclo escolar 2026 - 2027 activa!</span>
-            </div>
-            <div class="d-flex align-items-center gap-3 ms-auto small">
-                <a href="#admisiones" class="text-white text-decoration-none fw-bold"><i class="bi bi-calendar-check me-1 text-warning"></i> Pasos de Admisión</a>
-                <span class="opacity-50">|</span>
-                <a href="tel:7474723464" class="text-white text-decoration-none landing-telefono"><i class="bi bi-telephone-fill me-1 text-warning"></i> (747) 47 2 34 64</a>
-            </div>
-        </div>
-    </div>
-
     <!-- NAVBAR INSTITUCIONAL -->
     <nav class="navbar navbar-expand-lg landing-navbar sticky-top">
         <div class="container">
-            <!-- Brand Logos -->
-            <a class="navbar-brand d-flex align-items-center gap-3" th:href="@{/}">
-                <img th:src="@{/img/logoSep.png}" alt="SEP" class="brand-logo-item d-none d-sm-block" style="height: 42px;">
-                <img th:src="@{/img/logo_aniversario.jpg}" alt="CBTis 134" class="brand-logo-item landing-logo-plantel rounded-circle" style="height: 46px; width: 46px; object-fit: cover; border: 1.5px solid var(--guinda-base);">
-                <div class="brand-text-container">
+            <!-- Brand Logos: Primero Logo Oficial CBTis 134, luego Mascota -->
+            <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/}">
+                <img th:src="@{/img/logo_aniversario.jpg}" alt="CBTis 134 Oficial" class="brand-logo-item landing-logo-plantel rounded-circle" style="height: 46px; width: 46px; object-fit: cover; border: 2px solid var(--dorado-base); background: #ffffff;">
+                <img th:src="@{/img/tigres.png}" alt="Mascota Tigres" class="brand-logo-item landing-logo-mascota" style="height: 44px; width: auto; object-fit: contain;">
+                <div class="brand-text-container ms-1">
                     <span class="brand-title landing-nombre-plantel">CBTis 134</span>
                     <span class="brand-sub">"Nicolás Catalán"</span>
                 </div>
             </a>
 
             <!-- Mobile Toggle -->
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLandingContent">
-                <i class="bi bi-list fs-2 text-dark"></i>
+            <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLandingContent" aria-label="Toggle navigation">
+                <i class="bi bi-list fs-2 text-white"></i>
             </button>
 
-            <!-- Navigation Links & System Login Button -->
+            <!-- Navigation Links & SIA Button -->
             <div class="collapse navbar-collapse" id="navbarLandingContent">
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
@@ -85,15 +70,15 @@
                     </li>
                 </ul>
 
-                <!-- Acceso Directo al Sistema / Dashboard -->
+                <!-- Acceso Directo SIA -->
                 <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
                     <a th:if="${autenticado}" th:href="@{/admin/dashboard}" class="btn-portal-acceso">
                         <span class="pulse-dot"></span>
-                        <i class="bi bi-speedometer2 me-1"></i> Ir al Sistema
+                        <i class="bi bi-speedometer2 me-1"></i> SIA
                     </a>
                     <a th:unless="${autenticado}" th:href="@{/login}" class="btn-portal-acceso">
                         <span class="pulse-dot"></span>
-                        <i class="bi bi-person-lock me-1"></i> Portal Escolar
+                        <i class="bi bi-person-lock me-1"></i> SIA
                     </a>
                 </div>
             </div>

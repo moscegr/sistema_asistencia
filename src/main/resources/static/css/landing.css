@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    LANDING PAGE CBTIS 134 - SISTEMA DE DISEÑO MODERNO, JUVENIL E INSTITUCIONAL
    ========================================================================== */
 
@@ -80,27 +80,29 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- NAVBAR INSTITUCIONAL --- */
 .landing-navbar {
-    background: rgba(255, 255, 255, 0.92);
+    background: linear-gradient(135deg, #3d0c1c 0%, #7b1b37 50%, #4e0d20 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--slate-200);
+    border-bottom: 2px solid rgba(212, 175, 55, 0.45);
     padding: 12px 0;
     position: sticky;
     top: 0;
     z-index: 1040;
     transition: var(--transition-smooth);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .landing-navbar.scrolled {
-    background: rgba(255, 255, 255, 0.98);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(135deg, #2b0612 0%, #611229 50%, #360715 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    border-bottom-color: rgba(212, 175, 55, 0.7);
     padding: 8px 0;
 }
 
 .brand-logos-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .brand-logo-item {
@@ -120,62 +122,66 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--guinda-base);
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #ffffff;
     letter-spacing: -0.5px;
     margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .brand-sub {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
     font-weight: 700;
-    color: var(--slate-600);
+    color: var(--dorado-base);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
 }
 
 .nav-link-custom {
     font-size: 0.92rem;
     font-weight: 600;
-    color: var(--slate-800) !important;
+    color: rgba(255, 255, 255, 0.92) !important;
     padding: 8px 16px !important;
     border-radius: 50px;
     transition: var(--transition-smooth);
 }
 
 .nav-link-custom:hover {
-    color: var(--guinda-base) !important;
-    background-color: var(--guinda-subtle);
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-portal-acceso {
-    background: linear-gradient(135deg, var(--guinda-base) 0%, var(--guinda-dark) 100%);
-    color: #ffffff !important;
-    font-weight: 700;
-    font-size: 0.88rem;
-    padding: 9px 22px;
+    background: linear-gradient(135deg, #d4af37 0%, #f3d477 50%, #b8901f 100%);
+    color: #320713 !important;
+    font-weight: 800;
+    font-size: 0.92rem;
+    padding: 8px 24px;
     border-radius: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(123, 27, 55, 0.3);
+    border: 1.5px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     display: inline-flex;
     align-items: center;
     gap: 8px;
     transition: var(--transition-smooth);
+    letter-spacing: 0.6px;
 }
 
 .btn-portal-acceso:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(123, 27, 55, 0.45);
-    background: linear-gradient(135deg, var(--guinda-light) 0%, var(--guinda-base) 100%);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.55);
+    background: linear-gradient(135deg, #faeab8 0%, #d4af37 100%);
+    color: #1a0309 !important;
 }
 
 .btn-portal-acceso .pulse-dot {
     width: 8px;
     height: 8px;
-    background-color: var(--dorado-base);
+    background-color: #7b1b37;
     border-radius: 50%;
-    box-shadow: 0 0 10px var(--dorado-base);
+    box-shadow: 0 0 6px #7b1b37;
     animation: pulse 1.8s infinite;
 }
 
@@ -744,6 +750,14 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- RESPONSIVIDAD --- */
 @media (max-width: 991px) {
+    .landing-navbar .navbar-collapse {
+        background: rgba(43, 6, 18, 0.96);
+        padding: 18px;
+        border-radius: 16px;
+        margin-top: 12px;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
     .hero-section {
         padding: 50px 0 70px;
     }
