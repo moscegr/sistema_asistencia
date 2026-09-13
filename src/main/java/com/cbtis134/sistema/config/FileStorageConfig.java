@@ -29,9 +29,26 @@ public class FileStorageConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = "file:" + uploadDir + (uploadDir.endsWith("/") ? "" : "/");
+        File dir = new File(uploadDir);
+        String location = dir.toURI().toString();
+        if (!location.endsWith("/")) {
+            location += "/";
+        }
+        
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(location);
+
+        registry.addResourceHandler("/img/**")
+                .addResourceLocations("classpath:/static/img/");
+
+        registry.addResourceHandler("/css/**")
+                .addResourceLocations("classpath:/static/css/");
+
+        registry.addResourceHandler("/js/**")
+                .addResourceLocations("classpath:/static/js/");
+
+        registry.addResourceHandler("/qrs/**")
+                .addResourceLocations("classpath:/static/qrs/");
 
         registry.addResourceHandler("/models/**")
                 .addResourceLocations("classpath:/static/models/")

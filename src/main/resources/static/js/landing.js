@@ -141,6 +141,7 @@ const carrerasInfo = {
 document.addEventListener('DOMContentLoaded', () => {
     sincronizarDatosLandingDesdeMongo();
     inicializarNavbarScroll();
+    inicializarNavegacionSuave();
     inicializarContadoresEstadisticas();
     configurarFormularioContacto();
 });
@@ -151,12 +152,13 @@ async function sincronizarDatosLandingDesdeMongo() {
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             const data = await res.json();
+            if (!data) return;
             
             const nomPlantel = data.nombre_plantel || 'CBTis 134';
             const nomOficial = data.nombre_oficial_plantel || 'Centro de Bachillerato Tecnológico industrial y de servicios No. 134 "Nicolás Catalán"';
             const slogan = data.slogan_plantel || '"Por que prestigio se gana con esfuerzo... Somos CBTis 134"';
-            const logoPlantel = data.logo_plantel_url || '/img/logo_aniversario.jpg';
-            const logoInicio = data.logo_inicio_url || '/img/tigres.png';
+            const logoPlantel = (data.logo_plantel_url && data.logo_plantel_url.trim() !== '') ? data.logo_plantel_url : '/img/logo_aniversario.jpg';
+            const logoInicio = (data.logo_inicio_url && data.logo_inicio_url.trim() !== '') ? data.logo_inicio_url : '/img/tigres.png';
             const tel = data.telefono_escuela || '(747) 47 2 34 64';
             const cct = data.cct_escuela || '12DCT0001L';
 
@@ -164,31 +166,80 @@ async function sincronizarDatosLandingDesdeMongo() {
             document.querySelectorAll('.landing-nombre-plantel').forEach(el => el.innerText = nomPlantel);
             document.querySelectorAll('.landing-nombre-oficial').forEach(el => el.innerText = nomOficial);
             document.querySelectorAll('.landing-slogan').forEach(el => el.innerText = slogan);
-            document.querySelectorAll('.landing-telefono').forEach(el => el.innerText = tel);
+            document.querySelectorAll('.landing-telefono').forEach(el => {
+                el.innerText = tel;
+                if (el.tagName === 'A') el.href = 'tel:' + tel.replace(/\D/g, '');
+            });
             document.querySelectorAll('.landing-cct').forEach(el => el.innerText = cct);
 
-            // Reemplazar logos
-            document.querySelectorAll('.landing-logo-plantel').forEach(img => {
-                if (img.tagName === 'IMG') img.src = logoPlantel;
-            });
-            document.querySelectorAll('.landing-logo-mascota').forEach(img => {
-                if (img.tagName === 'IMG') img.src = logoInicio;
-            });
+            // Reemplazar logos de forma segura
+            if (logoPlantel) {
+                document.querySelectorAll('.landing-logo-plantel').forEach(img => {
+                    if (img.tagName === 'IMG') {
+                        img.src = logoPlantel;
+                        img.onerror = function() { this.onerror = null; this.src = '/img/logo_aniversario.jpg'; };
+                    }
+                });
+            }
+            if (logoInicio) {
+                document.querySelectorAll('.landing-logo-mascota').forEach(img => {
+                    if (img.tagName === 'IMG') {
+                        img.src = logoInicio;
+                        img.onerror = function() { this.onerror = null; this.src = '/img/tigres.png'; };
+                    }
+                });
+            }
         }
     } catch (e) {
         console.warn("No se pudo sincronizar información en vivo de MongoDB:", e);
     }
 }
 
-// 2. Navbar Scroll Behavior
+// 2. Navbar Scroll & Mobile Collapse Auto-Close
 function inicializarNavbarScroll() {
     const navbar = document.querySelector('.landing-navbar');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 40) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
+    if (navbar) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 40) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    }
+
+    // Auto-cerrar menú en dispositivos móviles al presionar una opción
+    document.querySelectorAll('.landing-navbar .nav-link, .landing-navbar .btn-portal-acceso').forEach(link => {
+        link.addEventListener('click', () => {
+            const collapseEl = document.getElementById('navbarLandingContent');
+            if (collapseEl && collapseEl.classList.contains('show') && window.bootstrap) {
+                const bsCollapse = bootstrap.Collapse.getInstance(collapseEl) || new bootstrap.Collapse(collapseEl, { toggle: false });
+                bsCollapse.hide();
+            }
+        });
+    });
+}
+
+// 2.1 Navegación suave
+function inicializarNavegacionSuave() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const targetId = this.getAttribute('href');
+            if (targetId && targetId !== '#') {
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    e.preventDefault();
+                    const navHeight = document.querySelector('.landing-navbar')?.offsetHeight || 70;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - navHeight;
+                    
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
     });
 }
 
@@ -197,33 +248,47 @@ function verDetalleCarrera(carreraKey) {
     const info = carrerasInfo[carreraKey];
     if (!info) return;
 
-    document.getElementById('modalCareerTitle').innerText = info.titulo;
-    document.getElementById('modalCareerBadge').innerText = info.badge;
-    document.getElementById('modalCareerDesc').innerText = info.descripcion;
-    document.getElementById('modalCareerTitulo').innerText = info.tituloOtorgado;
-    document.getElementById('modalCareerDuracion').innerText = info.duracion;
+    const titleEl = document.getElementById('modalCareerTitle');
+    const badgeEl = document.getElementById('modalCareerBadge');
+    const descEl = document.getElementById('modalCareerDesc');
+    const tituloEl = document.getElementById('modalCareerTitulo');
+    const duracionEl = document.getElementById('modalCareerDuracion');
+
+    if (titleEl) titleEl.innerText = info.titulo;
+    if (badgeEl) badgeEl.innerText = info.badge;
+    if (descEl) descEl.innerText = info.descripcion;
+    if (tituloEl) tituloEl.innerText = info.tituloOtorgado;
+    if (duracionEl) duracionEl.innerText = info.duracion;
 
     const modulosList = document.getElementById('modalCareerModulos');
-    modulosList.innerHTML = '';
-    info.modulos.forEach(m => {
-        const li = document.createElement('li');
-        li.className = 'mb-2 text-dark small';
-        li.innerHTML = '<i class="bi bi-check-circle-fill text-success me-2"></i>' + m;
-        modulosList.appendChild(li);
-    });
+    if (modulosList) {
+        modulosList.innerHTML = '';
+        info.modulos.forEach(m => {
+            const li = document.createElement('li');
+            li.className = 'mb-2 text-dark small d-flex align-items-start gap-2';
+            li.innerHTML = '<i class="bi bi-check-circle-fill text-success mt-1"></i><span>' + m + '</span>';
+            modulosList.appendChild(li);
+        });
+    }
 
     const campoList = document.getElementById('modalCareerCampo');
-    campoList.innerHTML = '';
-    info.campoLaboral.forEach(c => {
-        const li = document.createElement('li');
-        li.className = 'mb-2 text-muted small';
-        li.innerHTML = '<i class="bi bi-briefcase-fill me-2" style="color: ' + info.color + '"></i>' + c;
-        campoList.appendChild(li);
-    });
+    if (campoList) {
+        campoList.innerHTML = '';
+        info.campoLaboral.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'mb-2 text-muted small d-flex align-items-start gap-2';
+            li.innerHTML = '<i class="bi bi-briefcase-fill mt-1" style="color: ' + info.color + '"></i><span>' + c + '</span>';
+            campoList.appendChild(li);
+        });
+    }
 
     const modalEl = document.getElementById('modalDetalleCarrera');
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
+    if (modalEl) {
+        if (window.bootstrap && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    }
 }
 window.verDetalleCarrera = verDetalleCarrera;
 
@@ -242,11 +307,11 @@ function inicializarContadoresEstadisticas() {
                 const suffix = el.getAttribute('data-suffix') || '';
                 
                 let count = 0;
-                const duration = 2000;
-                const stepTime = Math.abs(Math.floor(duration / (target || 1)));
+                const duration = 1800;
+                const stepTime = Math.max(20, Math.floor(duration / 50));
                 
                 const timer = setInterval(() => {
-                    count += Math.ceil(target / 50);
+                    count += Math.ceil(target / 40);
                     if (count >= target) {
                         count = target;
                         clearInterval(timer);
@@ -255,7 +320,7 @@ function inicializarContadoresEstadisticas() {
                 }, stepTime);
             });
         }
-    }, { threshold: 0.3 });
+    }, { threshold: 0.2 });
 
     observer.observe(statsSection);
 }
@@ -267,27 +332,34 @@ function configurarFormularioContacto() {
 
     form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nombre = document.getElementById('contactNombre').value.trim();
-        const email = document.getElementById('contactEmail').value.trim();
-        const tel = document.getElementById('contactTel').value.trim();
-        const carrera = document.getElementById('contactCarrera').value;
-        const mensaje = document.getElementById('contactMensaje').value.trim();
+        const nombre = document.getElementById('contactNombre')?.value.trim();
+        const email = document.getElementById('contactEmail')?.value.trim();
+        const mensaje = document.getElementById('contactMensaje')?.value.trim();
 
         if (!nombre || !email || !mensaje) {
-            return Swal.fire({
-                icon: 'warning',
-                title: 'Campos requeridos',
-                text: 'Por favor completa tu nombre, correo y mensaje.',
-                confirmButtonColor: '#7b1b37'
-            });
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Campos requeridos',
+                    text: 'Por favor completa tu nombre, correo y mensaje.',
+                    confirmButtonColor: '#7b1b37'
+                });
+            } else {
+                alert('Por favor completa todos los campos requeridos.');
+            }
+            return;
         }
 
-        Swal.fire({
-            icon: 'success',
-            title: '¡Mensaje Recibido!',
-            html: 'Gracias por contactarnos <b>' + nombre + '</b>.<br>El departamento de Orientación Educativa del CBTis 134 responderá a <b>' + email + '</b> a la brevedad.',
-            confirmButtonColor: '#7b1b37'
-        });
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Mensaje Recibido!',
+                html: 'Gracias por contactarnos <b>' + nombre + '</b>.<br>El departamento de Orientación Educativa del CBTis 134 responderá a <b>' + email + '</b> a la brevedad.',
+                confirmButtonColor: '#7b1b37'
+            });
+        } else {
+            alert('¡Mensaje enviado con éxito! Nos pondremos en contacto pronto.');
+        }
 
         form.reset();
     });
