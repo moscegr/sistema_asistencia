@@ -6,8 +6,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class VistaController {
 
-    @GetMapping({"/", "/index"})
-    public String index(org.springframework.security.core.Authentication auth) {
+    @GetMapping({"/", "/index", "/landing"})
+    public String index(org.springframework.security.core.Authentication auth, org.springframework.ui.Model model) {
+        boolean estaAutenticado = (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken));
+        model.addAttribute("autenticado", estaAutenticado);
+        return "landing";
+    }
+
+    @GetMapping("/login")
+    public String login(org.springframework.security.core.Authentication auth) {
         if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
             boolean isGuardia = auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("GUARDIA"));
@@ -16,11 +23,6 @@ public class VistaController {
             }
             return "redirect:/admin/dashboard";
         }
-        return "redirect:/login";
-    }
-
-    @GetMapping("/login")
-    public String login() {
         return "auth/login";
     }
 

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBTis 134 "Nicolás Catalán" - Prestigio ganado con esfuerzo</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content="Centro de Bachillerato Tecnológico industrial y de servicios No. 134 'Nicolás Catalán' en Chilpancingo, Guerrero. Bachillerato bivalente con 6 especialidades técnicas de alta demanda laboral.">
+    <meta name="keywords" content="CBTis 134, Nicolas Catalan, Bachillerato Bivalente, Inteligencia Artificial, Programacion, Comercio Electronico, Laboratorista Clinico, Construccion, Contabilidad, Chilpancingo, Guerrero">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Custom Landing CSS -->
+    <link rel="stylesheet" th:href="@{/css/landing.css}">
+</head>
+<body>
+
+    <!-- TOP ANNOUNCEMENT BAR -->
+    <div class="top-notice-bar py-2 text-center">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="notice-badge"><i class="bi bi-megaphone-fill me-1"></i> NUEVO INGRESO 2026</span>
+                <span class="d-none d-md-inline">¡Convocatoria de Pre-Fichas para el ciclo escolar 2026 - 2027 activa!</span>
+            </div>
+            <div class="d-flex align-items-center gap-3 ms-auto small">
+                <a href="#admisiones" class="text-white text-decoration-none fw-bold"><i class="bi bi-calendar-check me-1 text-warning"></i> Pasos de Admisión</a>
+                <span class="opacity-50">|</span>
+                <a href="tel:7474723464" class="text-white text-decoration-none landing-telefono"><i class="bi bi-telephone-fill me-1 text-warning"></i> (747) 47 2 34 64</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVBAR INSTITUCIONAL -->
+    <nav class="navbar navbar-expand-lg landing-navbar sticky-top">
+        <div class="container">
+            <!-- Brand Logos -->
+            <a class="navbar-brand d-flex align-items-center gap-3" th:href="@{/}">
+                <img th:src="@{/img/logoSep.png}" alt="SEP" class="brand-logo-item d-none d-sm-block" style="height: 42px;">
+                <img th:src="@{/img/logo_aniversario.jpg}" alt="CBTis 134" class="brand-logo-item landing-logo-plantel rounded-circle" style="height: 46px; width: 46px; object-fit: cover; border: 1.5px solid var(--guinda-base);">
+                <div class="brand-text-container">
+                    <span class="brand-title landing-nombre-plantel">CBTis 134</span>
+                    <span class="brand-sub">"Nicolás Catalán"</span>
+                </div>
+            </a>
+
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLandingContent">
+                <i class="bi bi-list fs-2 text-dark"></i>
+            </button>
+
+            <!-- Navigation Links & System Login Button -->
+            <div class="collapse navbar-collapse" id="navbarLandingContent">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#inicio">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#bivalente">Bachillerato Bivalente</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#carreras">Oferta Educativa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#dual">Modelo Dual</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#vida-estudiantil">Vida Estudiantil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#admisiones">Admisiones</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="#contacto">Contacto</a>
+                    </li>
+                </ul>
+
+                <!-- Acceso Directo al Sistema / Dashboard -->
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                    <a th:if="${autenticado}" th:href="@{/admin/dashboard}" class="btn-portal-acceso">
+                        <span class="pulse-dot"></span>
+                        <i class="bi bi-speedometer2 me-1"></i> Ir al Sistema
+                    </a>
+                    <a th:unless="${autenticado}" th:href="@{/login}" class="btn-portal-acceso">
+                        <span class="pulse-dot"></span>
+                        <i class="bi bi-person-lock me-1"></i> Portal Escolar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section id="inicio" class="hero-section">
+        <div class="container">
+            <div class="row align-items-center gy-5">
+                <div class="col-lg-7">
+                    <!-- Badge Convocatoria -->
+                    <div class="hero-badge">
+                        <span class="hero-badge-tag">EXCELENCIA DGETI</span>
+                        <span>Plantel de Educación Media Superior #1 en Chilpancingo</span>
+                    </div>
+
+                    <!-- Título Principal -->
+                    <h1 class="hero-title">
+                        Prestigio ganado con esfuerzo... <br>
+                        <span class="hero-title-highlight landing-nombre-plantel">Somos CBTis 134</span>
+                    </h1>
+
+                    <!-- Subtítulo / Propuesta de Valor -->
+                    <p class="hero-subtitle">
+                        Prepárate para el futuro con nuestro <strong>Bachillerato Bivalente</strong>: obtén tu <strong>Certificado de Preparatoria</strong> y un <strong>Título Profesional Técnico</strong> con Cédula Oficial para ingresar a la universidad o triunfar de inmediato en el mundo laboral.
+                    </p>
+
+                    <!-- CTAs de Acción Rápida -->
+                    <div class="hero-cta-group">
+                        <a href="#carreras" class="btn-cta-primary">
+                            <i class="bi bi-stars"></i> Conoce Nuestras 6 Carreras
+                        </a>
+                        <a href="#admisiones" class="btn-cta-secondary">
+                            <i class="bi bi-file-earmark-person-fill text-danger"></i> Proceso de Fichas 2026
+                        </a>
+                    </div>
+
+                    <!-- Puntos clave rápidos -->
+                    <div class="row g-3 pt-3 border-top border-light-subtle">
+                        <div class="col-sm-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-patch-check-fill text-success fs-5"></i>
+                            <span class="small fw-semibold text-secondary">Título y Cédula Profesional</span>
+                        </div>
+                        <div class="col-sm-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-cpu-fill text-primary fs-5"></i>
+                            <span class="small fw-semibold text-secondary">Carreras de Vanguardia 4.0</span>
+                        </div>
+                        <div class="col-sm-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-building-check text-warning fs-5"></i>
+                            <span class="small fw-semibold text-secondary">Educación Dual en Empresas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hero Visual & Floating Mascota Card -->
+                <div class="col-lg-5">
+                    <div class="hero-visual-wrapper">
+                        <!-- Card Principal -->
+                        <div class="hero-main-card">
+                            <img th:src="@{/img/tigres.png}" alt="Tigres CBTis 134" class="hero-mascot-img landing-logo-mascota mb-3">
+                            <h4 class="fw-bold mb-1" style="color: var(--guinda-base);">Tigres CBTis 134</h4>
+                            <p class="text-muted small mb-3">"Nicolás Catalán" &bull; Orgullo y Disciplina</p>
+                            
+                            <div class="d-flex justify-content-around align-items-center bg-light p-3 rounded-4 border">
+                                <div class="text-center">
+                                    <span class="d-block fw-bold text-dark fs-5">+850</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">Nuevos Alumnos</span>
+                                </div>
+                                <div class="vr"></div>
+                                <div class="text-center">
+                                    <span class="d-block fw-bold text-dark fs-5">6</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">Especialidades</span>
+                                </div>
+                                <div class="vr"></div>
+                                <div class="text-center">
+                                    <span class="d-block fw-bold text-dark fs-5">100%</span>
+                                    <span class="text-muted" style="font-size: 0.75rem;">Bivalente</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Floating Badges -->
+                        <div class="floating-badge-item badge-pos-1">
+                            <div class="floating-badge-icon bg-primary">
+                                <i class="bi bi-robot"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold fs-6">Inteligencia Artificial</h6>
+                                <span class="text-muted small">Especialidad Pionera</span>
+                            </div>
+                        </div>
+
+                        <div class="floating-badge-item badge-pos-2">
+                            <div class="floating-badge-icon bg-warning text-dark">
+                                <i class="bi bi-award-fill"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold fs-6">Modelo Dual</h6>
+                                <span class="text-muted small">Alianza con Empresas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS COUNTER STRIP -->
+    <section class="stats-strip-section">
+        <div class="container">
+            <div class="row g-4 justify-content-center">
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-number" data-target="6" data-prefix="" data-suffix="">0</div>
+                        <div class="stat-label">Carreras Técnicas 4.0</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-number" data-target="850" data-prefix="+" data-suffix="">0</div>
+                        <div class="stat-label">Lugares por Generación</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-number" data-target="100" data-prefix="" data-suffix="%">0</div>
+                        <div class="stat-label">Bachillerato Bivalente</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-number" data-target="45" data-prefix="+" data-suffix=" Años">0</div>
+                        <div class="stat-label">Prestigio y Tradición</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN BACHILLERATO BIVALENTE -->
+    <section id="bivalente" class="py-5 bg-light">
+        <div class="container py-4">
+            <div class="section-header-block">
+                <span class="section-tag"><i class="bi bi-gem me-1"></i> Modelo Educativo Superior</span>
+                <h2 class="section-main-title">¿Qué significa estudiar un Bachillerato Bivalente?</h2>
+                <p class="section-desc">
+                    En el CBTis 134 no eliges entre trabajar o seguir estudiando: <strong>obtienes ambas oportunidades al mismo tiempo</strong> al concluir tus 3 años de preparatoria.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Columna 1: Certificado de Bachillerato -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="bivalente-card">
+                        <div class="bivalente-step-num">1</div>
+                        <h4 class="fw-bold mb-3" style="color: var(--guinda-base);">Certificado de Bachillerato General</h4>
+                        <p class="text-secondary mb-4">
+                            Validez oficial nacional de la SEP que te permite presentar examen de admisión y cursar cualquier licenciatura o ingeniería en universidades de prestigio (UNAM, IPN, UAGro, TecNM, UAM, etc.).
+                        </p>
+                        <div class="d-flex align-items-center gap-2 text-success fw-bold small">
+                            <i class="bi bi-check-circle-fill"></i> Pase directo a cualquier carrera universitaria
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Título y Cédula Profesional -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="bivalente-card border-warning" style="box-shadow: 0 15px 35px rgba(212, 175, 55, 0.15);">
+                        <div class="bivalente-step-num" style="background: linear-gradient(135deg, #d4af37 0%, #b8901f 100%); color: #0a192f;">2</div>
+                        <h4 class="fw-bold mb-3" style="color: var(--slate-900);">Título y Cédula Profesional Técnica</h4>
+                        <p class="text-secondary mb-4">
+                            Expedido por la Dirección General de Educación Tecnológica Industrial (DGETI). Te acredita como profesional técnico capacitado para incorporarte al mercado laboral formal de manera inmediata.
+                        </p>
+                        <div class="d-flex align-items-center gap-2 text-success fw-bold small">
+                            <i class="bi bi-check-circle-fill"></i> Ejercicio profesional legal y bien remunerado
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna 3: Prácticas y Certificaciones -->
+                <div class="col-lg-4 col-md-12">
+                    <div class="bivalente-card">
+                        <div class="bivalente-step-num">3</div>
+                        <h4 class="fw-bold mb-3" style="color: var(--guinda-base);">Competencias & Modelo Dual</h4>
+                        <p class="text-secondary mb-4">
+                            Adquiere experiencia real en laboratorios especializados, talleres industriales y estancias profesionales con empresas e instituciones de educación superior antes de graduarte.
+                        </p>
+                        <div class="d-flex align-items-center gap-2 text-success fw-bold small">
+                            <i class="bi bi-check-circle-fill"></i> Experiencia curricular desde la preparatoria
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN OFERTA EDUCATIVA: CARRERAS TÉCNICAS -->
+    <section id="carreras" class="py-5">
+        <div class="container py-4">
+            <div class="section-header-block">
+                <span class="section-tag"><i class="bi bi-mortarboard-fill me-1"></i> Especialidades 2026</span>
+                <h2 class="section-main-title">Nuestra Oferta Educativa de Alta Demanda</h2>
+                <p class="section-desc">
+                    Diseñadas para las exigencias de la industria tecnológica, médica y empresarial actual. Selecciona cada carrera para conocer su plan modular y campo de trabajo.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- 1. Inteligencia Artificial -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #0284c7; --card-bg: rgba(2, 132, 199, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-cpu-fill"></i>
+                            </div>
+                            <h3 class="career-title">Inteligencia Artificial</h3>
+                            <p class="career-desc">
+                                Aprende Machine Learning, redes neuronales, visión artificial, ciencia de datos y automatización para la industria inteligente del futuro.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge"><i class="bi bi-lightning-fill text-warning me-1"></i>Vanguardia 4.0</span>
+                                <span class="career-tag-badge">Data Science</span>
+                                <span class="career-tag-badge">Python / IA</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('ia')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Programación -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #7c3aed; --card-bg: rgba(124, 58, 237, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-code-slash"></i>
+                            </div>
+                            <h3 class="career-title">Programación</h3>
+                            <p class="career-desc">
+                                Desarrolla software profesional, plataformas web full-stack, aplicaciones móviles nativas y gestión de bases de datos avanzadas.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge">Web & Apps</span>
+                                <span class="career-tag-badge">Bases de Datos</span>
+                                <span class="career-tag-badge">Full-Stack</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('prog')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Comercio Electrónico -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #ea580c; --card-bg: rgba(234, 88, 12, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-cart-check-fill"></i>
+                            </div>
+                            <h3 class="career-title">Comercio Electrónico</h3>
+                            <p class="career-desc">
+                                Domina el marketing digital, pasarelas de pago, creación de tiendas online, posicionamiento de marcas y logística digital omnicanal.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge">E-Commerce</span>
+                                <span class="career-tag-badge">Marketing Digital</span>
+                                <span class="career-tag-badge">Fintech</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('ecom')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Laboratorista Clínico -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #059669; --card-bg: rgba(5, 150, 105, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-eyedropper"></i>
+                            </div>
+                            <h3 class="career-title">Laboratorista Clínico</h3>
+                            <p class="career-desc">
+                                Análisis de muestras biológicas mediante técnicas hematológicas, bioquímicas, microbiológicas e inmunológicas para el diagnóstico médico.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge">Salud & Análisis</span>
+                                <span class="career-tag-badge">Bioquímica</span>
+                                <span class="career-tag-badge">Hospitales</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('lab')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5. Construcción -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #b45309; --card-bg: rgba(180, 83, 9, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-building-gear"></i>
+                            </div>
+                            <h3 class="career-title">Construcción</h3>
+                            <p class="career-desc">
+                                Diseño arquitectónico con AutoCAD/BIM, levantamientos topográficos con estación total, supervisión de obra civil y presupuestos.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge">AutoCAD / BIM</span>
+                                <span class="career-tag-badge">Topografía</span>
+                                <span class="career-tag-badge">Obra Civil</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('const')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 6. Contabilidad -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="career-card" style="--card-accent: #1d4ed8; --card-bg: rgba(29, 78, 216, 0.08);">
+                        <div>
+                            <div class="career-icon-wrapper">
+                                <i class="bi bi-calculator-fill"></i>
+                            </div>
+                            <h3 class="career-title">Contabilidad</h3>
+                            <p class="career-desc">
+                                Gestión financiera empresarial, cálculo de impuestos fiscales (SAT), auditoría, nóminas digitales y control de presupuestos corporativos.
+                            </p>
+                            <div class="career-tags-group">
+                                <span class="career-tag-badge">Finanzas</span>
+                                <span class="career-tag-badge">Fiscal & SAT</span>
+                                <span class="career-tag-badge">Auditoría</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-career-modal" onclick="verDetalleCarrera('cont')">
+                            <i class="bi bi-eye-fill"></i> Ver Plan de Estudios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN MODELO DE FORMACIÓN DUAL -->
+    <section id="dual" class="dual-section">
+        <div class="container">
+            <div class="row align-items-center gy-5">
+                <div class="col-lg-6">
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3">
+                        <i class="bi bi-briefcase-fill me-1"></i> APRENDIZAJE PRÁCTICO EN EL SECTOR PRODUCTIVO
+                    </span>
+                    <h2 class="display-6 fw-bold mb-4 text-white">
+                        Modelo Mexicano de Formación Dual (MMFD)
+                    </h2>
+                    <p class="lead text-white-50 mb-4">
+                        El CBTis 134 integra a sus estudiantes en entornos laborales reales mediante convenios estratégicos con empresas líderes e instituciones de educación superior como el <strong>TecNM (Instituto Tecnológico de Chilpancingo)</strong>.
+                    </p>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <div class="dual-feature-box">
+                                <i class="bi bi-gear-wide-connected fs-2 text-warning mb-2 d-block"></i>
+                                <h5 class="text-white fw-bold">70% Práctica Real</h5>
+                                <p class="text-white-50 small mb-0">Desarrollo de competencias directamente en puestos de trabajo de empresas aliadas.</p>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="dual-feature-box">
+                                <i class="bi bi-cash-stack fs-2 text-success mb-2 d-block"></i>
+                                <h5 class="text-white fw-bold">Apoyo y Becas</h5>
+                                <p class="text-white-50 small mb-0">Acceso a estímulos económicos y respaldo institucional durante tu formación dual.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="p-4 p-md-5 rounded-4 border border-secondary" style="background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px);">
+                        <h4 class="text-white fw-bold mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-check2-circle text-warning"></i> Beneficios para el Estudiante
+                        </h4>
+                        <ul class="list-unstyled text-white-50 d-flex flex-direction-column gap-3 mb-4">
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-arrow-right-circle-fill text-warning mt-1"></i>
+                                <span><strong>Experiencia laboral demostrable:</strong> Egresa con currículum vitae comprobable antes de concluir tu bachillerato.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-arrow-right-circle-fill text-warning mt-1"></i>
+                                <span><strong>Alta tasa de contratación:</strong> Muchas de las empresas anfitrionas contratan a nuestros estudiantes al terminar su ciclo.</span>
+                            </li>
+                            <li class="d-flex align-items-start gap-2">
+                                <i class="bi bi-arrow-right-circle-fill text-warning mt-1"></i>
+                                <span><strong>Mentoría especializada:</strong> Acompañamiento por un tutor académico del plantel y un instructor empresarial.</span>
+                            </li>
+                        </ul>
+
+                        <div class="d-flex align-items-center gap-3 pt-3 border-top border-secondary">
+                            <i class="bi bi-shield-check text-warning fs-3"></i>
+                            <div class="text-white small">
+                                <strong>Certificación DGETI:</strong> Programa validado con normas oficiales de la Secretaría de Educación Pública.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN VIDA ESTUDIANTIL & TIGRES 134 -->
+    <section id="vida-estudiantil" class="py-5 bg-light">
+        <div class="container py-4">
+            <div class="section-header-block">
+                <span class="section-tag"><i class="bi bi-trophy-fill me-1"></i> Orgullo Tigres</span>
+                <h2 class="section-main-title">Formación Integral, Deporte y Cultura</h2>
+                <p class="section-desc">
+                    En el CBTis 134 impulsamos el talento deportivo, cívico, artístico y científico de nuestros jóvenes.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 70px; height: 70px; background: rgba(123, 27, 55, 0.1); color: var(--guinda-base);">
+                            <i class="bi bi-dribbble fs-1"></i>
+                        </div>
+                        <h5 class="fw-bold">Deportes de Alto Nivel</h5>
+                        <p class="text-muted small">
+                            Equipos representativos en Fútbol, Básquetbol, Voleibol, Atletismo y Ajedrez, compitiendo y destacando en los encuentros estatales y nacionales INTER-DGETI.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 70px; height: 70px; background: rgba(212, 175, 55, 0.15); color: #8c6b00;">
+                            <i class="bi bi-flag-fill fs-1"></i>
+                        </div>
+                        <h5 class="fw-bold">Banda de Guerra & Escolta</h5>
+                        <p class="text-muted small">
+                            Tradición y marcialidad que representan con honor a nuestra institución en eventos cívicos, desfiles y concursos nacionales de bandas de guerra.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center">
+                        <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle" style="width: 70px; height: 70px; background: rgba(2, 132, 199, 0.1); color: #0284c7;">
+                            <i class="bi bi-cpu fs-1"></i>
+                        </div>
+                        <h5 class="fw-bold">Robótica & Ciencia</h5>
+                        <p class="text-muted small">
+                            Clubes de innovación, ferias de prototipos tecnológicos, hackathons y olimpiadas de matemáticas y química con asesoría docente personalizada.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN PROCESO DE ADMISIÓN / PRE-FICHAS -->
+    <section id="admisiones" class="py-5">
+        <div class="container py-4">
+            <div class="section-header-block">
+                <span class="section-tag"><i class="bi bi-card-checklist me-1"></i> Admisión 2026</span>
+                <h2 class="section-main-title">4 Pasos para Obtener tu Ficha de Ingreso</h2>
+                <p class="section-desc">
+                    El proceso de selección para el ciclo escolar 2026 - 2027 se realiza de forma ordenada y transparente.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Paso 1 -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="step-card">
+                        <div class="step-badge">1</div>
+                        <h5 class="fw-bold mb-2">Pre-Registro en Línea</h5>
+                        <p class="text-muted small mb-0">
+                            Ingresa al portal institucional en las fechas oficiales de la convocatoria y captura tus datos personales y carrera de preferencia.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Paso 2 -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="step-card">
+                        <div class="step-badge">2</div>
+                        <h5 class="fw-bold mb-2">Entrega de Documentos</h5>
+                        <p class="text-muted small mb-0">
+                            Presenta en el plantel tu comprobante de pre-registro, CURP certificada, constancia de estudios de secundaria y fotografías.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Paso 3 -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="step-card">
+                        <div class="step-badge">3</div>
+                        <h5 class="fw-bold mb-2">Examen Diagnóstico</h5>
+                        <p class="text-muted small mb-0">
+                            Aplica la evaluación diagnóstica de habilidades matemáticas, lectoras y ciencias en las fechas y horarios asignados en tu ficha.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Paso 4 -->
+                <div class="col-lg-3 col-md-6">
+                    <div class="step-card">
+                        <div class="step-badge">4</div>
+                        <h5 class="fw-bold mb-2">Curso Propedéutico</h5>
+                        <p class="text-muted small mb-0">
+                            Consulta la lista de resultados oficiales, asiste a tu curso propedéutico de inducción y concluye tu inscripción formal como Tigre 134.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Callout de ayuda -->
+            <div class="mt-5 p-4 rounded-4 bg-light border d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-info-circle-fill fs-2" style="color: var(--guinda-base);"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">¿Tienes dudas sobre los requisitos o fechas de expedición de fichas?</h6>
+                        <span class="text-muted small">El Departamento de Servicios Escolares y Orientación Educativa te asesora vía telefónica o presencial.</span>
+                    </div>
+                </div>
+                <a href="tel:7474723464" class="btn btn-outline-dark rounded-pill px-4 fw-bold text-nowrap">
+                    <i class="bi bi-telephone-fill me-1"></i> Llamar a Escolares
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECCIÓN UBICACIÓN Y CONTACTO -->
+    <section id="contacto" class="py-5 bg-light">
+        <div class="container py-4">
+            <div class="section-header-block">
+                <span class="section-tag"><i class="bi bi-geo-alt-fill me-1"></i> Encuéntranos</span>
+                <h2 class="section-main-title">Visita Nuestro Plantel o Escríbenos</h2>
+                <p class="section-desc">
+                    Estamos ubicados en una zona estratégica de fácil acceso en la capital del estado de Guerrero.
+                </p>
+            </div>
+
+            <div class="row g-4 align-items-stretch">
+                <!-- Columna Izquierda: Información de Contacto y Formulario -->
+                <div class="col-lg-6">
+                    <div class="contact-card-box h-100">
+                        <h4 class="fw-bold mb-4" style="color: var(--guinda-base);">Datos del Plantel</h4>
+
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">
+                                <i class="bi bi-geo-alt-fill"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Dirección Oficial</h6>
+                                <p class="text-muted small mb-0">
+                                    Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo de los Bravo, Guerrero, México.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">
+                                <i class="bi bi-telephone-fill"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Teléfonos Institucionales</h6>
+                                <p class="text-muted small mb-0">
+                                    <span class="landing-telefono">(747) 47 2 34 64</span> &bull; (747) 47 2 66 31
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">
+                                <i class="bi bi-building-check"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Clave de Centro de Trabajo (CCT)</h6>
+                                <p class="text-muted small mb-0">
+                                    <span class="badge bg-secondary landing-cct">12DCT0001L</span> &bull; Nivel Medio Superior DGETI
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de Mensaje -->
+                        <h5 class="fw-bold mt-4 mb-3" style="color: var(--slate-900);">Envíanos tus Dudas</h5>
+                        <form id="formContactoLanding">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control rounded-3" id="contactNombre" placeholder="Tu Nombre Completo" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="email" class="form-control rounded-3" id="contactEmail" placeholder="Correo Electrónico" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <input type="tel" class="form-control rounded-3" id="contactTel" placeholder="Teléfono de Contacto">
+                                </div>
+                                <div class="col-md-6">
+                                    <select class="form-select rounded-3" id="contactCarrera">
+                                        <option value="">Interés de Especialidad (Opcional)</option>
+                                        <option value="Inteligencia Artificial">Inteligencia Artificial</option>
+                                        <option value="Programación">Programación</option>
+                                        <option value="Comercio Electrónico">Comercio Electrónico</option>
+                                        <option value="Laboratorista Clínico">Laboratorista Clínico</option>
+                                        <option value="Construcción">Construcción</option>
+                                        <option value="Contabilidad">Contabilidad</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <textarea class="form-control rounded-3" id="contactMensaje" rows="3" placeholder="Escribe aquí tu pregunta o mensaje..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-cta-primary w-100 justify-content-center">
+                                <i class="bi bi-send-fill me-2"></i> Enviar Mensaje
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Mapa de Google Maps -->
+                <div class="col-lg-6">
+                    <div class="map-container h-100">
+                        <iframe 
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3801.442880194883!2d-99.49757652414167!3d17.53406569857997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85cbe93952a26569%3A0x7d97b0a394a1084b!2sCBTIS%20134!5e0!3m2!1ses-419!2smx!4v1700000000000!5m2!1ses-419!2smx" 
+                            width="100%" 
+                            height="100%" 
+                            style="border:0; min-height: 480px;" 
+                            allowfullscreen="" 
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER INSTITUCIONAL -->
+    <footer class="landing-footer">
+        <div class="container">
+            <div class="row g-4">
+                <!-- Columna 1: Identidad -->
+                <div class="col-lg-4 col-md-6">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <img th:src="@{/img/logo_aniversario.jpg}" alt="CBTis 134" class="landing-logo-plantel rounded-circle" style="height: 50px; width: 50px; object-fit: cover;">
+                        <div>
+                            <h5 class="text-white fw-bold mb-0 landing-nombre-plantel">CBTis 134</h5>
+                            <span class="text-white-50 small">"Nicolás Catalán"</span>
+                        </div>
+                    </div>
+                    <p class="small text-white-50 mb-3 landing-slogan">
+                        "Porque prestigio se gana con esfuerzo... Somos CBTis 134"
+                    </p>
+                    <div class="d-flex align-items-center">
+                        <a href="https://www.facebook.com/p/Cbtis-134-Nicol%C3%A1s-Catal%C3%A1n-Oficial-100089461305456/" target="_blank" class="social-btn" title="Facebook Oficial"><i class="bi bi-facebook"></i></a>
+                        <a href="https://www.instagram.com/" target="_blank" class="social-btn" title="Instagram Oficial"><i class="bi bi-instagram"></i></a>
+                        <a href="https://www.youtube.com/" target="_blank" class="social-btn" title="Canal de YouTube"><i class="bi bi-youtube"></i></a>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Carreras -->
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="footer-title">Especialidades</h5>
+                    <ul class="footer-links-list">
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('ia')">Inteligencia Artificial</a></li>
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('prog')">Programación</a></li>
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('ecom')">Comercio Electrónico</a></li>
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('lab')">Laboratorista Clínico</a></li>
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('const')">Construcción</a></li>
+                        <li><a href="javascript:void(0)" onclick="verDetalleCarrera('cont')">Contabilidad</a></li>
+                    </ul>
+                </div>
+
+                <!-- Columna 3: Enlaces Institucionales -->
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="footer-title">Enlaces</h5>
+                    <ul class="footer-links-list">
+                        <li><a href="#inicio">Inicio</a></li>
+                        <li><a href="#bivalente">Modelo Bivalente</a></li>
+                        <li><a href="#dual">Educación Dual</a></li>
+                        <li><a href="#admisiones">Admisiones 2026</a></li>
+                        <li><a th:href="@{/login}">Portal de Acceso</a></li>
+                    </ul>
+                </div>
+
+                <!-- Columna 4: Logos de Gobierno y SEP -->
+                <div class="col-lg-3 col-md-6 text-lg-end">
+                    <h5 class="footer-title text-lg-end">Dependencias Oficiales</h5>
+                    <div class="d-flex flex-column gap-3 align-items-lg-end">
+                        <img th:src="@{/img/logoSep.png}" alt="SEP" style="height: 38px; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 8px;">
+                        <img th:src="@{/img/logoMujerGob.png}" alt="Gobierno de México" style="height: 38px; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 8px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copyright -->
+            <div class="footer-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    &copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> <strong class="landing-nombre-oficial">Centro de Bachillerato Tecnológico industrial y de servicios No. 134 "Nicolás Catalán"</strong>. Todos los derechos reservados.
+                </div>
+                <div class="text-white-50">
+                    Chilpancingo, Guerrero &bull; DGETI - SEMS - SEP
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL DETALLE DE CARRERA TÉCNICA -->
+    <div class="modal fade" id="modalDetalleCarrera" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <div class="modal-header modal-career-header border-0">
+                    <div>
+                        <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold mb-2" id="modalCareerBadge">Especialidad</span>
+                        <h3 class="modal-title fw-bold text-white" id="modalCareerTitle">Carrera</h3>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="lead text-secondary fs-6 mb-4" id="modalCareerDesc"></p>
+
+                    <!-- Info rápida duración y título -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <span class="d-block text-muted small fw-bold text-uppercase">Título que se otorga:</span>
+                                <strong class="text-dark" id="modalCareerTitulo">Técnico Profesional</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 bg-light rounded-3 border">
+                                <span class="d-block text-muted small fw-bold text-uppercase">Duración del Programa:</span>
+                                <strong class="text-dark" id="modalCareerDuracion">6 Semestres (3 Años)</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Módulos Profesionales -->
+                    <h5 class="fw-bold mb-3" style="color: var(--guinda-base);">
+                        <i class="bi bi-journal-bookmark-fill me-2"></i> Módulos de Formación Profesional
+                    </h5>
+                    <ul class="list-unstyled mb-4" id="modalCareerModulos">
+                        <!-- Llenado dinámico por JS -->
+                    </ul>
+
+                    <!-- Campo Laboral -->
+                    <h5 class="fw-bold mb-3" style="color: var(--slate-900);">
+                        <i class="bi bi-briefcase-fill me-2 text-warning"></i> Campo Ocupacional y Laboral
+                    </h5>
+                    <ul class="list-unstyled mb-0" id="modalCareerCampo">
+                        <!-- Llenado dinámico por JS -->
+                    </ul>
+                </div>
+                <div class="modal-footer bg-light border-0 p-3">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cerrar</button>
+                    <a href="#admisiones" class="btn btn-cta-primary" data-bs-dismiss="modal">
+                        <i class="bi bi-pencil-square me-1"></i> Solicitar Ficha
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts: Bootstrap 5, SweetAlert2 y Landing JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script th:src="@{/js/landing.js}"></script>
+</body>
+</html>

@@ -47,7 +47,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                .requestMatchers("/login", "/css/**", "/js/**", "/img/**", "/qrs/**", "/models/**", "/error", "/favicon.ico", "/uploads/**").permitAll()
+                .requestMatchers("/", "/index", "/landing", "/login", "/css/**", "/js/**", "/img/**", "/qrs/**", "/models/**", "/error", "/favicon.ico", "/uploads/**", "/api/configuracion/**").permitAll()
                 
                 // Endpoint para consultar datos y rol de la sesión activa
                 .requestMatchers("/api/usuarios/me").authenticated()
