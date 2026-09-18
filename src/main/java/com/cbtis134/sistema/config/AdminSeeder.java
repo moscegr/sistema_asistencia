@@ -44,8 +44,8 @@ public class AdminSeeder implements ApplicationRunner {
     private void seederUsuarios() {
         String envEmail = System.getenv("ADMIN_EMAIL");
         String envPass = System.getenv("ADMIN_PASSWORD");
-        String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : "koyer.pop@gmail.com";
-        String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass.trim() : "kike1992";
+        String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : "admin@cbtis134.edu.mx";
+        String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass.trim() : "AdminCBTis134_2026!";
 
         Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
         if (admin == null) {

@@ -42,23 +42,25 @@ graph TD
 
 ## 🔐 Administrador Inicial (Seeder Automático)
 
-Al arrancar la aplicación por primera vez con MongoDB vacío, se creará automáticamente el usuario administrador inicial:
+Al arrancar la aplicación por primera vez con MongoDB vacío, se inicializará el usuario administrador principal:
 
-- **Correo por defecto**: `koyer.pop@gmail.com` (o configurable mediante `ADMIN_EMAIL`).
-- **Contraseña por defecto**: `kike1992` (o configurable mediante `ADMIN_PASSWORD`).
+- **Correo por defecto**: `admin@cbtis134.edu.mx` (o configurable mediante la variable `ADMIN_EMAIL`).
+- **Contraseña por defecto**: `AdminCBTis134_2026!` (o configurable mediante la variable `ADMIN_PASSWORD`).
 
 ---
 
-## 🔑 Variables de Entorno (Coolify / Producción)
+## 🔑 Variables de Entorno (Coolify / Producción / Docker)
 
-Configura las siguientes variables en el panel de tu aplicación en Coolify:
+Configura las siguientes variables en el panel de tu aplicación en **Coolify** o en tu archivo `.env`:
 
-| Variable | Descripción | Valor Ejemplo | Obligatorio |
+| Variable | Descripción | Valor Ejemplo / Formato | Requerido |
 | :--- | :--- | :--- | :---: |
-| `SPRING_DATA_MONGODB_URI` | Cadena de conexión a MongoDB en Coolify | `mongodb://root:pass@mongodb:27017/cbtis134_db?authSource=admin` | **Sí** |
-| `ADMIN_EMAIL` | Correo del Administrador Inicial | `koyer.pop@gmail.com` | No (opcional) |
-| `ADMIN_PASSWORD` | Contraseña del Administrador Inicial | `kike1992` | No (opcional) |
-| `UPLOAD_DIR` | Directorio de almacenamiento persistente | `/app/uploads` | No (opcional) |
+| `SPRING_DATA_MONGODB_URI` | Cadena de conexión interna a MongoDB en la red Docker de Coolify | `mongodb://<usuario>:<password>@<host_o_servicio>:27017/<nombre_db>?authSource=admin` | **Sí** |
+| `ADMIN_EMAIL` | Correo electrónico del Administrador Principal | `admin@tudominio.edu.mx` | Opcional |
+| `ADMIN_PASSWORD` | Contraseña segura para el Administrador Principal | `TuPasswordFuerte2026!#` | Opcional |
+| `APP_UPLOAD_DIR` | Ruta interna del contenedor para archivos multimedia y respaldos | `/app/uploads` | Opcional |
+| `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | Tamaño máximo permitido por archivo | `50MB` | Opcional |
+| `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | Tamaño máximo por petición HTTP multipart | `50MB` | Opcional |
 
 ---
 

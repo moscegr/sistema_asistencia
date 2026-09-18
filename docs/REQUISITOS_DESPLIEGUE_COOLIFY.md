@@ -1,4 +1,4 @@
-﻿# 📄 ESPECIFICACIÓN TÉCNICA: DESPLIEGUE DEL SISTEMA EN COOLIFY (DOCKER)
+# 📄 ESPECIFICACIÓN TÉCNICA: DESPLIEGUE DEL SISTEMA EN COOLIFY (DOCKER)
 **Plataforma de Control de Acceso y Gestión Escolar**  
 *Guía de Requisitos, Configuración de Recursos y Despliegue en Coolify PaaS*
 
@@ -91,12 +91,12 @@ Configurar en la pestaña **Environment Variables** de la aplicación:
 
 | Variable | Valor / Ejemplo | Descripción |
 | :--- | :--- | :--- |
-| \SPRING_DATA_MONGODB_URI\ | \mongodb://admin_mongo:Password@mongodb:27017/residencia_cbtis?authSource=admin\ | Conexión interna a MongoDB |
-| \APP_UPLOAD_DIR\ | \/app/uploads\ | Ruta interna para almacenamiento de fotos/documentos |
-| \SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE\ | \50MB\ | Límite por archivo multimedia |
-| \SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE\ | \50MB\ | Límite por petición HTTP |
-| \ADMIN_EMAIL\ | \dmin@admin.edu.mx\ | Correo inicial de administración |
-| \ADMIN_PASSWORD\ | \12345678\ | Contraseña del administrador |
+| `SPRING_DATA_MONGODB_URI` | `mongodb://<usuario>:<password>@mongodb:27017/residencia_cbtis?authSource=admin` | Conexión interna a MongoDB |
+| `APP_UPLOAD_DIR` | `/app/uploads` | Ruta interna para almacenamiento de fotos/documentos |
+| `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | `50MB` | Límite por archivo multimedia |
+| `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | `50MB` | Límite por petición HTTP |
+| `ADMIN_EMAIL` | `admin@tudominio.edu.mx` | Correo inicial de administración |
+| `ADMIN_PASSWORD` | `TuPasswordSeguro2026!#` | Contraseña del administrador |
 
 ---
 
