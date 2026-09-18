@@ -15,6 +15,27 @@
     .text-guinda { color: var(--guinda); }
     #page-content-wrapper { width: 100%; min-width: 0; }
 
+    .btn-check:checked + .btn-outline-success {
+        background-color: #198754 !important;
+        color: #ffffff !important;
+        border-color: #198754 !important;
+        box-shadow: 0 4px 10px rgba(25, 135, 84, 0.35) !important;
+        font-weight: 700;
+    }
+    .btn-check:checked + .btn-outline-success .check-icon {
+        display: inline-block !important;
+    }
+    .btn-check:not(:checked) + .btn-outline-success {
+        background-color: #ffffff !important;
+        color: #495057 !important;
+        border-color: #dee2e6 !important;
+    }
+    .btn-check:not(:checked) + .btn-outline-success:hover {
+        background-color: #e8f5e9 !important;
+        color: #198754 !important;
+        border-color: #198754 !important;
+    }
+
     /* === HOJA AMARILLA VECTORIAL === */
     .hoja-pase {
       width: 750px; 

@@ -86,9 +86,9 @@ async function cargarTableroGrupal() {
             grupos.forEach(g => {
                 const grado = g.slice(0, -1);
                 const grupo = g.slice(-1);
-                const cleanId = 'chk-' + g + '-' + normalizarTexto(espNombre);
-                btnsHtml += '<input type="checkbox" class="btn-check" id="' + cleanId + '" ' + (!esAdminUOrientacion ? 'disabled' : '') + ' onchange="alternarPaseGrupal(\'' + grado + '\',\'' + grupo + '\',\'' + espNombre + '\', this.checked)">';
-                btnsHtml += '<label class="btn btn-sm btn-outline-dark px-3 rounded-pill me-1 mb-1" for="' + cleanId + '" style="' + (!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : '') + '">' + g + '</label>';
+                const cleanId = 'chk-' + g + '-' + normalizarTexto(espNombre).replace(/[^a-z0-9]/g, '_');
+                btnsHtml += '<input type="checkbox" class="btn-check" id="' + cleanId + '" autocomplete="off" ' + (!esAdminUOrientacion ? 'disabled' : '') + ' onchange="alternarPaseGrupal(\'' + grado + '\',\'' + grupo + '\',\'' + espNombre + '\', this.checked)">';
+                btnsHtml += '<label class="btn btn-sm btn-outline-success px-3 rounded-pill me-1 mb-1 fw-bold" for="' + cleanId + '" style="' + (!esAdminUOrientacion ? 'cursor: not-allowed; opacity: 0.6;' : '') + '"><i class="bi bi-check-lg d-none me-1 check-icon"></i>' + g + '</label>';
             });
 
             tablero.innerHTML += `
@@ -103,7 +103,7 @@ async function cargarTableroGrupal() {
                     </div>
                 </div>`;
         });
-        escucharCambiosGrupos();
+        await escucharCambiosGrupos();
     } catch (e) {
         console.error("Error en cargarTableroGrupal:", e);
     }
@@ -115,16 +115,57 @@ async function escucharCambiosGrupos() {
         const res = await fetch('/api/pases');
         if (res.ok) {
             const pases = await res.json();
+            
+            // Limpiar estado visual previo
+            document.querySelectorAll('input[id^="chk-"]').forEach(chk => {
+                chk.checked = false;
+            });
+
             pases.forEach(p => {
-                if (p.es_grupal && p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO')) {
-                    const id1 = `chk-${p.grado}${p.grupo}-${normalizarTexto(p.especialidad)}`;
-                    const id2 = `chk-${p.grado}${p.grupo}-${p.especialidad.replace(/ /g,'_')}`;
-                    const el = document.getElementById(id1) || document.getElementById(id2);
-                    if (el) el.checked = true;
+                const esGrupal = (p.es_grupal === true || p.es_grupal === 'true');
+                const esVigente = (p.estatus_vigencia === true || p.estatus_vigencia === 'true' || p.estatus === 'AUTORIZADO');
+                const esHoy = (!p.fecha || p.fecha === hoy);
+
+                if (esGrupal && esVigente && esHoy) {
+                    let grado = p.grado || '';
+                    let grupo = p.grupo || '';
+                    let especialidad = p.especialidad || '';
+
+                    if ((!grado || !grupo) && p.grupo_especialidad) {
+                        const parts = p.grupo_especialidad.split('-');
+                        if (parts.length >= 2) {
+                            const gpoStr = parts[0];
+                            grado = gpoStr.slice(0, -1);
+                            grupo = gpoStr.slice(-1);
+                            if (!especialidad) especialidad = parts.slice(1).join('-');
+                        }
+                    }
+
+                    const gpoKey = `${grado}${grupo}`;
+                    const espNorm = normalizarTexto(especialidad).replace(/[^a-z0-9]/g, '_');
+                    
+                    let el = document.getElementById(`chk-${gpoKey}-${espNorm}`);
+                    
+                    if (!el) {
+                        const allChks = document.querySelectorAll(`input[id^="chk-${gpoKey}-"]`);
+                        for (const chk of allChks) {
+                            const suffix = chk.id.replace(`chk-${gpoKey}-`, '');
+                            if (suffix === espNorm || espNorm.includes(suffix) || suffix.includes(espNorm)) {
+                                el = chk;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (el) {
+                        el.checked = true;
+                    }
                 }
             });
         }
-    } catch(e){}
+    } catch(e){
+        console.warn("Error en escucharCambiosGrupos:", e);
+    }
 }
 
 async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
@@ -135,7 +176,8 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
 	}
 		
 	const hoy = obtenerFechaLocal();
-	const folio = `GRP-${grado}${grupo}-${especialidad.replace(/ /g,'_')}-${hoy}`;
+    const espLimpia = especialidad.replace(/ /g,'_');
+	const folio = `GRP-${grado}${grupo}-${espLimpia}-${hoy}`;
     const grupoEspecialidad = `${grado}${grupo}-${especialidad}`;
 
 	try {
@@ -160,22 +202,31 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
             });
             Swal.fire({ icon: 'success', title: 'Salida Grupal Autorizada', text: `Grupo ${grado}° "${grupo}" de ${especialidad}`, toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
         } else {
-            await fetch(`/api/pases/${folio}`, { method: 'DELETE' });
-            await fetch(`/api/pases/${grupoEspecialidad}`, { method: 'DELETE' });
+            await fetch(`/api/pases/${encodeURIComponent(folio)}`, { method: 'DELETE' });
+            await fetch(`/api/pases/${encodeURIComponent(grupoEspecialidad)}`, { method: 'DELETE' });
             
             const rPases = await fetch('/api/pases');
             if (rPases.ok) {
                 const list = await rPases.json();
-                const matches = list.filter(p => p.es_grupal && p.grado == grado && p.grupo == grupo && p.especialidad === especialidad && p.fecha === hoy);
+                const matches = list.filter(p => {
+                    const esG = (p.es_grupal === true || p.es_grupal === 'true');
+                    const gMatch = String(p.grado) === String(grado) && String(p.grupo) === String(grupo);
+                    const espMatch = normalizarTexto(p.especialidad) === normalizarTexto(especialidad);
+                    return esG && gMatch && espMatch;
+                });
                 for (const match of matches) {
                     const idBorrar = match._id || match.id || match.folio_pase;
                     if (idBorrar) {
-                        await fetch(`/api/pases/${idBorrar}`, { method: 'DELETE' });
+                        await fetch(`/api/pases/${encodeURIComponent(idBorrar)}`, { method: 'DELETE' });
                     }
                 }
             }
             Swal.fire({ icon: 'info', title: 'Pase Grupal Removido', toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
         }
+
+        await escucharCambiosGrupos();
+        await escucharPasesGlobales();
+
 	} catch (e) {
 		console.error("Error al alternar pase grupal:", e);
 	    Swal.fire("Error", "No se pudo actualizar el estatus del grupo.", "error");
@@ -371,11 +422,12 @@ async function escucharPasesGlobales() {
     try {
         const res = await fetch('/api/pases');
         if (res.ok) {
-            const list = await res.json();
-            pasesGlobales = list.filter(p => !p.es_grupal);
+            pasesGlobales = await res.json();
             filtrarTablaGlobal();
         }
-    } catch(err){}
+    } catch(err){
+        console.warn("Error cargando pases globales:", err);
+    }
 }
 
 function filtrarTablaGlobal() {
@@ -387,36 +439,55 @@ function filtrarTablaGlobal() {
     
     tbody.innerHTML = "";
     let filtrados = pasesGlobales.filter(p => {
-        const fol = (p.folio_pase || "").toLowerCase();
-        const mat = (p.matricula || "").toLowerCase();
-        const nom = (p.nombreFull || p.nombre || "").toLowerCase();
+        const fol = (p.folio_pase || p._id || "").toLowerCase();
+        const mat = (p.matricula || p.grupo_especialidad || "").toLowerCase();
+        const nom = (p.nombreFull || p.nombre || p.especialidad || "").toLowerCase();
         return fol.includes(fFolio) && (nom.includes(fNombre) || mat.includes(fNombre));
     });
 
     const paginados = filtrados.slice(0, limitePases);
 
+    if (paginados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">No hay pases de salida registrados hoy.</td></tr>`;
+        return;
+    }
+
     paginados.forEach(p => {
         let bClase = 'bg-secondary', bTexto = 'Usado';
-        if (p.estatus_vigencia) {
-            bClase = (p.fecha === hoy) ? 'bg-success' : 'bg-warning text-dark';
-            bTexto = (p.fecha === hoy) ? 'Vigente' : 'Expirado';
+        if (p.estatus_vigencia === true || p.estatus_vigencia === 'true' || p.estatus === 'AUTORIZADO') {
+            bClase = (p.fecha === hoy || !p.fecha) ? 'bg-success' : 'bg-warning text-dark';
+            bTexto = (p.fecha === hoy || !p.fecha) ? 'Vigente' : 'Expirado';
         }
+
+        const esG = (p.es_grupal === true || p.es_grupal === 'true');
+        const badgeTipo = esG 
+            ? '<span class="badge bg-primary me-1" style="font-size: 10px;">Grupal</span>' 
+            : '<span class="badge bg-secondary me-1" style="font-size: 10px;">Individual</span>';
+
+        const nombreMostrar = esG 
+            ? `Salida Grupal ${p.grado || ''}° "${p.grupo || ''}" • ${p.especialidad || ''}`
+            : (p.nombreFull || p.nombre || p.matricula || 'Estudiante');
+
+        const matMostrar = esG
+            ? `<span class="badge bg-light text-dark border">Grupo ${p.grado || ''}${p.grupo || ''}</span>`
+            : (p.matricula || 'S/M');
 
 		tbody.innerHTML += `
 		    <tr>
-		        <td class="fw-bold text-guinda">${p.folio_pase}</td>
+		        <td class="fw-bold text-guinda">${badgeTipo}${p.folio_pase || p._id}</td>
 		        <td>
-		            <div class="fw-bold small">${p.nombreFull || p.matricula}</div>
-		            <small class="text-muted">${p.matricula}</small>
+		            <div class="fw-bold small">${nombreMostrar}</div>
+		            <small class="text-muted">${matMostrar}</small>
 		        </td>
-		        <td><small>${p.fecha}</small></td>
-		        <td><small class="text-truncate d-inline-block" style="max-width: 150px;">${p.motivo || 'N/A'}</small></td>
+		        <td><small>${p.fecha || hoy}</small></td>
+		        <td><small class="text-truncate d-inline-block" style="max-width: 170px;">${p.motivo || (esG ? 'Salida Anticipada Grupal' : 'N/A')}</small></td>
 		        <td><span class="badge ${bClase}">${bTexto}</span></td>
 		        <td class="text-center">
 		            <div class="btn-group">
+		                ${!esG ? `
 		                <button class="btn btn-sm btn-outline-primary border-0 text-primary" onclick="reimprimirPaseIndividual('${p._id || p.id || p.folio_pase}')" title="Ver / Reimprimir Pase">
 		                    <i class="bi bi-printer-fill fs-5"></i>
-		                </button>
+		                </button>` : ''}
 		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p._id || p.id || p.folio_pase}')" title="Eliminar Pase">
 		                    <i class="bi bi-trash3-fill fs-5"></i>
 		                </button>
