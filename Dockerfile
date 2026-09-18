@@ -7,15 +7,22 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests
 
-# Stage 2: Imagen final ligera para ejecucion
+# Stage 2: Imagen final ligera y segura para ejecucion
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-RUN mkdir -p /app/uploads
-VOLUME ["/app/uploads"]
+# Crear usuario y grupo sin privilegios 'spring' para evitar ejecucion como root
+RUN addgroup -g 1001 -S spring && adduser -u 1001 -S spring -G spring
 
-COPY --from=build /app/target/*.jar app.jar
+# Crear directorio de subidas con permisos asignados
+RUN mkdir -p /app/uploads && chown -R spring:spring /app
+
+COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
+
+USER spring:spring
+
+VOLUME ["/app/uploads"]
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]

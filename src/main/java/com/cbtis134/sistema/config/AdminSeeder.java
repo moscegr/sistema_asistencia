@@ -44,8 +44,8 @@ public class AdminSeeder implements ApplicationRunner {
     private void seederUsuarios() {
         String envEmail = System.getenv("ADMIN_EMAIL");
         String envPass = System.getenv("ADMIN_PASSWORD");
-        String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail : "koyer.pop@gmail.com";
-        String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass : "kike1992";
+        String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : "koyer.pop@gmail.com";
+        String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass.trim() : "kike1992";
 
         Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
         if (admin == null) {
@@ -56,59 +56,32 @@ public class AdminSeeder implements ApplicationRunner {
             admin.setNombre("ADMINISTRADOR PRINCIPAL");
             admin.setRol("ADMIN");
             admin.setEstatus("Activo");
-            admin.setUltimoAcceso("Sembrado en inicio");
+            admin.setUltimoAcceso("Inicializado");
             admin.setPermisos(Arrays.asList("ALL"));
             usuarioRepository.save(admin);
-            System.out.println("-> Admin Principal verificado/creado: " + adminEmail);
-        } else if (admin.getNombre() != null && !admin.getNombre().equals(admin.getNombre().toUpperCase())) {
-            admin.setNombre(admin.getNombre().toUpperCase());
-            usuarioRepository.save(admin);
+            System.out.println("-> Admin Principal inicializado de forma segura: " + adminEmail);
         }
 
-        usuarioRepository.findByCorreo("cruz.egr@cbtis134.edu.mx").ifPresent(u -> {
-            usuarioRepository.delete(u);
-            System.out.println("-> Usuario eliminado: cruz.egr@cbtis134.edu.mx");
-        });
-        usuarioRepository.findByCorreo("cruz.egr").ifPresent(u -> {
-            usuarioRepository.delete(u);
-            System.out.println("-> Usuario eliminado: cruz.egr");
-        });
+        // Si la base de datos está completamente vacía de usuarios iniciales, sembrar perfiles de operación
+        if (usuarioRepository.count() <= 1) {
+            List<UsuarioSeed> usuariosData = Arrays.asList(
+                new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134_Guardia2026!"),
+                new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134_Prefectura2026!"),
+                new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134_Orientacion2026!"),
+                new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134_Admin2026!")
+            );
 
-        List<UsuarioSeed> usuariosData = Arrays.asList(
-            new UsuarioSeed("admin-master-uid-001", "ADMINISTRADOR GENERAL", "admin@admin.edu.mx", "ADMIN", "12345678"),
-            new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134"),
-            new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134"),
-            new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134"),
-            new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134")
-        );
-
-        for (UsuarioSeed u : usuariosData) {
-            Usuario uExistente = usuarioRepository.findByCorreo(u.correo).orElse(null);
-            if (uExistente == null) {
-                Usuario usuario = new Usuario();
-                usuario.setUid(u.uid);
-                usuario.setNombre(u.nombre.toUpperCase());
-                usuario.setCorreo(u.correo);
-                usuario.setRol(u.rol);
-                usuario.setEstatus("Activo");
-                usuario.setPassword(passwordEncoder.encode(u.password));
-                usuarioRepository.save(usuario);
-                System.out.println("-> Usuario inicial verificado/creado: " + u.correo + " (" + u.rol + ")");
-            } else {
-                boolean modificado = false;
-                if (uExistente.getNombre() == null || !uExistente.getNombre().equalsIgnoreCase(u.nombre)) {
-                    uExistente.setNombre(u.nombre.toUpperCase());
-                    modificado = true;
-                }
-                if (u.correo.equalsIgnoreCase("admin@admin.edu.mx")) {
-                    uExistente.setPassword(passwordEncoder.encode(u.password));
-                    uExistente.setNombre(u.nombre.toUpperCase());
-                    uExistente.setRol("ADMIN");
-                    uExistente.setEstatus("Activo");
-                    modificado = true;
-                }
-                if (modificado) {
-                    usuarioRepository.save(uExistente);
+            for (UsuarioSeed u : usuariosData) {
+                if (usuarioRepository.findByCorreo(u.correo).isEmpty()) {
+                    Usuario usuario = new Usuario();
+                    usuario.setUid(u.uid);
+                    usuario.setNombre(u.nombre.toUpperCase());
+                    usuario.setCorreo(u.correo);
+                    usuario.setRol(u.rol);
+                    usuario.setEstatus("Activo");
+                    usuario.setPassword(passwordEncoder.encode(u.password));
+                    usuarioRepository.save(usuario);
+                    System.out.println("-> Usuario operativo creado: " + u.correo + " (" + u.rol + ")");
                 }
             }
         }

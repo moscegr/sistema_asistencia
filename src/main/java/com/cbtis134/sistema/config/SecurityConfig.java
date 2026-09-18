@@ -47,7 +47,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                .requestMatchers("/", "/index", "/landing", "/login", "/css/**", "/js/**", "/img/**", "/qrs/**", "/models/**", "/error", "/favicon.ico", "/favicon.png", "/uploads/**", "/api/configuracion/**").permitAll()
+                .requestMatchers("/", "/index", "/landing", "/login", "/css/**", "/js/**", "/img/**", "/qrs/**", "/models/**", "/error", "/favicon.ico", "/favicon.png", "/uploads/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/configuracion/sistema", "/api/configuracion/escolar").permitAll()
                 
                 // Endpoint para consultar datos y rol de la sesión activa
                 .requestMatchers("/api/usuarios/me").authenticated()
@@ -92,11 +93,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/registros-diarios/**").hasAnyRole("ADMIN", "GUARDIA")
                 .requestMatchers(HttpMethod.DELETE, "/api/registros-diarios/**").hasAnyRole("ADMIN", "GUARDIA")
 
-                // match /configuracion/{docId}
+                // match /configuracion (Backup, restore, modificaciones críticas solo ADMIN)
+                .requestMatchers("/api/configuracion/backup/**", "/api/configuracion/restore", "/api/configuracion/revertir-ciclo").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/configuracion/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
                 .requestMatchers(HttpMethod.POST, "/api/configuracion/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/configuracion/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/configuracion/**").hasRole("ADMIN")
+
+                // match /whatsapp
+                .requestMatchers("/api/whatsapp/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
 
                 // match /calendario/{docId}
                 .requestMatchers(HttpMethod.GET, "/api/calendario/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
@@ -111,7 +116,7 @@ public class SecurityConfig {
                 .requestMatchers("/admin/incidencias/prefectura").hasAnyRole("ADMIN", "PREFECTO")
                 .requestMatchers("/admin/escaneo").hasAnyRole("ADMIN", "GUARDIA")
                 .requestMatchers("/admin/**").authenticated()
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/login")

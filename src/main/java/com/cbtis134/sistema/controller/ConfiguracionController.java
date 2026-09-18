@@ -233,10 +233,32 @@ public class ConfiguracionController {
                                 totalDocumentos += cant;
                             }
                         } else if (!entry.isDirectory() && (entryName.startsWith("multimedia/") || entryName.startsWith("uploads/"))) {
-                            // Extraer archivo multimedia en destino de uploads
+                            // Extraer archivo multimedia en destino de uploads con protección estricta contra Zip Slip (Path Traversal)
                             String subPath = entryName.replaceFirst("^(multimedia/|uploads/)", "");
-                            File destFile = new File(uploadDir, subPath);
-                            destFile.getParentFile().mkdirs();
+                            File destDir = new File(uploadDir).getCanonicalFile();
+                            File destFile = new File(destDir, subPath).getCanonicalFile();
+
+                            // Verificación de seguridad: el archivo DEBE estar dentro del directorio de uploads
+                            if (!destFile.getPath().startsWith(destDir.getPath() + File.separator)) {
+                                System.err.println("ADVERTENCIA DE SEGURIDAD: Intento de Zip Slip bloqueado para la entrada: " + entryName);
+                                continue;
+                            }
+
+                            // Solo permitir extensiones multimedia seguras (evitar scripts o ejecutables .sh, .jar, .py, .php, etc.)
+                            String lowerName = destFile.getName().toLowerCase();
+                            boolean extensionSegura = lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg") ||
+                                                     lowerName.endsWith(".png") || lowerName.endsWith(".webp") ||
+                                                     lowerName.endsWith(".gif") || lowerName.endsWith(".pdf") ||
+                                                     lowerName.endsWith(".svg") || lowerName.endsWith(".txt");
+
+                            if (!extensionSegura) {
+                                System.err.println("ADVERTENCIA DE SEGURIDAD: Archivo no permitido bloqueado: " + entryName);
+                                continue;
+                            }
+
+                            if (destFile.getParentFile() != null) {
+                                destFile.getParentFile().mkdirs();
+                            }
 
                             try (java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile)) {
                                 byte[] buffer = new byte[8192];
