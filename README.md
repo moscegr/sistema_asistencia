@@ -20,7 +20,7 @@ graph TD
         Wpp["💬 Evolution API / WPPConnect<br/>Gateway WhatsApp en Docker"]
     end
     
-    User -->|HTTPS (Puerto 443)| App
+    User -->|"HTTPS (Puerto 443)"| App
     App -->|Red Interna Docker| Mongo
     App -->|Archivos y Multimedia| Storage
     App -->|Notificaciones| Wpp
