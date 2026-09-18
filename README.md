@@ -1,125 +1,108 @@
-# 🏫 Sistema Control de Acceso y Asistencia por QR - CBTis 134
+# 🏫 Sistema de Control de Acceso y Gestión Escolar
 
-Sistema web escolar de control de acceso, registro de asistencia mediante código QR, reconocimiento facial, expedientes de alumnos, seguimiento conductual/médico y notificación automática a tutores por WhatsApp.
+Sistema web escolar integral para el control de acceso, registro de asistencia mediante código QR, reconocimiento facial, expedientes de alumnos, seguimiento conductual/médico y notificación automática a tutores por WhatsApp.
 
-Diseñado para ser **100% independiente, autosostenible y 0% costo de licencias o APIs externas**, desplegable fácilmente en un VPS mediante **Coolify** utilizando contenedores Docker.
+Diseñado para ser **100% independiente, autosostenible y sin costo de licencias o APIs externas**, desplegable fácilmente en un servidor VPS mediante **Coolify** utilizando contenedores Docker.
 
 ---
 
-## 🏗️ Arquitectura 100% Self-Hosted en Coolify
+## 🏗️ Arquitectura en Coolify (Docker)
 
 ```mermaid
 graph TD
-    User["👤 Navegador (Admin, Prefectura, Orientación, Alumnos)"]
-    Coolify["🖥️ VPS (Coolify Container Engine)"]
+    User["👤 Navegador Web (Admin, Prefectura, Orientación, Guardia)"]
+    Coolify["🖥️ Servidor VPS (Coolify Container Engine)"]
     
     subgraph Coolify
-        App["☕ Spring Boot App (Java 17)<br/>Port 8080"]
-        Mongo[("🍃 MongoDB Container<br/>Base de Datos")]
-        Storage[("📁 Persistent Volume<br/>/app/uploads")]
-        Wpp["💬 Evolution API / WPPConnect<br/>WhatsApp Gateway Docker"]
+        App["☕ Spring Boot App (Java 17)<br/>Puerto 8080"]
+        Mongo[("🍃 MongoDB Container<br/>Base de Datos Interna")]
+        Storage[("📁 Volumen Persistente<br/>/app/uploads")]
+        Wpp["💬 Evolution API / WPPConnect<br/>Gateway WhatsApp en Docker"]
     end
     
-    User -->|HTTP / HTTPS| App
-    App -->|Persistencia| Mongo
-    App -->|Archivos y Documentos| Storage
-    App -->|Envío de Notificaciones| Wpp
-    Wpp -->|Notificaciones a Tutores| User
+    User -->|HTTPS (Puerto 443)| App
+    App -->|Red Interna Docker| Mongo
+    App -->|Archivos y Multimedia| Storage
+    App -->|Notificaciones| Wpp
+    Wpp -->|Mensajes a Tutores| User
 ```
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Tecnologías
 
 - **Backend**: Java 17, Spring Boot 3.4.2 (Spring Data MongoDB, Spring Security 6 con BCrypt).
 - **Base de Datos**: MongoDB.
 - **Frontend**: Thymeleaf, HTML5, CSS3, JavaScript.
-- **Generación / Escaneo de QR**: Google ZXing (3.5.3).
-- **Reconocimiento Facial**: `face-api.js` (procesamiento 100% local en cliente).
-- **Gateway de WhatsApp**: Proxy integrado multicanal (Evolution API, WPPConnect, Twilio, OpenWA, UltraMsg).
+- **Generación / Lectura de QR**: Google ZXing.
+- **Reconocimiento Facial**: `face-api.js` (procesamiento 100% local en navegador cliente).
+- **Notificaciones WhatsApp**: Integración multicanal (Evolution API, WPPConnect, Twilio, OpenWA, UltraMsg).
 
 ---
 
-## 🔐 Administrador Inicial (Seeder Automático)
-
-Al arrancar la aplicación por primera vez con MongoDB vacío, se inicializará el usuario administrador principal:
-
-- **Correo por defecto**: `admin@cbtis134.edu.mx` (o configurable mediante la variable `ADMIN_EMAIL`).
-- **Contraseña por defecto**: `AdminCBTis134_2026!` (o configurable mediante la variable `ADMIN_PASSWORD`).
-
----
-
-## 🔑 Variables de Entorno (Coolify / Producción / Docker)
+## 🔑 Variables de Entorno (Producción / Coolify)
 
 Configura las siguientes variables en el panel de tu aplicación en **Coolify** o en tu archivo `.env`:
 
-| Variable | Descripción | Valor Ejemplo / Formato | Requerido |
+| Variable | Descripción | Formato / Ejemplo Genérico | Requerido |
 | :--- | :--- | :--- | :---: |
-| `SPRING_DATA_MONGODB_URI` | Cadena de conexión interna a MongoDB en la red Docker de Coolify | `mongodb://<usuario>:<password>@<host_o_servicio>:27017/<nombre_db>?authSource=admin` | **Sí** |
-| `ADMIN_EMAIL` | Correo electrónico del Administrador Principal | `admin@tudominio.edu.mx` | Opcional |
-| `ADMIN_PASSWORD` | Contraseña segura para el Administrador Principal | `TuPasswordFuerte2026!#` | Opcional |
-| `APP_UPLOAD_DIR` | Ruta interna del contenedor para archivos multimedia y respaldos | `/app/uploads` | Opcional |
+| `SPRING_DATA_MONGODB_URI` | Cadena de conexión interna a MongoDB dentro de la red Docker | `mongodb://<usuario>:<password>@<servicio_mongo>:27017/<nombre_db>?authSource=admin` | **Sí** |
+| `ADMIN_EMAIL` | Correo electrónico de la cuenta de Administrador Principal | `admin@institucion.edu.mx` | Opcional |
+| `ADMIN_PASSWORD` | Contraseña segura para el Administrador Principal | `TuPasswordFuerteYUnico2026!#` | Opcional |
+| `APP_UPLOAD_DIR` | Directorio interno del contenedor para subidas y respaldos | `/app/uploads` | Opcional (Default: `/app/uploads`) |
 | `SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE` | Tamaño máximo permitido por archivo | `50MB` | Opcional |
-| `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | Tamaño máximo por petición HTTP multipart | `50MB` | Opcional |
+| `SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE` | Tamaño máximo por petición multipart | `50MB` | Opcional |
 
 ---
 
-## 📁 Almacenamiento Persistente en Coolify (Persistent Storage)
+## 💾 Almacenamiento Persistente en Coolify (Storages)
 
-Para evitar la pérdida de archivos cargados (Excels de alumnos, imágenes de credenciales, formatos de justificantes) al reiniciar o desplegar nuevas versiones en Coolify:
+Para evitar la pérdida de fotografías, credenciales y documentos al reconstruir o reiniciar los contenedores:
 
-1. Ve a tu aplicación en **Coolify**.
-2. En la pestaña **Storages / Volumes**, agrega un volumen persistente:
+1. En **Coolify**, ve a la sección de tu aplicación.
+2. En la pestaña **Storages / Volumes**, añade un volumen persistente:
    - **Destination Path**: `/app/uploads`
-3. Guarda los cambios y haz redeploy.
+3. Guarda los cambios y despliega.
 
 ---
 
-## 💬 Integraciones de WhatsApp Integradas (Proxy Endpoints)
+## 💬 Integración de Pasarelas de WhatsApp
 
-El sistema incluye proxies REST para enviar mensajes automáticamente a los tutores a través de 5 proveedores distintos:
+El sistema incluye endpoints proxy para enviar notificaciones automáticas a tutores:
 
-### 1. Evolution API (Recomendado 100% Gratis en Docker)
+### 1. Evolution API (Docker)
 - **Endpoint**: `POST /api/whatsapp/evolution`
-- **Payload**:
+- **Payload de ejemplo**:
   ```json
   {
     "apiUrl": "http://evolution-api:8080",
-    "apiKey": "TU_API_KEY",
-    "instanceName": "cbtis134",
-    "to": "+527471234567",
-    "body": "Estimado tutor, su hijo ha ingresado al plantel."
+    "apiKey": "TU_API_KEY_AQUI",
+    "instanceName": "instancia_escolar",
+    "to": "+520000000000",
+    "body": "Estimado tutor, el alumno ha registrado su entrada al plantel."
   }
   ```
 
-### 2. WPPConnect Server (100% Gratis en Docker)
+### 2. WPPConnect Server (Docker)
 - **Endpoint**: `POST /api/whatsapp/wppconnect`
-- **Payload**:
+- **Payload de ejemplo**:
   ```json
   {
     "apiUrl": "http://wppconnect:21465",
-    "token": "TU_BEARER_TOKEN",
-    "session": "cbtis134_session",
-    "to": "+527471234567",
-    "body": "Notificación escolar CBTis 134."
+    "token": "TU_BEARER_TOKEN_AQUI",
+    "session": "sesion_escolar",
+    "to": "+520000000000",
+    "body": "Notificación escolar institucional."
   }
   ```
-
-### 3. OpenWA
-- **Endpoint**: `POST /api/whatsapp/openwa`
-
-### 4. UltraMsg
-- **Endpoint**: `POST /api/whatsapp/ultramsg`
-
-### 5. Twilio
-- **Endpoint**: `POST /api/whatsapp/twilio`
 
 ---
 
 ## 🚀 Despliegue en VPS con Coolify
 
-1. **Crear Servicio MongoDB**: Despliega un servicio de MongoDB en Coolify y copia su cadena de conexión.
-2. **Crear Aplicación**: Conecta este repositorio de GitHub en Coolify (`moscegr/residencia-cbtis`).
-3. **Configurar Variables**: Agrega `SPRING_DATA_MONGODB_URI` en las variables de entorno.
-4. **Configurar Volumen**: Asigna el volumen en la ruta `/app/uploads`.
-5. **Desplegar**: Coolify utilizará el `Dockerfile` multietapa para compilar y ejecutar el proyecto automáticamente.
+1. **Base de Datos**: Crea un servicio privado de **MongoDB** en Coolify y obtén su URI interna.
+2. **Aplicación Web**: Crea una nueva aplicación desde tu repositorio Git en Coolify.
+3. **Variables de Entorno**: Agrega `SPRING_DATA_MONGODB_URI`, `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
+4. **Almacenamiento**: Configura el volumen persistente en `/app/uploads`.
+5. **Dominio**: Asigna tu dominio en **FQDN** con HTTPS (ej. `https://control.institucion.edu.mx`).
+6. **Desplegar**: Coolify utilizará el `Dockerfile` multietapa para compilar y ejecutar el proyecto con un usuario no-root seguro.
