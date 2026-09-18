@@ -36,6 +36,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// Toggle mostrar/ocultar contraseña
+const togglePasswordBtn = document.getElementById('togglePassword');
+if (togglePasswordBtn) {
+    togglePasswordBtn.addEventListener('click', () => {
+        const passwordInput = document.getElementById('password');
+        const icon = document.getElementById('togglePasswordIcon');
+        if (passwordInput && icon) {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            icon.classList.toggle('bi-eye', !isPassword);
+            icon.classList.toggle('bi-eye-slash', isPassword);
+        }
+    });
+}
+
 const loginForm = document.getElementById('loginForm');
 
 if (loginForm) {

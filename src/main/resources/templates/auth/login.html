@@ -74,6 +74,9 @@
             color: #333 !important;
             border-left: none !important;
         }
+        .input-group > .glass-input:not(:last-child) {
+            border-right: none !important;
+        }
         .glass-input::placeholder {
             color: rgba(0, 0, 0, 0.4);
         }
@@ -88,6 +91,26 @@
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-right: none;
             color: #7b1b37;
+        }
+
+        .btn.glass-addon-end {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-left: none;
+            color: #7b1b37;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.375rem 0.85rem;
+        }
+        .btn.glass-addon-end:hover {
+            background: #ffffff;
+            color: #922243;
+        }
+        .btn.glass-addon-end:focus {
+            box-shadow: none;
         }
 
         .btn-institucional {
@@ -186,7 +209,10 @@
                 <div class="mb-4">
                     <div class="input-group">
                         <span class="input-group-text glass-addon"><i class="bi bi-lock"></i></span>
-                        <input type="password" id="password" name="password" class="form-control glass-input" placeholder="Contraseña" required>
+                        <input type="password" id="password" name="password" class="form-control glass-input" placeholder="Contraseña" required autocomplete="current-password">
+                        <button class="btn glass-addon-end" type="button" id="togglePassword" title="Mostrar u ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                            <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                        </button>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-institucional w-100 py-2 mb-3 fw-bold rounded-3">
