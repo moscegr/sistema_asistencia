@@ -203,6 +203,15 @@ async function ejecutarCargaReal() {
                 }
             }
 
+            const rawTurnoExcel = String(r.turno || r.Turno || r.TURNO || "").trim();
+            if (rawTurnoExcel) {
+                const tLower = rawTurnoExcel.toLowerCase();
+                if (tLower.startsWith('mat')) turnoFinal = "Matutino";
+                else if (tLower.startsWith('ves')) turnoFinal = "Vespertino";
+                else if (tLower.startsWith('mix')) turnoFinal = "Mixto";
+                else turnoFinal = rawTurnoExcel;
+            }
+
             const alumno = {
                 ncontrol: matricula,
                 matricula: matricula,

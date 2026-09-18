@@ -86,7 +86,7 @@ function filtrarAlumnos() {
         if (filtroEstatus && estatusVal !== filtroEstatus) return false;
         if (filtroGrado && String(al.grado) !== filtroGrado) return false;
         if (filtroGrupo && (al.grupo || '').toUpperCase() !== filtroGrupo) return false;
-        if (filtroTurno && al.turno !== filtroTurno) return false;
+        if (filtroTurno && String(al.turno || '').toLowerCase() !== filtroTurno.toLowerCase()) return false;
 
         return true;
     });

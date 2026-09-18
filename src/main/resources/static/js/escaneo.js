@@ -34,6 +34,72 @@ function estaDentroHoy(idKey) {
     return String(reg.estatus_actual || '').toUpperCase() === 'DENTRO';
 }
 
+const TIEMPO_MINIMO_CAMBIO_ESTADO_MS = 2 * 60 * 1000; // 2 minutos obligatorios entre entradas y salidas
+
+function verificarCooldownEstado(idKey, accionNueva, nombrePersona) {
+    if (!idKey) return true;
+    const reg = registrosDiariosHoy.find(r => 
+        igualMatricula(r.matricula, idKey) || 
+        igualMatricula(r.ncontrol, idKey)
+    );
+    if (!reg) return true;
+
+    let timestampUltimoCambio = reg.timestamp_ultimo_cambio;
+
+    if (!timestampUltimoCambio) {
+        const horaStr = (accionNueva === 'SALIDA') ? reg.hora_entrada : reg.hora_salida;
+        if (horaStr) {
+            try {
+                const [h, m, s] = horaStr.split(':').map(Number);
+                const fechaEvento = new Date();
+                fechaEvento.setHours(h || 0, m || 0, s || 0, 0);
+                timestampUltimoCambio = fechaEvento.getTime();
+            } catch (e) {
+                timestampUltimoCambio = null;
+            }
+        }
+    }
+
+    if (timestampUltimoCambio) {
+        const transcurrido = Date.now() - timestampUltimoCambio;
+        if (transcurrido >= 0 && transcurrido < TIEMPO_MINIMO_CAMBIO_ESTADO_MS) {
+            const segRestantes = Math.ceil((TIEMPO_MINIMO_CAMBIO_ESTADO_MS - transcurrido) / 1000);
+            const minRestantes = Math.floor(segRestantes / 60);
+            const segSobrantes = segRestantes % 60;
+            const tiempoTxt = minRestantes > 0 
+                ? `${minRestantes}m ${segSobrantes}s` 
+                : `${segRestantes} seg`;
+
+            const accionPrevia = (accionNueva === 'SALIDA') ? 'ENTRADA' : 'SALIDA';
+
+            reproducirBeepError();
+            Swal.fire({
+                icon: 'warning',
+                title: '<span style="color:#d97706; font-weight:800;">REGISTRO RECIENTE</span>',
+                html: `
+                    <div class="text-center p-2">
+                        <div class="mb-2">
+                            <span class="badge bg-warning text-dark px-3 py-1 fs-6 fw-bold">ESPERA 2 MINUTOS</span>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-1">${nombrePersona}</h5>
+                        <p class="text-muted small mb-2">Acaba de registrar su <b>${accionPrevia}</b>.</p>
+                        <div class="p-3 bg-light rounded-3 border text-start small">
+                            <i class="bi bi-hourglass-split text-warning me-1 fs-5"></i>
+                            Por seguridad operativa, debes esperar <b>${tiempoTxt}</b> antes de registrar su <b>${accionNueva}</b>.
+                        </div>
+                    </div>
+                `,
+                position: 'center',
+                width: '460px',
+                timer: 3500,
+                showConfirmButton: false
+            });
+            return false;
+        }
+    }
+    return true;
+}
+
 function actualizarRegistroLocalHoy(nuevoReg) {
     const key = nuevoReg.matricula || nuevoReg.ncontrol;
     const idx = registrosDiariosHoy.findIndex(r => igualMatricula(r.matricula, key) || igualMatricula(r.ncontrol, key));
@@ -281,6 +347,11 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
             if (!estaDentro) {
                 // Registrar ENTRADA de Docente / Personal
+                if (!verificarCooldownEstado(rfcKey, 'ENTRADA', persona.nombre)) {
+                    procesandoEscaneo = false;
+                    return;
+                }
+
                 const nuevoReg = regExistente || {
                     matricula: rfcKey,
                     nombre: persona.nombre,
@@ -291,6 +362,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 };
                 nuevoReg.hora_entrada = horaActual;
                 nuevoReg.estatus_actual = "DENTRO";
+                nuevoReg.timestamp_ultimo_cambio = Date.now();
 
                 fetch('/api/registros-diarios', {
                     method: 'POST',
@@ -313,6 +385,11 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
             } else {
                 // Registrar SALIDA de Docente / Personal
+                if (!verificarCooldownEstado(rfcKey, 'SALIDA', persona.nombre)) {
+                    procesandoEscaneo = false;
+                    return;
+                }
+
                 const regSalida = regExistente || {
                     matricula: rfcKey,
                     nombre: persona.nombre,
@@ -324,6 +401,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
                 regSalida.hora_salida = horaActual;
                 regSalida.estatus_actual = "FUERA";
                 regSalida.tipo_salida = "PERSONAL";
+                regSalida.timestamp_ultimo_cambio = Date.now();
 
                 fetch('/api/registros-diarios', {
                     method: 'POST',
@@ -394,13 +472,18 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
         // Determinación ESTRICTA de presencia basada en hoy (Reinicio diario)
         const estaDentro = estaDentroHoy(matKey);
 
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+
         if (!estaDentro) {
             // ENTRADA de Alumno
+            if (!verificarCooldownEstado(matKey, 'ENTRADA', nombreCompleto)) {
+                procesandoEscaneo = false;
+                return;
+            }
+
             const horaEntrada = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            
-            const pat = al.apepat || al.primerApellido || '';
-            const matApe = al.apemat || al.segundoApellido || '';
-            const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
 
             const nuevoReg = regExistente || {
                 matricula: matKey,
@@ -413,6 +496,7 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
             nuevoReg.hora_entrada = horaEntrada;
             nuevoReg.estatus_actual = "DENTRO";
+            nuevoReg.timestamp_ultimo_cambio = Date.now();
 
             // Guardar registro asíncronamente
             fetch('/api/registros-diarios', {
@@ -435,6 +519,11 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 
         } else {
             // SALIDA de Alumno (Validación de pases / contingencia)
+            if (!verificarCooldownEstado(matKey, 'SALIDA', nombreCompleto)) {
+                procesandoEscaneo = false;
+                return;
+            }
+
             await validarSalida(al, regExistente, salidaGeneralActiva, hoy);
         }
 
@@ -479,6 +568,7 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
         regSalida.hora_salida = horaSalida;
         regSalida.estatus_actual = "FUERA";
         regSalida.tipo_salida = motivo;
+        regSalida.timestamp_ultimo_cambio = Date.now();
 
         fetch('/api/registros-diarios', {
             method: 'POST',
