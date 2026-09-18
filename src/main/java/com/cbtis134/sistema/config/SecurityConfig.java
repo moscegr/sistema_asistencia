@@ -101,7 +101,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/configuracion/**").hasRole("ADMIN")
 
                 // match /whatsapp
-                .requestMatchers("/api/whatsapp/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
+                .requestMatchers("/api/whatsapp/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")
 
                 // match /calendario/{docId}
                 .requestMatchers(HttpMethod.GET, "/api/calendario/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO", "GUARDIA")

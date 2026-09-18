@@ -614,28 +614,25 @@ function mostrarResultado(al, accion) {
 
 async function enviarNotificacionTutor(al, tipoAcceso) {
     try {
-        const resSys = await fetch('/api/configuracion/sistema');
-        if (resSys.ok) {
-            const dataSys = await resSys.json();
-            if (dataSys.notificaciones_whatsapp_activas === false) {
-                console.log("Notificaciones de WhatsApp desactivadas globalmente desde configuración. Evento guardado en MongoDB.");
-                return;
-            }
+        const tel = al.teltutor || (al.tutor && al.tutor.telefono) || al.telefono_tutor || al.tel_tutor || al.tutor_telefono || al.celular;
+        if (!tel) {
+            console.warn(`[Punto de Control] El estudiante ${al.nombre} (${al.ncontrol || al.matricula || ''}) no tiene teléfono de tutor registrado.`);
+            return;
         }
 
-        const tel = al.teltutor || (al.tutor && al.tutor.telefono) || al.celular;
-        if (!tel) return;
-
-        const resWs = await fetch('/api/configuracion/whatsapp');
-        if (!resWs.ok) return;
-        const configWs = await resWs.json();
-        if (!configWs || !configWs.tipo_api) return;
+        let configWs = {};
+        try {
+            const resWs = await fetch('/api/configuracion/whatsapp');
+            if (resWs.ok) configWs = await resWs.json();
+        } catch (errCfg) {
+            console.warn("[Punto de Control] No se pudo obtener la plantilla de WhatsApp localmente, usando backend:", errCfg);
+        }
 
         const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
         const fecha = new Date().toLocaleDateString('es-MX');
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
-        const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.trim();
+        const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
         const mat = al.ncontrol || al.matricula || '';
 
         let plantillaBase = (tipoAcceso === 'ENTRADA')
@@ -652,15 +649,24 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
             .replace(/\{grupo\}/g, al.grupo || '');
 
         const payload = {
+            to: tel,
             telefono: tel,
+            body: mensajeFinal,
             mensaje: mensajeFinal
         };
 
-        fetch('/api/whatsapp/enviar-mensaje', {
+        const resEnvio = await fetch('/api/whatsapp/enviar-mensaje', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        }).catch(errWs => console.warn("Error enviando WhatsApp:", errWs));
+        });
+
+        if (resEnvio.ok) {
+            console.log(`[WhatsApp] Notificación de ${tipoAcceso} enviada exitosamente al tutor de ${nombreCompleto} (${tel}).`);
+        } else {
+            const errTxt = await resEnvio.text();
+            console.warn(`[WhatsApp] Respuesta al despachar mensaje (${resEnvio.status}):`, errTxt);
+        }
 
     } catch (e) {
         console.error("Error en enviarNotificacionTutor:", e);
