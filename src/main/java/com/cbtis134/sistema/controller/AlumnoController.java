@@ -3,6 +3,9 @@ package com.cbtis134.sistema.controller;
 import com.cbtis134.sistema.model.Alumno;
 import com.cbtis134.sistema.repository.AlumnoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +17,9 @@ public class AlumnoController {
 
     @Autowired
     private AlumnoRepository alumnoRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @GetMapping
     public List<Alumno> obtenerTodos() {
@@ -89,6 +95,28 @@ public class AlumnoController {
                 })
                 .toList();
 
+        // Recopilar todas las matrículas/ncontrol a borrar en cascada
+        List<String> matriculas = aEliminar.stream()
+                .flatMap(a -> java.util.stream.Stream.of(a.getMatricula(), a.getNcontrol()))
+                .filter(m -> m != null && !m.isBlank())
+                .distinct()
+                .toList();
+
+        if (!matriculas.isEmpty()) {
+            Criteria critMatricula = Criteria.where("matricula").in(matriculas);
+            Criteria critNcontrol  = Criteria.where("ncontrol").in(matriculas);
+
+            mongoTemplate.remove(new Query(critMatricula), "registros_diarios");
+            mongoTemplate.remove(new Query(critMatricula), "incidencias");
+            mongoTemplate.remove(new Query(critNcontrol),  "incidencias");
+            mongoTemplate.remove(new Query(critMatricula), "justificantes");
+            mongoTemplate.remove(new Query(critNcontrol),  "justificantes");
+            mongoTemplate.remove(
+                    new Query(new Criteria().andOperator(
+                            critMatricula, Criteria.where("es_grupal").ne(true))),
+                    "pases_salida");
+        }
+
         alumnoRepository.deleteAll(aEliminar);
         return ResponseEntity.ok(java.util.Map.of(
                 "eliminados", aEliminar.size(),
@@ -109,10 +137,46 @@ public class AlumnoController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
-        if (alumnoRepository.existsById(id)) {
-            alumnoRepository.deleteById(id);
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
+        return alumnoRepository.findById(id)
+                .or(() -> alumnoRepository.findFirstByNcontrolOrMatricula(id, id))
+                .map(alumno -> {
+                    String matricula = alumno.getMatricula() != null ? alumno.getMatricula()
+                            : alumno.getNcontrol() != null ? alumno.getNcontrol() : id;
+                    String ncontrol = alumno.getNcontrol() != null ? alumno.getNcontrol() : matricula;
+
+                    // ── Borrado en cascada ──────────────────────────────────────────────
+                    // Registros diarios
+                    mongoTemplate.remove(
+                            new Query(Criteria.where("matricula").in(matricula, ncontrol)),
+                            "registros_diarios");
+
+                    // Incidencias de alumno
+                    mongoTemplate.remove(
+                            new Query(Criteria.where("matricula").in(matricula, ncontrol)),
+                            "incidencias");
+                    mongoTemplate.remove(
+                            new Query(Criteria.where("ncontrol").in(matricula, ncontrol)),
+                            "incidencias");
+
+                    // Justificantes
+                    mongoTemplate.remove(
+                            new Query(Criteria.where("matricula").in(matricula, ncontrol)),
+                            "justificantes");
+                    mongoTemplate.remove(
+                            new Query(Criteria.where("ncontrol").in(matricula, ncontrol)),
+                            "justificantes");
+
+                    // Pases de salida individuales (grupales NO se tocan, son del grupo)
+                    mongoTemplate.remove(
+                            new Query(new Criteria().andOperator(
+                                    Criteria.where("matricula").in(matricula, ncontrol),
+                                    Criteria.where("es_grupal").ne(true))),
+                            "pases_salida");
+
+                    // ── Borrar el alumno ────────────────────────────────────────────────
+                    alumnoRepository.delete(alumno);
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

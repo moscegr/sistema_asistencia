@@ -3,6 +3,9 @@ package com.cbtis134.sistema.controller;
 import com.cbtis134.sistema.model.Usuario;
 import com.cbtis134.sistema.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +23,9 @@ public class UsuarioController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @GetMapping("/me")
     public ResponseEntity<?> obtenerUsuarioActual(Authentication authentication) {
@@ -276,6 +282,45 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByCorreo(idLimpio))
                 .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
                 .map(usuario -> {
+                    // Recopilar identificadores del usuario
+                    String uid = usuario.getUid() != null ? usuario.getUid() : "";
+                    String rfc = usuario.getRfc() != null ? usuario.getRfc().toUpperCase() : "";
+                    String nombre = usuario.getNombre() != null ? usuario.getNombre() : "";
+
+                    // ── Borrado en cascada ──────────────────────────────────────────────
+                    // Registros diarios del personal (identificados por uid o rfc como matricula)
+                    if (!uid.isEmpty()) {
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("matricula").is(uid)),
+                                "registros_diarios");
+                    }
+                    if (!rfc.isEmpty()) {
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("matricula").is(rfc)),
+                                "registros_diarios");
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("rfc").is(rfc)),
+                                "registros_diarios");
+                    }
+                    if (!nombre.isEmpty()) {
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("nombre").is(nombre)),
+                                "registros_diarios");
+                    }
+
+                    // Incidencias del personal
+                    if (!uid.isEmpty()) {
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("uid").is(uid)),
+                                "incidencias_personal");
+                    }
+                    if (!rfc.isEmpty()) {
+                        mongoTemplate.remove(
+                                new Query(Criteria.where("rfc").is(rfc)),
+                                "incidencias_personal");
+                    }
+
+                    // ── Borrar el usuario ───────────────────────────────────────────────
                     usuarioRepository.delete(usuario);
                     return ResponseEntity.ok().<Void>build();
                 })
