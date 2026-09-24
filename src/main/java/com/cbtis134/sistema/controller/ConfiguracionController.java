@@ -293,8 +293,9 @@ public class ConfiguracionController {
             return ResponseEntity.ok(resultado);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body(Map.of("error", "Fallo al restaurar respaldo: " + e.getMessage()));
+            // No exponer detalles internos al cliente — solo registrar en servidor
+            System.err.println("[CONFIG] Error al restaurar respaldo: " + e.getClass().getSimpleName());
+            return ResponseEntity.status(500).body(Map.of("error", "Fallo al restaurar respaldo. Revisa el archivo e intenta de nuevo."));
         }
     }
 

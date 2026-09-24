@@ -43,32 +43,48 @@ public class AdminSeeder implements ApplicationRunner {
 
     private void seederUsuarios() {
         String envEmail = System.getenv("ADMIN_EMAIL");
-        String envPass = System.getenv("ADMIN_PASSWORD");
-        String adminEmail = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : "admin@cbtis134.edu.mx";
-        String adminPassword = (envPass != null && !envPass.trim().isEmpty()) ? envPass.trim() : "AdminCBTis134_2026!";
+        String envPass  = System.getenv("ADMIN_PASSWORD");
+        // ⚠️  Si no se configuran variables de entorno, el admin NO se crea automáticamente.
+        //     Establece ADMIN_EMAIL y ADMIN_PASSWORD en Coolify antes del primer arranque.
+        String adminEmail    = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : null;
+        String adminPassword = (envPass  != null && !envPass.trim().isEmpty())  ? envPass.trim()  : null;
 
-        Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
-        if (admin == null) {
-            admin = new Usuario();
-            admin.setUid(UUID.randomUUID().toString());
-            admin.setCorreo(adminEmail);
-            admin.setPassword(passwordEncoder.encode(adminPassword));
-            admin.setNombre("ADMINISTRADOR PRINCIPAL");
-            admin.setRol("ADMIN");
-            admin.setEstatus("Activo");
-            admin.setUltimoAcceso("Inicializado");
-            admin.setPermisos(Arrays.asList("ALL"));
-            usuarioRepository.save(admin);
-            System.out.println("-> Admin Principal inicializado de forma segura: " + adminEmail);
+        if (adminEmail == null || adminPassword == null) {
+            System.out.println("-> [SEEDER] ADMIN_EMAIL / ADMIN_PASSWORD no configurados. Omitiendo creación automática de admin.");
+        } else {
+            Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
+            if (admin == null) {
+                admin = new Usuario();
+                admin.setUid(UUID.randomUUID().toString());
+                admin.setCorreo(adminEmail);
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                admin.setNombre("ADMINISTRADOR PRINCIPAL");
+                admin.setRol("ADMIN");
+                admin.setEstatus("Activo");
+                admin.setUltimoAcceso("Inicializado");
+                admin.setPermisos(Arrays.asList("ALL"));
+                usuarioRepository.save(admin);
+                System.out.println("-> Admin Principal inicializado: " + adminEmail);
+            }
         }
 
-        // Si la base de datos está completamente vacía de usuarios iniciales, sembrar perfiles de operación
-        if (usuarioRepository.count() <= 1) {
+        // Solo sembrar usuarios de muestra si la base está vacía Y existen credenciales de entorno
+        if (usuarioRepository.count() <= 1 && adminEmail != null) {
+            // Usuarios de demostración: contraseñas desde variables de entorno
+            // Configura SEED_GUARDIA_PASS, SEED_PREFECTO_PASS, SEED_ORIENTACION_PASS en Coolify
+            String passGuardia     = System.getenv("SEED_GUARDIA_PASS");
+            String passPrefecto    = System.getenv("SEED_PREFECTO_PASS");
+            String passOrientacion = System.getenv("SEED_ORIENTACION_PASS");
+
+            if (passGuardia == null || passPrefecto == null || passOrientacion == null) {
+                System.out.println("-> [SEEDER] Variables SEED_*_PASS no configuradas. Omitiendo usuarios de demostración.");
+                return;
+            }
+
             List<UsuarioSeed> usuariosData = Arrays.asList(
-                new UsuarioSeed("2MNSM3eLm4QjGMFZk7KZUlK7v8m1", "JUAN JESUS GARCIA", "jesus1@gmail.com", "GUARDIA", "cbtis134_Guardia2026!"),
-                new UsuarioSeed("5HXPsUCs1VdEratsqFDx0PIbbfF3", "PEDRO PREFECTO", "prefect1@gmail.com", "PREFECTO", "cbtis134_Prefectura2026!"),
-                new UsuarioSeed("Of8qrsaMLCXH4KyAtYimTG0vRax2", "ORTIZ ORIENTACION", "orient1@gmail.com", "ORIENTACION", "cbtis134_Orientacion2026!"),
-                new UsuarioSeed("uvTx2qsgVbMWFhz0InbpeIY81b43", "KEVIN SANCHEZ", "kev99cbtisk@gmail.com", "ADMIN", "cbtis134_Admin2026!")
+                new UsuarioSeed(UUID.randomUUID().toString(), "GUARDIA DEL PLANTEL",      "guardia@cbtis134.edu.mx",     "GUARDIA",     passGuardia),
+                new UsuarioSeed(UUID.randomUUID().toString(), "PREFECTO DEL PLANTEL",     "prefecto@cbtis134.edu.mx",    "PREFECTO",    passPrefecto),
+                new UsuarioSeed(UUID.randomUUID().toString(), "ORIENTACION DEL PLANTEL",  "orientacion@cbtis134.edu.mx", "ORIENTACION", passOrientacion)
             );
 
             for (UsuarioSeed u : usuariosData) {
@@ -161,10 +177,15 @@ public class AdminSeeder implements ApplicationRunner {
             if (mod) mongoTemplate.save(docSistema, col);
         }
 
+        // Configuración de WhatsApp — credenciales desde variables de entorno
+        // Establece WHATSAPP_TOKEN y WHATSAPP_INSTANCE_ID en Coolify
+        String waToken      = System.getenv("WHATSAPP_TOKEN") != null ? System.getenv("WHATSAPP_TOKEN") : "";
+        String waInstanceId = System.getenv("WHATSAPP_INSTANCE_ID") != null ? System.getenv("WHATSAPP_INSTANCE_ID") : "";
         guardarSiNoExiste(col, "whatsapp", new Document("_id", "whatsapp")
                 .append("tipo_api", "ULTRAMSG")
-                .append("token", "0wk51yei239joo41")
-                .append("instanceId", "instance184062"));
+                .append("token", waToken)
+                .append("instanceId", waInstanceId));
+
     }
 
     private void guardarSiNoExiste(String coleccion, String id, Document doc) {
