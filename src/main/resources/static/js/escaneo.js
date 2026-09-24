@@ -921,6 +921,26 @@ function renderizarListaFiltrada(filtro) {
             ? '<span class="badge bg-secondary me-1" style="font-size: 0.7rem;">ALUMNO</span>'
             : `<span class="badge me-1 text-white" style="font-size: 0.7rem; ${item.tipo === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${item.tipo}</span>`;
 
+        // Datos del tutor (solo para alumnos)
+        let tutorHtml = '';
+        if (esAlumno) {
+            const raw = item.raw;
+            const nombreTutor = raw.nombretutor || raw.nombre_tutor || raw.tutor?.nombre
+                || raw.tutor_nombre || raw.parentesco_tutor || '';
+            const telTutor = raw.teltutor || raw.tel_tutor || raw.telefono_tutor
+                || raw.tutor?.telefono || raw.tutor_telefono || raw.celular || '';
+            if (nombreTutor) {
+                tutorHtml = `<span class="text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-person-heart me-1 text-primary"></i><strong>Tutor:</strong> ${nombreTutor}
+                    ${telTutor ? `&nbsp;<i class="bi bi-telephone me-1 text-success"></i>${telTutor}` : ''}
+                </span>`;
+            } else if (telTutor) {
+                tutorHtml = `<span class="text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-telephone me-1 text-success"></i><strong>Tel. Tutor:</strong> ${telTutor}
+                </span>`;
+            }
+        }
+
         tr.innerHTML = `
             <td style="width: 46px;" class="py-2 ps-3">
                 <img src="${item.foto}" class="rounded-circle border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
@@ -930,6 +950,7 @@ function renderizarListaFiltrada(filtro) {
                 <div class="small text-muted">
                     ${rolBadge}${item.detalle}
                 </div>
+                ${tutorHtml ? `<div class="mt-1">${tutorHtml}</div>` : ''}
             </td>
             <td class="text-end align-middle pe-3">
                 ${estadoBadge}
