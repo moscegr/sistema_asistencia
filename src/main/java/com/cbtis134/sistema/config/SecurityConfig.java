@@ -123,9 +123,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            // ── CSRF: habilitado para rutas HTML (formularios), deshabilitado para /api/** ──
+            // ── CSRF: habilitado para rutas HTML (formularios), deshabilitado para /api/** y /logout ──
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers(new AntPathRequestMatcher("/api/**"))
+                .ignoringRequestMatchers(
+                    new AntPathRequestMatcher("/api/**"),
+                    new AntPathRequestMatcher("/logout")
+                )
             )
 
             // ── Cabeceras de seguridad HTTP ──────────────────────────────────────
@@ -240,8 +243,8 @@ public class SecurityConfig {
                 .requestMatchers("/admin/dashboard", "/admin/alumnos/expediente", "/admin/expediente_alumno", "/admin/alumnos/seguimiento-conductual", "/admin/alumnos/monitoreo-salud", "/admin/pases").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
                 .requestMatchers("/admin/justificantes", "/admin/incidencias/orientacion").hasAnyRole("ADMIN", "ORIENTACION")
                 .requestMatchers("/admin/incidencias/prefectura").hasAnyRole("ADMIN", "PREFECTO")
-                .requestMatchers("/admin/escaneo").hasAnyRole("ADMIN", "GUARDIA")
-                .requestMatchers("/admin/**").authenticated()
+                .requestMatchers("/admin/escaneo", "/escaneo").hasAnyRole("ADMIN", "GUARDIA")
+                .requestMatchers("/admin", "/admin/**", "/dashboard").authenticated()
                 .anyRequest().authenticated()
             )
 
@@ -266,9 +269,9 @@ public class SecurityConfig {
                 .permitAll()
             )
 
-            // ── Logout ───────────────────────────────────────────────────────────
+            // ── Logout (Soporta GET y POST con o sin token CSRF) ────────────────
             .logout(logout -> logout
-                .logoutUrl("/logout")
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/login?logout")
                 .invalidateHttpSession(true)
                 .clearAuthentication(true)
@@ -283,10 +286,14 @@ public class SecurityConfig {
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                    if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("GUARDIA"))) {
-                        response.sendRedirect("/admin/escaneo");
+                    if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
+                        if (auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("GUARDIA"))) {
+                            response.sendRedirect("/admin/escaneo");
+                        } else {
+                            response.sendRedirect("/admin/dashboard");
+                        }
                     } else {
-                        response.sendRedirect("/admin/dashboard");
+                        response.sendRedirect("/login");
                     }
                 })
             );

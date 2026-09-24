@@ -3,6 +3,11 @@ package com.cbtis134.sistema.controller;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,7 +63,15 @@ public class VistaController {
         return "auth/login";
     }
 
-    @GetMapping("/admin/dashboard")
+    @GetMapping({"/admin", "/admin/"})
+    public String redireccionarAdmin(Authentication auth) {
+        if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().contains("GUARDIA"))) {
+            return "redirect:/admin/escaneo";
+        }
+        return "redirect:/admin/dashboard";
+    }
+
+    @GetMapping({"/admin/dashboard", "/dashboard"})
     public String verDashboard() {
         return "admin/dashboard";
     }
@@ -73,9 +86,18 @@ public class VistaController {
         return "admin/alumnos";
     }
 
-    @GetMapping("/admin/escaneo")
+    @GetMapping({"/admin/escaneo", "/escaneo"})
     public String mostrarEscaneo() {
         return "admin/escaneo";
+    }
+
+    @GetMapping("/logout")
+    public String cerrarSesionManual(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            new SecurityContextLogoutHandler().logout(request, response, auth);
+        }
+        return "redirect:/login?logout";
     }
 
     @GetMapping("/admin/pases")

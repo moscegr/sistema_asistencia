@@ -34,6 +34,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         console.warn("No se pudo cargar la configuración de marca en login:", e);
     }
+
+    // Alertas de estado en URL (?logout, ?error, ?denied)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('logout')) {
+        Swal.fire({
+            title: 'Sesión Finalizada',
+            text: 'Has salido del sistema de forma segura.',
+            icon: 'success',
+            confirmButtonColor: '#7b1b37',
+            timer: 3500,
+            timerProgressBar: true
+        });
+    } else if (urlParams.has('error')) {
+        Swal.fire({
+            title: 'Error de Acceso',
+            text: 'Correo institucional o contraseña incorrectos. Verifica tus datos o consulta al administrador.',
+            icon: 'error',
+            confirmButtonColor: '#7b1b37'
+        });
+    } else if (urlParams.has('denied')) {
+        Swal.fire({
+            title: 'Acceso Restringido',
+            text: 'Tu usuario no tiene los privilegios requeridos para ingresar a ese módulo.',
+            icon: 'warning',
+            confirmButtonColor: '#7b1b37'
+        });
+    }
 });
 
 // Toggle mostrar/ocultar contraseña
