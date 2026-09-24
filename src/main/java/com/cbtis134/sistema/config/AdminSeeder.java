@@ -177,14 +177,12 @@ public class AdminSeeder implements ApplicationRunner {
             if (mod) mongoTemplate.save(docSistema, col);
         }
 
-        // Configuración de WhatsApp — credenciales desde variables de entorno
-        // Establece WHATSAPP_TOKEN y WHATSAPP_INSTANCE_ID en Coolify
-        String waToken      = System.getenv("WHATSAPP_TOKEN") != null ? System.getenv("WHATSAPP_TOKEN") : "";
-        String waInstanceId = System.getenv("WHATSAPP_INSTANCE_ID") != null ? System.getenv("WHATSAPP_INSTANCE_ID") : "";
+        // Configuración de WhatsApp — se siembra vacía.
+        // El administrador la configura desde el panel: Configuración → WhatsApp.
         guardarSiNoExiste(col, "whatsapp", new Document("_id", "whatsapp")
                 .append("tipo_api", "ULTRAMSG")
-                .append("token", waToken)
-                .append("instanceId", waInstanceId));
+                .append("token", "")
+                .append("instanceId", ""));
 
     }
 
