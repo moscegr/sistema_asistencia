@@ -152,12 +152,18 @@ public class SecurityConfig {
                     "default-src 'self'; " +
                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
                         "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com " +
-                        "https://cdn.sweetalert2.com https://unpkg.com; " +
+                        "https://cdn.sweetalert2.com https://unpkg.com " +
+                        "https://maps.googleapis.com https://maps.gstatic.com; " +
                     "style-src 'self' 'unsafe-inline' " +
-                        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+                        "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com " +
+                        "https://fonts.googleapis.com https://maps.googleapis.com; " +
                     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
-                    "img-src 'self' data: blob:; " +
-                    "connect-src 'self'; " +
+                    // Imágenes: self + data URIs + blobs + Google Maps tiles + cualquier https (fotos externas)
+                    "img-src 'self' data: blob: https:; " +
+                    // Conexiones: self + APIs de mapas
+                    "connect-src 'self' https://maps.googleapis.com https://*.googleapis.com; " +
+                    // Iframes: Google Maps embed
+                    "frame-src https://www.google.com https://maps.google.com https://maps.googleapis.com; " +
                     "frame-ancestors 'none'; " +
                     "form-action 'self';"
                 ))
