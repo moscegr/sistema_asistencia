@@ -157,7 +157,7 @@ public class SecurityConfig {
                     "style-src 'self' 'unsafe-inline' " +
                         "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com " +
                         "https://fonts.googleapis.com https://maps.googleapis.com; " +
-                    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
+                    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
                     // Imágenes: self + data URIs + blobs + Google Maps tiles + cualquier https (fotos externas)
                     "img-src 'self' data: blob: https:; " +
                     // Conexiones: self + APIs de mapas
