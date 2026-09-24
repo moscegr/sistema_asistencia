@@ -146,9 +146,9 @@ public class SecurityConfig {
                 .referrerPolicy(rp -> rp
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
-                // Permissions-Policy via header writer (compatible Spring Security 6.x)
+                // Permissions-Policy via header writer (permitir cámara para Punto de Control / FaceID)
                 .addHeaderWriter((req, res) ->
-                    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+                    res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=()")
                 )
                 // Content-Security-Policy
                 .contentSecurityPolicy(csp -> csp.policyDirectives(
@@ -163,8 +163,12 @@ public class SecurityConfig {
                     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; " +
                     // Imágenes: self + data URIs + blobs + Google Maps tiles + cualquier https (fotos externas)
                     "img-src 'self' data: blob: https:; " +
-                    // Conexiones: self + APIs de mapas
-                    "connect-src 'self' https://maps.googleapis.com https://*.googleapis.com; " +
+                    // Media (video/cámara web, streams para QR y FaceID)
+                    "media-src 'self' blob: data: mediastream:; " +
+                    // Workers (para procesamiento facial y decodificación QR en hilos secundarios)
+                    "worker-src 'self' blob:; " +
+                    // Conexiones: self + blobs + APIs de mapas
+                    "connect-src 'self' blob: data: https://maps.googleapis.com https://*.googleapis.com; " +
                     // Iframes: Google Maps embed
                     "frame-src https://www.google.com https://maps.google.com https://maps.googleapis.com; " +
                     "frame-ancestors 'none'; " +
