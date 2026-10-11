@@ -11,6 +11,9 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+# Instalar curl para healthchecks de Docker y Coolify
+RUN apk add --no-cache curl
+
 # Crear usuario y grupo sin privilegios 'spring' para evitar ejecucion como root
 RUN addgroup -g 1001 -S spring && adduser -u 1001 -S spring -G spring
 
@@ -24,5 +27,8 @@ USER spring:spring
 VOLUME ["/app/uploads"]
 
 EXPOSE 8080
+
+HEALTHCHECK --interval=20s --timeout=5s --start-period=30s --retries=5 \
+  CMD curl -f http://localhost:8080/ || exit 1
 
 ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
