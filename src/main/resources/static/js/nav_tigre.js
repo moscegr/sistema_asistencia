@@ -35,7 +35,7 @@ function confirmarCerrarSesion() {
         if (result.isConfirmed) {
             localStorage.clear();
             sessionStorage.clear();
-            document.cookie = "AuthToken=; path=/; max-age=0; SameSite=Strict";
+            document.cookie = "AuthToken=; path=/; max-age=0; SameSite=Lax";
             window.location.href = "/logout";
         }
     });

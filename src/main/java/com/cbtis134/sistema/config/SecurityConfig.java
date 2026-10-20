@@ -18,6 +18,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -133,6 +135,19 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/logout")
                 )
             )
+            // Asegurar resolución del token CSRF y creación de sesión en cabecera HTTP antes de que
+            // comience el renderizado de plantillas HTML (evita commit temprano del buffer en Tomcat)
+            .addFilterAfter(new OncePerRequestFilter() {
+                @Override
+                protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                        throws ServletException, IOException {
+                    CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+                    if (csrfToken != null) {
+                        csrfToken.getToken();
+                    }
+                    filterChain.doFilter(request, response);
+                }
+            }, CsrfFilter.class)
 
             // ── Cabeceras de seguridad HTTP ──────────────────────────────────────
             .headers(headers -> headers
@@ -184,7 +199,7 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                 // Recursos estáticos públicos (SIN /uploads que contiene datos de alumnos)
                 .requestMatchers(
-                    "/", "/index", "/landing", "/login",
+                    "/", "/index", "/landing", "/login", "/login/**", "/logout",
                     "/css/**", "/js/**", "/img/**", "/qrs/**",
                     "/models/**", "/error", "/favicon.ico", "/favicon.png"
                 ).permitAll()

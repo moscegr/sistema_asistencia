@@ -75,7 +75,7 @@ public class VistaController {
     }
 
     @GetMapping("/login")
-    public String login(org.springframework.security.core.Authentication auth) {
+    public String login(HttpServletRequest request, org.springframework.security.core.Authentication auth) {
         if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
             boolean isGuardia = auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("GUARDIA"));
@@ -84,6 +84,9 @@ public class VistaController {
             }
             return "redirect:/admin/dashboard";
         }
+        try {
+            request.getSession(true);
+        } catch (Exception ignored) {}
         return "auth/login";
     }
 
@@ -117,10 +120,17 @@ public class VistaController {
 
     @GetMapping("/logout")
     public String cerrarSesionManual(HttpServletRequest request, HttpServletResponse response) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            new SecurityContextLogoutHandler().logout(request, response, auth);
-        }
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null) {
+                new SecurityContextLogoutHandler().logout(request, response, auth);
+            }
+            jakarta.servlet.http.HttpSession session = request.getSession(false);
+            if (session != null) {
+                session.invalidate();
+            }
+        } catch (Exception ignored) {}
+        SecurityContextHolder.clearContext();
         return "redirect:/login?logout";
     }
 

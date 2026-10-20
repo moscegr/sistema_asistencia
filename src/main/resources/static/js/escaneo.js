@@ -1,4 +1,4 @@
-﻿// static/js/escaneo.js (REST API Spring Boot Backend)
+// static/js/escaneo.js (REST API Spring Boot Backend)
 
 let html5QrcodeScanner = null;
 let alumnosCache = [];

@@ -1,4 +1,4 @@
-﻿let alumnosCache = [];
+let alumnosCache = [];
 let especialidadesConfig = [];
 let alumnosDelGrupoSeleccionado = [];
 let cfgSistema = {};
