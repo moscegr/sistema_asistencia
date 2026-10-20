@@ -214,7 +214,7 @@
                  style="max-height: 160px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); border-radius: 10px; object-fit: contain;"
                  onerror="this.src='/img/logo_aniversario.jpg'">
             <h4 id="loginNombrePlantel" class="fw-bold mb-3" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Control Escolar'}">Control Escolar</h4>
-            <p id="loginSloganPlantel" class="mb-0 text-white-50 system-title" th:text="${configSistema != null and configSistema['slogan_plantel'] != null ? configSistema['slogan_plantel'] : ''}">
+            <p id="loginSloganPlantel" class="mb-0 text-white-50 system-title" th:text="${configSistema != null and configSistema['slogan_plantel'] != null ? configSistema['slogan_plantel'] : ' '}">
             </p>
         </div>
 

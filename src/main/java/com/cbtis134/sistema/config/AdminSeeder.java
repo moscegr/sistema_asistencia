@@ -41,16 +41,31 @@ public class AdminSeeder implements ApplicationRunner {
         }
     }
 
+    private String obtenerVarEnv(String... nombres) {
+        for (String n : nombres) {
+            String val = System.getenv(n);
+            if (val != null && !val.trim().isEmpty()) {
+                String limpio = val.trim();
+                if ((limpio.startsWith("\"") && limpio.endsWith("\"")) || (limpio.startsWith("'") && limpio.endsWith("'"))) {
+                    if (limpio.length() >= 2) {
+                        limpio = limpio.substring(1, limpio.length() - 1).trim();
+                    }
+                }
+                if (!limpio.isEmpty()) return limpio;
+            }
+        }
+        return null;
+    }
+
     private void seederUsuarios() {
-        String envEmail = System.getenv("ADMIN_EMAIL");
-        String envPass  = System.getenv("ADMIN_PASSWORD");
-        // ⚠️  Si no se configuran variables de entorno, el admin NO se crea automáticamente.
-        //     Establece ADMIN_EMAIL y ADMIN_PASSWORD en Coolify antes del primer arranque.
-        String adminEmail    = (envEmail != null && !envEmail.trim().isEmpty()) ? envEmail.trim() : null;
-        String adminPassword = (envPass  != null && !envPass.trim().isEmpty())  ? envPass.trim()  : null;
+        String adminEmail    = obtenerVarEnv("ADMIN_EMAIL", "ADMIN_USER", "ADMIN_MAIL", "APP_ADMIN_EMAIL");
+        String adminPassword = obtenerVarEnv("ADMIN_PASSWORD", "ADMIN_PASS", "APP_ADMIN_PASS");
 
         if (adminEmail == null || adminPassword == null) {
-            System.out.println("-> [SEEDER] ADMIN_EMAIL / ADMIN_PASSWORD no configurados. Omitiendo creación automática de admin.");
+            System.err.println("-> [SEEDER] ⚠️ ADMIN_EMAIL / ADMIN_PASSWORD no configurados en variables de entorno.");
+            if (usuarioRepository.count() == 0) {
+                System.err.println("-> [SEEDER] ⚠️ LA BASE DE DATOS TIENE 0 USUARIOS. Configura ADMIN_EMAIL y ADMIN_PASSWORD en Coolify para acceder.");
+            }
         } else {
             Usuario admin = usuarioRepository.findByCorreoIgnoreCase(adminEmail)
                     .or(() -> usuarioRepository.findByCorreo(adminEmail))
@@ -79,11 +94,9 @@ public class AdminSeeder implements ApplicationRunner {
 
         // Solo sembrar usuarios de muestra si la base está vacía Y existen credenciales de entorno
         if (usuarioRepository.count() <= 1 && adminEmail != null) {
-            // Usuarios de demostración: contraseñas desde variables de entorno
-            // Configura SEED_GUARDIA_PASS, SEED_PREFECTO_PASS, SEED_ORIENTACION_PASS en Coolify
-            String passGuardia     = System.getenv("SEED_GUARDIA_PASS");
-            String passPrefecto    = System.getenv("SEED_PREFECTO_PASS");
-            String passOrientacion = System.getenv("SEED_ORIENTACION_PASS");
+            String passGuardia     = obtenerVarEnv("SEED_GUARDIA_PASS", "GUARDIA_PASS");
+            String passPrefecto    = obtenerVarEnv("SEED_PREFECTO_PASS", "PREFECTO_PASS");
+            String passOrientacion = obtenerVarEnv("SEED_ORIENTACION_PASS", "ORIENTACION_PASS");
 
             if (passGuardia == null || passPrefecto == null || passOrientacion == null) {
                 System.out.println("-> [SEEDER] Variables SEED_*_PASS no configuradas. Omitiendo usuarios de demostración.");
