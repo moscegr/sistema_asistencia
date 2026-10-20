@@ -151,18 +151,27 @@ public class AdminSeeder implements ApplicationRunner {
 
         Document docSistema = mongoTemplate.findById("sistema", Document.class, col);
         if (docSistema == null) {
+            String nomPlantelEnv = System.getenv("PLANTEL_NOMBRE_CORTO");
+            String nomOficialEnv = System.getenv("PLANTEL_NOMBRE_OFICIAL");
+            String sloganEnv = System.getenv("PLANTEL_SLOGAN");
+            String logoPlantelEnv = System.getenv("PLANTEL_LOGO_URL");
+            String logoInicioEnv = System.getenv("PLANTEL_MASCOTA_URL");
+            String cctEnv = System.getenv("PLANTEL_CCT");
+            String directorEnv = System.getenv("PLANTEL_DIRECTOR");
+            String telEnv = System.getenv("PLANTEL_TELEFONO");
+
             docSistema = new Document("_id", "sistema")
-                    .append("nombre_plantel", "CBTIS 134")
-                    .append("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\"")
-                    .append("slogan_plantel", "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"")
-                    .append("logo_plantel_url", "/img/logo_aniversario.jpg")
-                    .append("logo_inicio_url", "/img/tigres.png")
+                    .append("nombre_plantel", nomPlantelEnv != null && !nomPlantelEnv.isBlank() ? nomPlantelEnv : "CBTIS 134")
+                    .append("nombre_oficial_plantel", nomOficialEnv != null && !nomOficialEnv.isBlank() ? nomOficialEnv : "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\"")
+                    .append("slogan_plantel", sloganEnv != null ? sloganEnv : "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"")
+                    .append("logo_plantel_url", logoPlantelEnv != null && !logoPlantelEnv.isBlank() ? logoPlantelEnv : "/img/logo_aniversario.jpg")
+                    .append("logo_inicio_url", logoInicioEnv != null && !logoInicioEnv.isBlank() ? logoInicioEnv : "/img/tigres.png")
                     .append("vigencia_actual", "Agosto 2027")
-                    .append("cct_escuela", "12DCT0001L")
+                    .append("cct_escuela", cctEnv != null ? cctEnv : "12DCT0001L")
                     .append("responsable_orientacion", "MATILDE ABIGAIL GARCIA NAJERA")
                     .append("jefe_personal", "LIC. JUANA MORALES APARICIO")
-                    .append("telefono_escuela", "7474723464")
-                    .append("nombre_director", "JOSE MARTÍN RODEA ZUÑIGA")
+                    .append("telefono_escuela", telEnv != null ? telEnv : "7474723464")
+                    .append("nombre_director", directorEnv != null ? directorEnv : "JOSE MARTÍN RODEA ZUÑIGA")
                     .append("ultimaLimpieza", "2026-08-07");
             mongoTemplate.save(docSistema, col);
             System.out.println("-> [configuracion] Registro sembrado: sistema");

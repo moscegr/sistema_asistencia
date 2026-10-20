@@ -1,4 +1,4 @@
-let alumnosCache = [];
+﻿let alumnosCache = [];
 let especialidadesConfig = [];
 let alumnosDelGrupoSeleccionado = [];
 let cfgSistema = {};
@@ -318,7 +318,7 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
         });
 
         if (document.getElementById('pvcDirector')) {
-            document.getElementById('pvcDirector').innerText = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
+            document.getElementById('pvcDirector').innerText = cfgSistema.nombre_director || "Dirección del Plantel";
         }
 
         const inputFoto = document.getElementById('inputFotoTemporal');
@@ -396,7 +396,7 @@ async function generarImagenGafete(alumno) {
 
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
         const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
-        const nomPlantel = cfgSistema.nombre_plantel || 'CBTis No. 134';
+        const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
         const imgEscuela = new Image();
         const imgTigre = new Image();
         imgEscuela.src = logoEscuelaSrc;
@@ -517,7 +517,7 @@ async function descargarGafeteIndividualPDF() {
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(10);
         pdf.setTextColor(123, 27, 55);
-        pdf.text("CBTis No. 134 • GAFETE OFICIAL DE ESTUDIANTE", 107.95, 45, { align: "center" });
+        pdf.text(`${nomPlantel} • GAFETE OFICIAL DE ESTUDIANTE`, 107.95, 45, { align: "center" });
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(8);
         pdf.setTextColor(100, 100, 100);
@@ -638,7 +638,7 @@ async function generarCanvasCredencialFrente(alumno) {
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
         const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
-        const nomPlantel = cfgSistema.nombre_plantel || 'CBTis No. 134';
+        const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
 
         const estiloFondoCustom = plantillaFrente ? `background-image: url('${plantillaFrente}'); background-size: cover; background-position: center;` : `background: #ffffff;`;
 
@@ -721,10 +721,10 @@ async function generarCanvasCredencialReverso(alumno) {
         const mat = alumno.ncontrol || alumno.matricula || '';
         const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 60);
         const qrImgData = await generarQRConTigre(textoQR);
-        const director = cfgSistema.nombre_director || "JOSE MARTÍN RODEA ZUÑIGA";
+        const director = cfgSistema.nombre_director || "Dirección del Plantel";
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
         const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
-        const nomPlantel = cfgSistema.nombre_plantel || 'CBTis No. 134';
+        const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
         const cct = cfgSistema.cct_escuela || '12DCT0001L';
 
         const estiloFondoCustom = plantillaReverso ? `background-image: url('${plantillaReverso}'); background-size: cover; background-position: center;` : `background: #ffffff;`;

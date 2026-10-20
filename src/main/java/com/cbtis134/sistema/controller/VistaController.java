@@ -42,13 +42,21 @@ public class VistaController {
             } catch (Exception ignored) {}
         }
         Map<String, Object> fallback = new HashMap<>();
-        fallback.put("nombre_plantel", "CBTis 134");
-        fallback.put("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\"");
-        fallback.put("slogan_plantel", "\"Por que prestigio se gana con esfuerzo... Somos CBTis 134\"");
-        fallback.put("logo_plantel_url", "/img/logo_aniversario.jpg");
-        fallback.put("logo_inicio_url", "/img/tigres.png");
-        fallback.put("telefono_escuela", "(747) 47 2 34 64");
-        fallback.put("cct_escuela", "12DCT0001L");
+        String nomPlantelEnv = System.getenv("PLANTEL_NOMBRE_CORTO");
+        String nomOficialEnv = System.getenv("PLANTEL_NOMBRE_OFICIAL");
+        String sloganEnv = System.getenv("PLANTEL_SLOGAN");
+        String logoPlantelEnv = System.getenv("PLANTEL_LOGO_URL");
+        String logoInicioEnv = System.getenv("PLANTEL_MASCOTA_URL");
+        String cctEnv = System.getenv("PLANTEL_CCT");
+        String telEnv = System.getenv("PLANTEL_TELEFONO");
+
+        fallback.put("nombre_plantel", nomPlantelEnv != null && !nomPlantelEnv.isBlank() ? nomPlantelEnv : "Control Escolar");
+        fallback.put("nombre_oficial_plantel", nomOficialEnv != null && !nomOficialEnv.isBlank() ? nomOficialEnv : "Centro de Bachillerato Tecnológico Industrial y de Servicios");
+        fallback.put("slogan_plantel", sloganEnv != null ? sloganEnv : "");
+        fallback.put("logo_plantel_url", logoPlantelEnv != null && !logoPlantelEnv.isBlank() ? logoPlantelEnv : "/img/logo_aniversario.jpg");
+        fallback.put("logo_inicio_url", logoInicioEnv != null && !logoInicioEnv.isBlank() ? logoInicioEnv : "/img/tigres.png");
+        fallback.put("telefono_escuela", telEnv != null ? telEnv : "");
+        fallback.put("cct_escuela", cctEnv != null ? cctEnv : "");
         return fallback;
     }
 

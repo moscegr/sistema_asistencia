@@ -74,8 +74,8 @@
         top: calc(100% + 8px); 
         left: 50%;
         transform: translateX(-50%) translateY(-5px);
-        background: none; /* Sin fondo negro */
-        color: #1a202c; /* Negro/Gris muy oscuro */
+        background: none;
+        color: #1a202c;
         font-size: 0.75rem;
         font-family: 'DM Sans', sans-serif;
         font-weight: 600;
@@ -85,11 +85,9 @@
         pointer-events: none;
         transition: all 0.2s ease;
         z-index: 999999 !important;
-        /* Sombra blanca al texto para que resalte si toca algo oscuro */
         text-shadow: 1px 1px 0px #fff, -1px -1px 0px #fff, 1px -1px 0px #fff, -1px 1px 0px #fff;
     }
 
-    /* Eliminamos la flechita negra */
     .label-tigre::after { display: none; }
 
     .label-tigre .lbl-action {
@@ -130,9 +128,11 @@
 
         <div class="tigre-menu-container ms-auto" style="overflow: visible !important;">
 
-            <img th:src="@{/img/tigres.png}"
-                 alt="Tigre 134"
-                 class="tigre-img d-none d-sm-block">
+            <img th:src="${configSistema != null and configSistema['logo_inicio_url'] != null ? configSistema['logo_inicio_url'] : '/img/tigres.png'}"
+                 th:alt="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Logo'}"
+                 class="tigre-img d-none d-sm-block"
+                 id="headerMascotaLogo"
+                 onerror="this.src='/img/tigres.png'">
 
             <div class="tigre-options">
 

@@ -3,28 +3,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             const data = await res.json();
-            const nom = data.nombre_plantel || 'CBTis 134';
-            const nomOficial = data.nombre_oficial_plantel || 'CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134';
-            const slogan = data.slogan_plantel || '"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134"';
-            const logoPlantel = data.logo_plantel_url || '/img/logo-cbtis.png';
-            const logoInicio = data.logo_inicio_url || '/img/logo.png';
+            const nom = data.nombre_plantel || 'Control Escolar';
+            const nomOficial = data.nombre_oficial_plantel || nom;
+            const slogan = data.slogan_plantel || '';
+            const logoPlantel = data.logo_plantel_url || '/img/logo_aniversario.jpg';
+            const logoInicio = data.logo_inicio_url || '/img/tigres.png';
 
             document.title = `${nom} - Iniciar Sesión`;
 
             const imgPlantel = document.getElementById('loginLogoPlantel');
-            if (imgPlantel) imgPlantel.src = logoPlantel;
+            if (imgPlantel && data.logo_plantel_url) imgPlantel.src = logoPlantel;
 
             const lblNombre = document.getElementById('loginNombrePlantel');
-            if (lblNombre) lblNombre.innerText = nom;
+            if (lblNombre && data.nombre_plantel) lblNombre.innerText = data.nombre_plantel;
 
             const lblSlogan = document.getElementById('loginSloganPlantel');
-            if (lblSlogan) lblSlogan.innerText = slogan;
+            if (lblSlogan && data.slogan_plantel !== undefined) lblSlogan.innerText = data.slogan_plantel;
 
             const imgInicio = document.getElementById('loginLogoInicio');
-            if (imgInicio) imgInicio.src = logoInicio;
+            if (imgInicio && data.logo_inicio_url) imgInicio.src = logoInicio;
 
             const imgLoader = document.getElementById('loaderLogo');
-            if (imgLoader) imgLoader.src = logoInicio;
+            if (imgLoader && data.logo_inicio_url) imgLoader.src = logoInicio;
 
             const descPlantel = document.getElementById('loginDescripcionPlantel');
             if (descPlantel) {
@@ -111,7 +111,7 @@ function recuperarPassword(e) {
     if(e) e.preventDefault(); 
     Swal.fire({
         title: 'Restablecer Contraseña',
-        text: "Contacta al administrador principal del plantel (admin@admin.edu.mx) para gestionar el restablecimiento de tu acceso.",
+        text: "Contacta al administrador principal de tu plantel para gestionar el restablecimiento de tu acceso.",
         icon: 'info',
         confirmButtonColor: '#7b1b37'
     });

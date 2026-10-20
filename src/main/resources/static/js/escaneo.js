@@ -1,4 +1,4 @@
-// static/js/escaneo.js (REST API Spring Boot Backend)
+﻿// static/js/escaneo.js (REST API Spring Boot Backend)
 
 let html5QrcodeScanner = null;
 let alumnosCache = [];
@@ -725,9 +725,10 @@ async function enviarNotificacionTutor(al, tipoAcceso) {
         const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
         const mat = al.ncontrol || al.matricula || '';
 
+        const nomEscuela = (window.cfgSistemaGlobal && window.cfgSistemaGlobal.nombre_plantel) || 'Plantel Escolar';
         let plantillaBase = (tipoAcceso === 'ENTRADA')
-            ? (configWs.plantilla_entrada || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}.')
-            : (configWs.plantilla_salida || '🏫 [CBTis 134] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}.');
+            ? (configWs.plantilla_entrada || ('🏫 [' + nomEscuela + '] Notificación:\nEl estudiante {nombre} ha registrado su ENTRADA al plantel a las {hora}.'))
+            : (configWs.plantilla_salida || ('🏫 [' + nomEscuela + '] Notificación:\nEl estudiante {nombre} ha registrado su SALIDA del plantel a las {hora}.'));
 
         const mensajeFinal = plantillaBase
             .replace(/\{nombre\}/g, nombreCompleto)

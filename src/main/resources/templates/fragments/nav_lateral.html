@@ -311,8 +311,12 @@
     </style>
 
     <div class="sb-head">
-	    <img th:src="@{/img/logo_aniversario.jpg}" alt="Logo Plantel" class="sb-logo" id="sidebarLogo">
-	    <p class="sb-name" id="sidebarNombrePlantel">CBTIS 134</p>
+	    <img th:src="${configSistema != null and configSistema['logo_plantel_url'] != null ? configSistema['logo_plantel_url'] : '/img/logo_aniversario.jpg'}" 
+             th:alt="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Logo Plantel'}" 
+             class="sb-logo" 
+             id="sidebarLogo"
+             onerror="this.src='/img/logo_aniversario.jpg'">
+	    <p class="sb-name" id="sidebarNombrePlantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'CONTROL ESCOLAR'}">CONTROL ESCOLAR</p>
 	    <span class="sb-cycle">
 	        <span class="sb-cycle-dot"></span>
 	        Ciclo <span id="sidebarCicloActual" th:text="${#dates.format(#dates.createNow(),'yyyy')}"></span>

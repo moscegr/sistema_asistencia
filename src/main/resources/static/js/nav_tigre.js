@@ -19,9 +19,12 @@ function redirigirAlInicio() {
 
 // 2. Cerrar Sesión (Spring Security /logout)
 function confirmarCerrarSesion() {
+    const nomPlantel = (window.cfgSistemaGlobal && window.cfgSistemaGlobal.nombre_plantel) 
+        ? window.cfgSistemaGlobal.nombre_plantel 
+        : 'el sistema';
     Swal.fire({
         title: '¿Cerrar Sesión?',
-        text: "¡El Tigre te esperará pronto!",
+        text: `¿Estás seguro de que deseas salir de ${nomPlantel}?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#7b1b37',

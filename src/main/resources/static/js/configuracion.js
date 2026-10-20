@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Panel de Configuración - CBTis 134 (MongoDB & REST API)
  */
 
@@ -81,14 +81,14 @@ async function cargarDatosInstitucionales() {
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             const data = await res.json();
-            if (document.getElementById('confNombrePlantel')) document.getElementById('confNombrePlantel').value = data.nombre_plantel || "CBTis 134";
-            if (document.getElementById('confNombreOficialPlantel')) document.getElementById('confNombreOficialPlantel').value = data.nombre_oficial_plantel || "CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134";
-            if (document.getElementById('confSloganPlantel')) document.getElementById('confSloganPlantel').value = data.slogan_plantel || "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\"";
-            if (document.getElementById('confDirector')) document.getElementById('confDirector').value = data.nombre_director || "JOSE MARTIN RODEA ZUÑIGA";
-            if (document.getElementById('confOrientacion')) document.getElementById('confOrientacion').value = data.responsable_orientacion || "MATILDE ABIGAIL GARCIA NAJERA";
-            if (document.getElementById('confJefePersonal')) document.getElementById('confJefePersonal').value = data.jefe_personal || data.nombre_jefe_personal || "LIC. JUANA MORALES APARICIO";
-            if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "12DCT0001L";
-            if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "747 47 2 34 64";
+            if (document.getElementById('confNombrePlantel')) document.getElementById('confNombrePlantel').value = data.nombre_plantel || "";
+            if (document.getElementById('confNombreOficialPlantel')) document.getElementById('confNombreOficialPlantel').value = data.nombre_oficial_plantel || "";
+            if (document.getElementById('confSloganPlantel')) document.getElementById('confSloganPlantel').value = data.slogan_plantel || "";
+            if (document.getElementById('confDirector')) document.getElementById('confDirector').value = data.nombre_director || "";
+            if (document.getElementById('confOrientacion')) document.getElementById('confOrientacion').value = data.responsable_orientacion || "";
+            if (document.getElementById('confJefePersonal')) document.getElementById('confJefePersonal').value = data.jefe_personal || data.nombre_jefe_personal || "";
+            if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "";
+            if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "";
             if (document.getElementById('confVigencia')) document.getElementById('confVigencia').value = data.vigencia_actual || "Agosto 2026";
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             if (document.getElementById('imgPreviewLogoPlantel') && data.logo_plantel_url) {
@@ -108,7 +108,7 @@ if (formInst) {
         Swal.fire({ title: 'Guardando configuración...', didOpen: () => Swal.showLoading() });
 
         const actualizaciones = {
-            nombre_plantel: document.getElementById('confNombrePlantel') ? document.getElementById('confNombrePlantel').value.trim() : "CBTis 134",
+            nombre_plantel: document.getElementById('confNombrePlantel') ? document.getElementById('confNombrePlantel').value.trim() : "",
             nombre_oficial_plantel: document.getElementById('confNombreOficialPlantel') ? document.getElementById('confNombreOficialPlantel').value.trim().toUpperCase() : "",
             slogan_plantel: document.getElementById('confSloganPlantel') ? document.getElementById('confSloganPlantel').value.trim() : "",
             nombre_director: document.getElementById('confDirector').value.trim().toUpperCase(),

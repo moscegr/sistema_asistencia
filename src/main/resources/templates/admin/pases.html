@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -212,7 +212,7 @@
 							        
 							        <div class="texto-inst">
 							            Dirección General de Educación Tecnológica y de Servicios<br>
-							            Centro de Bachillerato tecnológico industrial y de servicios No. 134°<br>
+							            <span class="nombre-oficial-plantel" th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios'}">Centro de Bachillerato Tecnológico Industrial y de Servicios</span><br>
 							            Departamento de Servicios Escolares<br>
 							            Oficina de Orientación Educativa<br>
 							            <div class="titulo-doc">PASE DE SALIDA INDIVIDUAL.</div>
