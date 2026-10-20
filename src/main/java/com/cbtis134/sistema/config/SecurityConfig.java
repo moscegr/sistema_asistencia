@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SecurityConfig {
 
     // ─── Constantes de Rate Limiting ───────────────────────────────────────────
-    private static final int MAX_INTENTOS_LOGIN   = 5;   // intentos máximos
-    private static final long VENTANA_BLOQUEO_MS  = 15L * 60 * 1000; // 15 minutos
+    private static final int MAX_INTENTOS_LOGIN   = 15;  // intentos máximos permitidos
+    private static final long VENTANA_BLOQUEO_MS  = 5L * 60 * 1000; // 5 minutos de ventana
 
     // Mapa en memoria: IP → [intentos, timestamp primer intento]
     private final Map<String, long[]> loginAttempts = new ConcurrentHashMap<>();
@@ -53,15 +53,19 @@ public class SecurityConfig {
     // ─── UserDetailsService ─────────────────────────────────────────────────────
     @Bean
     public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
-        return username -> usuarioRepository.findByCorreo(username)
-                .or(() -> usuarioRepository.findByCorreo(username.toLowerCase()))
-                .filter(u -> !"DOCENTE".equalsIgnoreCase(u.getRol()) && !"ADMINISTRATIVO".equalsIgnoreCase(u.getRol()))
-                .map(u -> new User(
-                        u.getCorreo(),
-                        u.getPassword() != null ? u.getPassword() : "",
-                        List.of(new SimpleGrantedAuthority("ROLE_" + u.getRol().toUpperCase()))
-                ))
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado o sin acceso: " + username));
+        return username -> {
+            String cleanUsername = (username != null) ? username.trim() : "";
+            return usuarioRepository.findByCorreo(cleanUsername)
+                    .or(() -> usuarioRepository.findByCorreo(cleanUsername.toLowerCase()))
+                    .or(() -> usuarioRepository.findByCorreo(cleanUsername.toUpperCase()))
+                    .filter(u -> !"DOCENTE".equalsIgnoreCase(u.getRol()) && !"ADMINISTRATIVO".equalsIgnoreCase(u.getRol()))
+                    .map(u -> new User(
+                            u.getCorreo(),
+                            u.getPassword() != null ? u.getPassword() : "",
+                            List.of(new SimpleGrantedAuthority("ROLE_" + u.getRol().toUpperCase()))
+                    ))
+                    .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado o sin acceso: " + username));
+        };
     }
 
     // ─── Rate-Limiting Filter (brute-force en /login) ───────────────────────────

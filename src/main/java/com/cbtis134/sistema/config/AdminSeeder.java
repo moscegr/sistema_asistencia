@@ -52,11 +52,14 @@ public class AdminSeeder implements ApplicationRunner {
         if (adminEmail == null || adminPassword == null) {
             System.out.println("-> [SEEDER] ADMIN_EMAIL / ADMIN_PASSWORD no configurados. Omitiendo creación automática de admin.");
         } else {
-            Usuario admin = usuarioRepository.findByCorreo(adminEmail).orElse(null);
+            Usuario admin = usuarioRepository.findByCorreo(adminEmail)
+                    .or(() -> usuarioRepository.findByCorreo(adminEmail.toLowerCase()))
+                    .orElse(null);
+
             if (admin == null) {
                 admin = new Usuario();
                 admin.setUid(UUID.randomUUID().toString());
-                admin.setCorreo(adminEmail);
+                admin.setCorreo(adminEmail.toLowerCase());
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setNombre("ADMINISTRADOR PRINCIPAL");
                 admin.setRol("ADMIN");
@@ -64,7 +67,13 @@ public class AdminSeeder implements ApplicationRunner {
                 admin.setUltimoAcceso("Inicializado");
                 admin.setPermisos(Arrays.asList("ALL"));
                 usuarioRepository.save(admin);
-                System.out.println("-> Admin Principal inicializado: " + adminEmail);
+                System.out.println("-> [SEEDER] Admin Principal creado e inicializado con éxito: " + adminEmail);
+            } else {
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                admin.setRol("ADMIN");
+                admin.setEstatus("Activo");
+                usuarioRepository.save(admin);
+                System.out.println("-> [SEEDER] Contraseña de Admin Principal sincronizada exitosamente con la variable ADMIN_PASSWORD: " + adminEmail);
             }
         }
 
