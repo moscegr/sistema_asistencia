@@ -770,9 +770,23 @@ function generarTableroDinamico() {
 
     contenedor.innerHTML = "";
 
+    const paletaColores = ["#0088cc", "#6f42c1", "#198754", "#dc3545", "#fd7e14", "#0dcaf0", "#7b1b37"];
+    let idxColor = especialidadesConfig.length;
+    alumnosCache.forEach(al => {
+        const espAl = (al.especialidad || '').trim();
+        if (espAl && !especialidadesConfig.some(e => (e.nombre || '').trim().toUpperCase() === espAl.toUpperCase())) {
+            especialidadesConfig.push({
+                nombre: espAl.toUpperCase(),
+                color: paletaColores[idxColor % paletaColores.length],
+                turno: al.turno || "Matutino"
+            });
+            idxColor++;
+        }
+    });
+
     especialidadesConfig.forEach(esp => {
         const color = esp.color || "#6c757d";
-        const alumnosDeEstaEsp = alumnosCache.filter(a => a.especialidad === esp.nombre);
+        const alumnosDeEstaEsp = alumnosCache.filter(a => (a.especialidad || '').trim().toUpperCase() === (esp.nombre || '').trim().toUpperCase());
         const gruposUnicos = [...new Set(alumnosDeEstaEsp.map(a => `${a.grado}${a.grupo}`))].sort();
 
         let badgesHTML = "";

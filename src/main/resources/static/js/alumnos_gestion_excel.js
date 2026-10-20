@@ -44,12 +44,28 @@ function normalizarDatosCBTis(valorExcel) {
         const grupo = match[2].toUpperCase();
         const aliasExcel = match[3].trim().toUpperCase();
 
-        const config = especialidadesCache.find(e => e.alias === aliasExcel);
+        const mapaAliasUniversal = {
+            "PRO": "PROGRAMACIÓN", "PROG": "PROGRAMACIÓN", "PROGR": "PROGRAMACIÓN",
+            "ARH": "ADMINISTRACIÓN DE RECURSOS HUMANOS", "ADM": "ADMINISTRACIÓN DE RECURSOS HUMANOS",
+            "CON": "CONTABILIDAD", "CONT": "CONTABILIDAD", "CONTA": "CONTABILIDAD",
+            "CST": "CONSTRUCCIÓN", "CONS": "CONSTRUCCIÓN", "TCS": "CONSTRUCCIÓN",
+            "ELE": "ELECTRICIDAD", "ELEC": "ELECTRICIDAD",
+            "OFI": "OFIMÁTICA", "OFIM": "OFIMÁTICA",
+            "LAB": "LABORATORISTA CLÍNICO", "LABC": "LABORATORISTA CLÍNICO", "LABO": "LABORATORISTA CLÍNICO",
+            "MEC": "MECATRÓNICA", "MECA": "MECATRÓNICA",
+            "IA": "INTELIGENCIA ARTIFICIAL",
+            "ECO": "E.COMMERCE", "ECOM": "E.COMMERCE", "COMER": "E.COMMERCE"
+        };
+        const nombreMapeado = mapaAliasUniversal[aliasExcel];
+        const config = especialidadesCache.find(e => 
+            (e.alias || '').toUpperCase() === aliasExcel || 
+            (nombreMapeado && (e.nombre || '').toUpperCase() === nombreMapeado)
+        );
         
         return {
             grado: grado,
             grupo: grupo,
-            especialidad: config ? config.nombre : (aliasExcel || "POR ASIGNAR"),
+            especialidad: config ? config.nombre : (nombreMapeado || aliasExcel || "POR ASIGNAR"),
             color: config ? config.color : "#6c757d",
             turno: config ? config.turno : "Matutino"
         };
@@ -303,14 +319,15 @@ function descargarPlantillaManual() {
     if (typeof XLSX === 'undefined') {
         return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
     }
+    const getEsp = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? (especialidadesCache[idx % especialidadesCache.length].nombre || fallback) : fallback;
     const headers = [
         ["Matricula", "CURP", "Nombre", "ApePat", "ApeMat", "Genero", "Email", "Celular", "Direccion", "Especialidad", "Grado", "Grupo", "Tutor", "TelTutor", "Ocupacion"],
-        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUÑEZ", "M", "karime.ayala@ejemplo.edu.mx", "7471234567", "Col. Centro Calle Galeana #12", "PROGRAMACIÓN", "4", "A", "KARIME NUÑEZ HIDALGO", "7479876543", "COMERCIANTE"],
-        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCÍA", "RIVERA", "H", "carlos.garcia@ejemplo.edu.mx", "7472345678", "Av. Insurgentes #45", "ADMINISTRACIÓN DE RECURSOS HUMANOS", "4", "B", "EDUARDO GARCÍA LÓPEZ", "7478765432", "EMPLEADO"],
-        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNÁNDEZ", "MORALES", "M", "lizbeth.hernandez@ejemplo.edu.mx", "7473456789", "Col. Viguri Andador 3", "CONTABILIDAD", "2", "A", "GUADALUPE MORALES RÍOS", "7477654321", "DOCENTE"],
-        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTÍNEZ", "SÁNCHEZ", "H", "emiliano.martinez@ejemplo.edu.mx", "7474567890", "Calle 5 de Mayo #88", "CONSTRUCCIÓN", "6", "A", "ROSA SÁNCHEZ VEGA", "7476543210", "HOGAR"],
-        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRÍGUEZ", "TORRES", "M", "ana.rodriguez@ejemplo.edu.mx", "7475678901", "Barrio de San Mateo #14", "ELECTRICIDAD", "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
-        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@ejemplo.edu.mx", "7476789012", "Col. del PRI Manzana 4", "OFIMÁTICA", "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
+        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUÑEZ", "M", "karime.ayala@ejemplo.edu.mx", "7471234567", "Col. Centro Calle Galeana #12", getEsp(0, "PROGRAMACIÓN"), "4", "A", "KARIME NUÑEZ HIDALGO", "7479876543", "COMERCIANTE"],
+        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCÍA", "RIVERA", "H", "carlos.garcia@ejemplo.edu.mx", "7472345678", "Av. Insurgentes #45", getEsp(1, "ADMINISTRACIÓN DE RECURSOS HUMANOS"), "4", "B", "EDUARDO GARCÍA LÓPEZ", "7478765432", "EMPLEADO"],
+        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNÁNDEZ", "MORALES", "M", "lizbeth.hernandez@ejemplo.edu.mx", "7473456789", "Col. Viguri Andador 3", getEsp(2, "CONTABILIDAD"), "2", "A", "GUADALUPE MORALES RÍOS", "7477654321", "DOCENTE"],
+        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTÍNEZ", "SÁNCHEZ", "H", "emiliano.martinez@ejemplo.edu.mx", "7474567890", "Calle 5 de Mayo #88", getEsp(3, "CONSTRUCCIÓN"), "6", "A", "ROSA SÁNCHEZ VEGA", "7476543210", "HOGAR"],
+        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRÍGUEZ", "TORRES", "M", "ana.rodriguez@ejemplo.edu.mx", "7475678901", "Barrio de San Mateo #14", getEsp(4, "ELECTRICIDAD"), "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
+        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@ejemplo.edu.mx", "7476789012", "Col. del PRI Manzana 4", getEsp(5, "OFIMÁTICA"), "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(headers);
     ws['!cols'] = [
@@ -334,14 +351,15 @@ function descargarPlantillaInstitucional() {
     if (typeof XLSX === 'undefined') {
         return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
     }
+    const getAlias = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? (especialidadesCache[idx % especialidadesCache.length].alias || fallback) : fallback;
     const headers = [
         ["GPO", "NO. CONTROL", "NOMBRE", "CURP", "GENERO", "TELEFONO CELULAR ALUMNO", "TELEFONO TUTOR", "NOMBRE TUTOR"],
-        ["2A PRO", "25312051340001", "AYALA NUÑEZ KARIME ALEJANDRA", "AANK100908MGRYXRA6", "M", "7471234567", "7479876543", "KARIME NUÑEZ HIDALGO"],
-        ["2B ARH", "25312051340002", "GARCÍA RIVERA CARLOS EDUARDO", "GARM090315HGRZLR01", "H", "7472345678", "7478765432", "EDUARDO GARCÍA LÓPEZ"],
-        ["4A CON", "25312051340003", "HERNÁNDEZ MORALES LIZBETH GUADALUPE", "HEML100122MGRNNS03", "M", "7473456789", "7477654321", "GUADALUPE MORALES RÍOS"],
-        ["6A CST", "25312051340004", "MARTÍNEZ SÁNCHEZ EMILIANO", "MASE091105HGRRLA08", "H", "7474567890", "7476543210", "ROSA SÁNCHEZ VEGA"],
-        ["2B ELE", "25312051340005", "RODRÍGUEZ TORRES ANA VALERIA", "ROTA100618MGRDCN02", "M", "7475678901", "7475432109", "VALERIA TORRES CASTRO"],
-        ["4C OFI", "25312051340006", "TORRES FLORES ALEXIS DANIEL", "TOFA090829HGRMNB05", "H", "7476789012", "7474321098", "DANIEL TORRES MENDOZA"]
+        [`2A ${getAlias(0, "PRO")}`, "25312051340001", "AYALA NUÑEZ KARIME ALEJANDRA", "AANK100908MGRYXRA6", "M", "7471234567", "7479876543", "KARIME NUÑEZ HIDALGO"],
+        [`2B ${getAlias(1, "ARH")}`, "25312051340002", "GARCÍA RIVERA CARLOS EDUARDO", "GARM090315HGRZLR01", "H", "7472345678", "7478765432", "EDUARDO GARCÍA LÓPEZ"],
+        [`4A ${getAlias(2, "CON")}`, "25312051340003", "HERNÁNDEZ MORALES LIZBETH GUADALUPE", "HEML100122MGRNNS03", "M", "7473456789", "7477654321", "GUADALUPE MORALES RÍOS"],
+        [`6A ${getAlias(3, "CST")}`, "25312051340004", "MARTÍNEZ SÁNCHEZ EMILIANO", "MASE091105HGRRLA08", "H", "7474567890", "7476543210", "ROSA SÁNCHEZ VEGA"],
+        [`2B ${getAlias(4, "ELE")}`, "25312051340005", "RODRÍGUEZ TORRES ANA VALERIA", "ROTA100618MGRDCN02", "M", "7475678901", "7475432109", "VALERIA TORRES CASTRO"],
+        [`4C ${getAlias(5, "OFI")}`, "25312051340006", "TORRES FLORES ALEXIS DANIEL", "TOFA090829HGRMNB05", "H", "7476789012", "7474321098", "DANIEL TORRES MENDOZA"]
     ];
     
     const ws = XLSX.utils.aoa_to_sheet(headers);
@@ -433,15 +451,23 @@ async function cargarEstructuraReal() {
         const alumnos = await res.json();
         
         estructuraEscolar = {};
+        const selectEsp = document.getElementById('exportEsp');
 
         alumnos.forEach(al => {
             const estatus = al.estatus_escolar || al.estatus || 'Activo';
             if (estatus === 'Activo' && al.especialidad) {
-                if (!estructuraEscolar[al.especialidad]) {
-                    estructuraEscolar[al.especialidad] = new Set();
+                const espTrim = al.especialidad.trim();
+                if (!estructuraEscolar[espTrim]) {
+                    estructuraEscolar[espTrim] = new Set();
                 }
                 if (al.grado && al.grupo) {
-                    estructuraEscolar[al.especialidad].add(`${al.grado}${al.grupo}`);
+                    estructuraEscolar[espTrim].add(`${al.grado}${al.grupo}`);
+                }
+                if (selectEsp && !Array.from(selectEsp.options).some(opt => opt.value.toUpperCase() === espTrim.toUpperCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = espTrim;
+                    opt.textContent = espTrim;
+                    selectEsp.appendChild(opt);
                 }
             }
         });

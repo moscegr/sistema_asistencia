@@ -189,6 +189,7 @@ async function cargarEspecialidades() {
         if (!tbody) return;
         tbody.innerHTML = "";
 
+        window.listaEspecialidadesActual = lista;
         lista.forEach((esp, idx) => {
             tbody.innerHTML += `
                 <tr>
@@ -197,7 +198,10 @@ async function cargarEspecialidades() {
                     <td><code>${esp.alias || esp.nombre.substring(0, 5)}</code></td>
                     <td>${esp.turno || 'Matutino'}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarEspecialidad(${idx})">
+                        <button class="btn btn-sm btn-outline-primary border-0 me-1" onclick="abrirModalEditarEspecialidad(${idx})" title="Editar carrera">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarEspecialidad(${idx})" title="Eliminar carrera">
                             <i class="bi bi-trash3-fill"></i>
                         </button>
                     </td>
@@ -231,6 +235,58 @@ if (formEsp) {
             formEsp.reset();
             cargarEspecialidades();
         } catch (e) { console.error(e); }
+    });
+}
+
+function abrirModalEditarEspecialidad(index) {
+    const lista = window.listaEspecialidadesActual || [];
+    const esp = lista[index];
+    if (!esp) return;
+    if (document.getElementById('editIndex')) document.getElementById('editIndex').value = index;
+    if (document.getElementById('editNombre')) document.getElementById('editNombre').value = esp.nombre || '';
+    if (document.getElementById('editAlias')) document.getElementById('editAlias').value = esp.alias || '';
+    if (document.getElementById('editColor')) document.getElementById('editColor').value = esp.color || '#7b1b37';
+    if (document.getElementById('editTurno')) document.getElementById('editTurno').value = esp.turno || 'Matutino';
+
+    const modalEl = document.getElementById('modalEditarEsp');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+window.abrirModalEditarEspecialidad = abrirModalEditarEspecialidad;
+
+const formEditarEsp = document.getElementById('formEditarEsp');
+if (formEditarEsp) {
+    formEditarEsp.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const idx = parseInt(document.getElementById('editIndex').value, 10);
+        const nombre = document.getElementById('editNombre').value.trim().toUpperCase();
+        const alias = document.getElementById('editAlias').value.trim().toUpperCase();
+        const color = document.getElementById('editColor').value;
+        const turno = document.getElementById('editTurno').value;
+
+        try {
+            const res = await fetch('/api/configuracion/escolar');
+            if (!res.ok) return;
+            const data = await res.json();
+            const lista = data.especialidades || [];
+            if (idx >= 0 && idx < lista.length) {
+                lista[idx] = { nombre, alias, color, turno };
+                await fetch('/api/configuracion/escolar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ especialidades: lista })
+                });
+                const modalEl = document.getElementById('modalEditarEsp');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                }
+                Swal.fire("Éxito", "Especialidad actualizada correctamente", "success");
+                cargarEspecialidades();
+            }
+        } catch (err) { console.error(err); }
     });
 }
 

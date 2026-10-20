@@ -50,22 +50,86 @@ public class ConfiguracionController {
                 doc.put("ciudad_plantel", "Chilpancingo de los Bravo, Guerrero");
                 mongoTemplate.save(doc, "configuracion");
             } else if ("escolar".equals(id)) {
-                doc.put("especialidades", List.of(
-                    Map.of("nombre", "CONSTRUCCIÓN", "alias", "CONS", "color", "#7b1b37", "turno", "Matutino"),
-                    Map.of("nombre", "PROGRAMACIÓN", "alias", "PROG", "color", "#0088cc", "turno", "Vespertino"),
-                    Map.of("nombre", "LABORATORISTA CLÍNICO", "alias", "LABC", "color", "#28a745", "turno", "Matutino"),
-                    Map.of("nombre", "CONTABILIDAD", "alias", "CONT", "color", "#ffc107", "turno", "Matutino"),
-                    Map.of("nombre", "E.COMMERCE", "alias", "ECOM", "color", "#6f42c1", "turno", "Vespertino"),
-                    Map.of("nombre", "MECATRÓNICA", "alias", "MECA", "color", "#fd7e14", "turno", "Matutino")
-                ));
+                doc.put("especialidades", new ArrayList<>(List.of(
+                    new Document("nombre", "PROGRAMACIÓN").append("alias", "PRO").append("color", "#0088cc").append("turno", "Matutino"),
+                    new Document("nombre", "ADMINISTRACIÓN DE RECURSOS HUMANOS").append("alias", "ARH").append("color", "#6f42c1").append("turno", "Matutino"),
+                    new Document("nombre", "CONTABILIDAD").append("alias", "CON").append("color", "#198754").append("turno", "Matutino"),
+                    new Document("nombre", "CONSTRUCCIÓN").append("alias", "CST").append("color", "#dc3545").append("turno", "Matutino"),
+                    new Document("nombre", "ELECTRICIDAD").append("alias", "ELE").append("color", "#fd7e14").append("turno", "Matutino"),
+                    new Document("nombre", "OFIMÁTICA").append("alias", "OFI").append("color", "#0dcaf0").append("turno", "Matutino")
+                )));
+                doc.put("migrado_especialidades_v2", true);
                 mongoTemplate.save(doc, "configuracion");
             } else if ("ciclo_escolar".equals(id)) {
                 doc.put("actual", "FEB-JUL 2026");
                 mongoTemplate.save(doc, "configuracion");
             }
         }
+
+        if ("escolar".equals(id) && doc != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> listaEsp = (List<Map<String, Object>>) doc.get("especialidades");
+                if (listaEsp == null) {
+                    listaEsp = new ArrayList<>();
+                } else {
+                    listaEsp = new ArrayList<>(listaEsp);
+                }
+
+                Set<String> nombresRegistrados = new HashSet<>();
+                for (Map<String, Object> esp : listaEsp) {
+                    Object nomObj = esp.get("nombre");
+                    if (nomObj != null) {
+                        nombresRegistrados.add(nomObj.toString().trim().toUpperCase());
+                    }
+                }
+
+                List<Document> alumnos = mongoTemplate.findAll(Document.class, "alumnos");
+                String[] paleta = {"#7b1b37", "#0088cc", "#198754", "#fd7e14", "#6f42c1", "#dc3545", "#0dcaf0"};
+                int colorIdx = listaEsp.size();
+                boolean actualizado = false;
+
+                for (Document al : alumnos) {
+                    String espAl = al.getString("especialidad");
+                    if (espAl != null && !espAl.trim().isEmpty()) {
+                        String espUpper = espAl.trim().toUpperCase();
+                        if (!"POR ASIGNAR".equals(espUpper) && !nombresRegistrados.contains(espUpper)) {
+                            String alias = generarAliasEspecialidad(espUpper);
+                            String turnoAl = al.getString("turno");
+                            Document nuevaEsp = new Document("nombre", espUpper)
+                                    .append("alias", alias)
+                                    .append("color", paleta[colorIdx % paleta.length])
+                                    .append("turno", (turnoAl != null && !turnoAl.isBlank()) ? turnoAl : "Matutino");
+                            listaEsp.add(nuevaEsp);
+                            nombresRegistrados.add(espUpper);
+                            colorIdx++;
+                            actualizado = true;
+                        }
+                    }
+                }
+
+                if (actualizado) {
+                    doc.put("especialidades", listaEsp);
+                    mongoTemplate.save(doc, "configuracion");
+                }
+            } catch (Exception ignored) {}
+        }
         
         return ResponseEntity.ok(doc);
+    }
+
+    private String generarAliasEspecialidad(String nombre) {
+        if (nombre.contains("RECURSOS HUMANOS")) return "ARH";
+        if (nombre.contains("PROGRAMAC")) return "PRO";
+        if (nombre.contains("CONTABIL")) return "CON";
+        if (nombre.contains("CONSTRUCC")) return "CST";
+        if (nombre.contains("ELECTRIC")) return "ELE";
+        if (nombre.contains("OFIM")) return "OFI";
+        if (nombre.contains("LABORATOR")) return "LAB";
+        if (nombre.contains("MECATR")) return "MEC";
+        if (nombre.contains("INTELIGENCIA")) return "IA";
+        if (nombre.contains("COMMERCE") || nombre.contains("COMERCIO")) return "ECO";
+        return nombre.length() >= 4 ? nombre.substring(0, 4) : nombre;
     }
 
     @PostMapping("/{id}")

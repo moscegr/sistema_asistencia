@@ -101,6 +101,22 @@ async function cargarAlumnosActivos() {
         if (res.ok) {
             const data = await res.json();
             alumnosCache = data.filter(al => (al.estatus_escolar || al.estatus || 'Activo') === 'Activo');
+
+            const selectEsp = document.getElementById('filtroEspCred');
+            if (selectEsp) {
+                const espReales = [...new Set(alumnosCache.map(a => (a.especialidad || '').trim()).filter(Boolean))];
+                espReales.forEach(espNombre => {
+                    if (!Array.from(selectEsp.options).some(opt => opt.value.toUpperCase() === espNombre.toUpperCase())) {
+                        const opt = document.createElement('option');
+                        opt.value = espNombre;
+                        opt.textContent = espNombre;
+                        selectEsp.appendChild(opt);
+                    }
+                    if (!especialidadesConfig.some(e => (e.nombre || '').toUpperCase() === espNombre.toUpperCase())) {
+                        especialidadesConfig.push({ nombre: espNombre, color: '#7b1b37', turno: 'Matutino' });
+                    }
+                });
+            }
         }
         Swal.close();
     } catch (e) {
@@ -150,12 +166,12 @@ function alCambiarEspecialidad() {
         return;
     }
 
-    const espData = especialidadesConfig.find(e => e.nombre === especialidad);
+    const espData = especialidadesConfig.find(e => (e.nombre || '').trim().toUpperCase() === especialidad.trim().toUpperCase());
     const colorEsp = espData ? espData.color : 'var(--guinda)';
     if(tarjeta) tarjeta.style.borderTop = `5px solid ${colorEsp}`;
 
     const gruposReales = [...new Set(alumnosCache
-        .filter(al => al.especialidad === especialidad)
+        .filter(al => (al.especialidad || '').trim().toUpperCase() === especialidad.trim().toUpperCase())
         .map(al => `${al.grado}° "${al.grupo}"`)
     )].sort();
 
@@ -195,7 +211,7 @@ function renderizarAlumnosGrupo() {
     }
 
     alumnosDelGrupoSeleccionado = alumnosCache.filter(al => 
-        al.especialidad === especialidad && `${al.grado}° "${al.grupo}"` === grupoSelect
+        (al.especialidad || '').trim().toUpperCase() === especialidad.trim().toUpperCase() && `${al.grado}° "${al.grupo}"` === grupoSelect
     ).sort((a, b) => `${a.apepat || a.primerApellido || ''} ${a.apemat || a.segundoApellido || ''} ${a.nombre}`.localeCompare(`${b.apepat || b.primerApellido || ''} ${b.apemat || b.segundoApellido || ''} ${b.nombre}`));
 
     if (alumnosDelGrupoSeleccionado.length === 0) {
@@ -358,16 +374,22 @@ async function generarQRConTigre(texto) {
             canvas.width = size;
             canvas.height = size;
 
+            const qrCanvas = divTemporal.querySelector('canvas');
+            if (qrCanvas && qrCanvas.width > 0) {
+                ctx.drawImage(qrCanvas, 0, 0, size, size);
+                resolve(canvas.toDataURL("image/png"));
+                return;
+            }
+
             const imgQrGenerado = divTemporal.querySelector('img');
             const finalQR = new Image();
-            finalQR.src = imgQrGenerado ? imgQrGenerado.src : (divTemporal.querySelector('canvas') ? divTemporal.querySelector('canvas').toDataURL() : '');
-
             finalQR.onload = () => {
                 ctx.drawImage(finalQR, 0, 0, size, size);
                 resolve(canvas.toDataURL("image/png"));
             };
-            finalQR.onerror = () => resolve(divTemporal.querySelector('canvas') ? divTemporal.querySelector('canvas').toDataURL() : '');
-        }, 150); 
+            finalQR.onerror = () => resolve(qrCanvas ? qrCanvas.toDataURL() : '');
+            finalQR.src = (imgQrGenerado && imgQrGenerado.src) ? imgQrGenerado.src : (qrCanvas ? qrCanvas.toDataURL() : '');
+        }, 100); 
     });
 }
 
@@ -394,18 +416,18 @@ async function generarImagenGafete(alumno) {
         ctx.fillStyle = "#d4af37";
         ctx.fillRect(0, 88, 400, 3);
 
-        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
-        const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
-        const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
+        const logoEscuelaSrc = (cfgSistema && cfgSistema.logo_plantel_url) ? cfgSistema.logo_plantel_url : '/img/logo-cbtis.png';
+        const logoInicioSrc = (cfgSistema && cfgSistema.logo_inicio_url) ? cfgSistema.logo_inicio_url : '/img/logo.png';
+        const nomPlantel = (cfgSistema && cfgSistema.nombre_plantel) ? cfgSistema.nombre_plantel : 'Plantel Escolar';
         const imgEscuela = new Image();
         const imgTigre = new Image();
-        imgEscuela.src = logoEscuelaSrc;
-        imgTigre.src = logoInicioSrc;
 
         let cargas = 0;
+        let renderizado = false;
         const alCargarLogo = () => {
             cargas++;
-            if (cargas < 2) return;
+            if (cargas < 2 || renderizado) return;
+            renderizado = true;
 
             const dibujarMedallonCircular = (imgObj, cx, cy, r) => {
                 ctx.save();
@@ -415,13 +437,19 @@ async function generarImagenGafete(alumno) {
                 ctx.fillStyle = "#FFFFFF";
                 ctx.fill();
                 ctx.clip();
-                const maxDim = (r - 3) * 2;
-                const iw = imgObj.naturalWidth || imgObj.width || maxDim;
-                const ih = imgObj.naturalHeight || imgObj.height || maxDim;
-                const ratio = Math.min(maxDim / iw, maxDim / ih);
-                const dw = iw * ratio;
-                const dh = ih * ratio;
-                ctx.drawImage(imgObj, cx - dw / 2, cy - dh / 2, dw, dh);
+                try {
+                    if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
+                        const maxDim = (r - 3) * 2;
+                        const iw = imgObj.naturalWidth || imgObj.width || maxDim;
+                        const ih = imgObj.naturalHeight || imgObj.height || maxDim;
+                        const ratio = Math.min(maxDim / iw, maxDim / ih);
+                        const dw = iw * ratio;
+                        const dh = ih * ratio;
+                        ctx.drawImage(imgObj, cx - dw / 2, cy - dh / 2, dw, dh);
+                    }
+                } catch (errImg) {
+                    console.warn("No se pudo dibujar logo en gafete:", errImg);
+                }
                 ctx.restore();
 
                 ctx.save();
@@ -467,39 +495,52 @@ async function generarImagenGafete(alumno) {
                 correctLevel: QRCode.CorrectLevel.H
             });
 
+            const finalizarGafeteConQR = (qrSource) => {
+                try {
+                    if (qrSource) {
+                        ctx.drawImage(qrSource, 80, 145, 240, 240);
+                    }
+                } catch (eQr) {
+                    console.warn("Error dibujando QR:", eQr);
+                }
+
+                ctx.fillStyle = "#7b1b37"; ctx.font = "bold 28px Arial";
+                ctx.fillText(mat, 200, 420);
+                
+                ctx.fillStyle = "#333333"; ctx.font = "bold 15px Arial";
+                ctx.fillText(alumno.especialidad || "", 200, 450);
+                ctx.fillStyle = "#666666"; ctx.font = "bold 14px Arial";
+                ctx.fillText(`${alumno.grado || ''}° "${alumno.grupo || ''}" • ${alumno.turno || 'Matutino'}`, 200, 475);
+
+                // Pie de página institucional
+                ctx.fillStyle = "#7b1b37";
+                ctx.fillRect(0, 515, 400, 45);
+                ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 11px Arial";
+                ctx.fillText(`${nomPlantel.toUpperCase()} • SISTEMA DE CONTROL DE ACCESOS Y REGISTRO`, 200, 542);
+
+                resolve(canvas.toDataURL("image/png"));
+            };
+
             setTimeout(() => {
+                const qrCanvas = divTemporal.querySelector('canvas');
+                if (qrCanvas && qrCanvas.width > 0) {
+                    finalizarGafeteConQR(qrCanvas);
+                    return;
+                }
                 const imgQrGenerado = divTemporal.querySelector('img');
                 const finalQR = new Image();
-                finalQR.src = imgQrGenerado ? imgQrGenerado.src : (divTemporal.querySelector('canvas') ? divTemporal.querySelector('canvas').toDataURL() : '');
-                
-                finalQR.onload = function() {
-                    // Código QR 100% puro y nítido
-                    ctx.drawImage(finalQR, 80, 145, 240, 240);
-
-                    ctx.fillStyle = "#7b1b37"; ctx.font = "bold 28px Arial";
-                    ctx.fillText(mat, 200, 420);
-                    
-                    ctx.fillStyle = "#333333"; ctx.font = "bold 15px Arial";
-                    ctx.fillText(alumno.especialidad || "", 200, 450);
-                    ctx.fillStyle = "#666666"; ctx.font = "bold 14px Arial";
-                    ctx.fillText(`${alumno.grado || ''}° "${alumno.grupo || ''}" • ${alumno.turno || 'Matutino'}`, 200, 475);
-
-                    // Pie de página institucional
-                    ctx.fillStyle = "#7b1b37";
-                    ctx.fillRect(0, 515, 400, 45);
-                    ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 11px Arial";
-                    ctx.fillText(`${nomPlantel.toUpperCase()} • SISTEMA DE CONTROL DE ACCESOS Y REGISTRO`, 200, 542);
-
-                    resolve(canvas.toDataURL("image/png"));
-                };
-                finalQR.onerror = () => resolve(canvas.toDataURL("image/png"));
-            }, 150); 
+                finalQR.onload = () => finalizarGafeteConQR(finalQR);
+                finalQR.onerror = () => finalizarGafeteConQR(null);
+                finalQR.src = (imgQrGenerado && imgQrGenerado.src) ? imgQrGenerado.src : '';
+            }, 100); 
         };
 
         imgEscuela.onload = alCargarLogo;
         imgTigre.onload = alCargarLogo;
         imgEscuela.onerror = alCargarLogo;
         imgTigre.onerror = alCargarLogo;
+        imgEscuela.src = logoEscuelaSrc;
+        imgTigre.src = logoInicioSrc;
     });
 }
 
@@ -515,6 +556,7 @@ async function descargarGafeteIndividualPDF() {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('portrait', 'mm', 'letter'); // 215.9 x 279.4 mm
         const imgData = await generarImagenGafete(alumnoSeleccionadoInd);
+        const nomPlantel = (cfgSistema && cfgSistema.nombre_plantel) ? cfgSistema.nombre_plantel : 'Plantel Escolar';
 
         const widthGafete = 90;
         const heightGafete = 120;

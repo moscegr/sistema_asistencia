@@ -75,6 +75,18 @@ async function cargarAlumnosBusqueda() {
         const res = await fetch('/api/alumnos');
         if (res.ok) {
             todosLosAlumnos = await res.json();
+            const selectEsp = document.getElementById('filtroEspecialidad');
+            if (selectEsp) {
+                const espAlumnos = [...new Set(todosLosAlumnos.map(a => (a.especialidad || '').trim()).filter(Boolean))];
+                espAlumnos.forEach(espNombre => {
+                    if (!Array.from(selectEsp.options).some(opt => opt.value.toUpperCase() === espNombre.toUpperCase())) {
+                        const opt = document.createElement('option');
+                        opt.value = espNombre;
+                        opt.textContent = espNombre;
+                        selectEsp.appendChild(opt);
+                    }
+                });
+            }
             filtrarYMostrarAlumnos();
         }
     } catch (e) {
@@ -88,7 +100,7 @@ function filtrarYMostrarAlumnos() {
     tbody.innerHTML = "";
     
     const b = (document.getElementById('busquedaGeneral')?.value || '').toLowerCase();
-    const fEsp = document.getElementById('filtroEspecialidad')?.value || '';
+    const fEsp = (document.getElementById('filtroEspecialidad')?.value || '').trim().toUpperCase();
     const fGrado = document.getElementById('filtroGrado')?.value || '';
     const fGpo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase();
 
@@ -97,9 +109,10 @@ function filtrarYMostrarAlumnos() {
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
         const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.toLowerCase();
+        const alEsp = (al.especialidad || '').trim().toUpperCase();
 
         if (b && !nombreCompleto.includes(b) && !mat.includes(b)) return false;
-        if (fEsp && al.especialidad !== fEsp) return false;
+        if (fEsp && alEsp !== fEsp) return false;
         if (fGrado && String(al.grado) !== fGrado) return false;
         if (fGpo && al.grupo !== fGpo) return false;
         return true;

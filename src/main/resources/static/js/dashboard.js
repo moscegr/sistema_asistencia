@@ -181,11 +181,8 @@ async function cargarDashboardCompleto() {
         const conteoCarrerasTotal = {};
         const conteoCarrerasPresentes = {};
 
-        // Inicializar especialidades disponibles
-        let especialidades = (configEscolar.especialidades || []).map(e => e.nombre);
-        if (especialidades.length === 0) {
-            especialidades = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN", "LABORATORISTA CLÍNICO", "E-COMMERCE", "INTELIGENCIA ARTIFICIAL", "ADMINISTRACIÓN"];
-        }
+        // Inicializar especialidades disponibles dinámicamente desde configuración y padrón activo
+        let especialidades = (configEscolar.especialidades || []).map(e => (e.nombre || '').trim().toUpperCase()).filter(Boolean);
 
         // Agregar carreras presentes en los alumnos si no estaban en el catálogo
         activos.forEach(al => {
@@ -1395,7 +1392,7 @@ async function cargarEspecialidadesPromocion() {
     const selectCiclo = document.getElementById('selectCicloEsp');
     const selectFiltro = document.getElementById('selectFiltroModulo'); 
 
-    let especialidadesCache = ["PROGRAMACIÓN", "OFIMÁTICA", "SOPORTE Y MANTENIMIENTO", "CONTABILIDAD", "CONSTRUCCIÓN"];
+    let especialidadesCache = [];
 
     const data = await safeFetchJson('/api/configuracion/escolar');
     if (data && data.especialidades && data.especialidades.length > 0) {

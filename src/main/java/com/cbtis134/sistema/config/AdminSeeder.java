@@ -155,16 +155,74 @@ public class AdminSeeder implements ApplicationRunner {
     private void seederConfiguracion() {
         String col = "configuracion";
 
-        guardarSiNoExiste(col, "escolar", new Document("_id", "escolar")
-                .append("especialidades", Arrays.asList(
-                        new Document("alias", "TCS").append("turno", "Matutino").append("color", "#dc3545").append("nombre", "CONSTRUCCIÓN"),
-                        new Document("alias", "LABO").append("turno", "Matutino").append("color", "#0dcaf0").append("nombre", "LABORATORISTA CLÍNICO"),
-                        new Document("alias", "CONTA").append("turno", "Vespertino").append("color", "#198754").append("nombre", "CONTABILIDAD"),
-                        new Document("alias", "PROG").append("turno", "Vespertino").append("color", "#6c757d").append("nombre", "PROGRAMACIÓN"),
-                        new Document("alias", "COMER").append("turno", "Vespertino").append("color", "#6f42c1").append("nombre", "E.COMMERCE"),
-                        new Document("alias", "IA").append("turno", "Vespertino").append("color", "#052c65").append("nombre", "INTELIGENCIA ARTIFICIAL"),
-                        new Document("alias", "MECA").append("turno", "Matutino").append("color", "#0088cc").append("nombre", "MECATRÓNICA")
-                )));
+        List<Document> defaultEspecialidades = new ArrayList<>(Arrays.asList(
+                new Document("alias", "PRO").append("turno", "Matutino").append("color", "#0088cc").append("nombre", "PROGRAMACIÓN"),
+                new Document("alias", "ARH").append("turno", "Matutino").append("color", "#6f42c1").append("nombre", "ADMINISTRACIÓN DE RECURSOS HUMANOS"),
+                new Document("alias", "CON").append("turno", "Matutino").append("color", "#198754").append("nombre", "CONTABILIDAD"),
+                new Document("alias", "CST").append("turno", "Matutino").append("color", "#dc3545").append("nombre", "CONSTRUCCIÓN"),
+                new Document("alias", "ELE").append("turno", "Matutino").append("color", "#fd7e14").append("nombre", "ELECTRICIDAD"),
+                new Document("alias", "OFI").append("turno", "Matutino").append("color", "#0dcaf0").append("nombre", "OFIMÁTICA")
+        ));
+
+        Document docEscolar = mongoTemplate.findById("escolar", Document.class, col);
+        if (docEscolar == null) {
+            docEscolar = new Document("_id", "escolar")
+                    .append("migrado_especialidades_v2", true)
+                    .append("especialidades", defaultEspecialidades);
+            mongoTemplate.save(docEscolar, col);
+        } else if (!Boolean.TRUE.equals(docEscolar.getBoolean("migrado_especialidades_v2"))) {
+            List<Document> todosAlumnos = mongoTemplate.findAll(Document.class, "alumnos");
+            Set<String> espEnAlumnos = new LinkedHashSet<>();
+            for (Document al : todosAlumnos) {
+                String esp = al.getString("especialidad");
+                if (esp != null && !esp.trim().isEmpty()) {
+                    espEnAlumnos.add(esp.trim().toUpperCase());
+                }
+            }
+
+            Set<String> legacyCbtis = Set.of("LABORATORISTA CLÍNICO", "E.COMMERCE", "INTELIGENCIA ARTIFICIAL", "MECATRÓNICA");
+            List<Document> actuales = docEscolar.getList("especialidades", Document.class, new ArrayList<>());
+            List<Document> depuradas = new ArrayList<>();
+            Set<String> nombresPresentes = new HashSet<>();
+
+            for (Document espDoc : actuales) {
+                String nom = espDoc.getString("nombre");
+                if (nom == null) continue;
+                String nomUpper = nom.trim().toUpperCase();
+                if (legacyCbtis.contains(nomUpper) && !espEnAlumnos.contains(nomUpper)) {
+                    continue;
+                }
+                if (nombresPresentes.add(nomUpper)) {
+                    depuradas.add(espDoc);
+                }
+            }
+
+            for (Document defEsp : defaultEspecialidades) {
+                String nomDef = defEsp.getString("nombre").toUpperCase();
+                if ((espEnAlumnos.isEmpty() || espEnAlumnos.contains(nomDef)) && !nombresPresentes.contains(nomDef)) {
+                    depuradas.add(defEsp);
+                    nombresPresentes.add(nomDef);
+                }
+            }
+
+            String[] paleta = {"#7b1b37", "#0088cc", "#198754", "#fd7e14", "#6f42c1", "#dc3545", "#0dcaf0"};
+            int colorIdx = 0;
+            for (String espAl : espEnAlumnos) {
+                if (!nombresPresentes.contains(espAl)) {
+                    String alias = espAl.length() >= 4 ? espAl.substring(0, 4) : espAl;
+                    depuradas.add(new Document("nombre", espAl)
+                            .append("alias", alias)
+                            .append("color", paleta[colorIdx % paleta.length])
+                            .append("turno", "Matutino"));
+                    nombresPresentes.add(espAl);
+                    colorIdx++;
+                }
+            }
+
+            docEscolar.put("especialidades", depuradas);
+            docEscolar.put("migrado_especialidades_v2", true);
+            mongoTemplate.save(docEscolar, col);
+        }
 
         guardarSiNoExiste(col, "ciclo_escolar", new Document("_id", "ciclo_escolar")
                 .append("creado_automaticamente", true)
