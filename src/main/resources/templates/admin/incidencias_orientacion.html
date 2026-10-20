@@ -61,7 +61,7 @@
 					    <div class="shadow-lg rounded-3 overflow-auto p-2 bg-secondary bg-opacity-10" style="max-height: 700px;">
 					        <div id="contenedorReporteReal" class="fuente-reporte mx-auto" style="transform: scale(0.90); transform-origin: top center; margin-bottom: -50px;"> 
 					            <div style="top: 14.3%; left: -7%; width: 80%;" class="campo-inc text-end">
-								    Chilpancingo de los Bravo, Gro.; a <span id="pdfDia">__</span> de <span id="pdfMes">__________</span> del <span id="pdfAnio">____</span>.
+								    <span class="ciudad-plantel" th:text="${configSistema != null and configSistema['ciudad_plantel'] != null and !configSistema['ciudad_plantel'].isEmpty() ? configSistema['ciudad_plantel'] : (configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Chilpancingo de los Bravo, Gro.')}">Chilpancingo de los Bravo, Gro.</span>; a <span id="pdfDia">__</span> de <span id="pdfMes">__________</span> del <span id="pdfAnio">____</span>.
 								</div>
 					            <div style="top: 16.6%; left: 13.5%; width: 80%;" class="campo-inc">
 					                Nombre del alumno(a): <span id="pdfNombreAl" style="padding-left: 10px;">________________________________________</span>

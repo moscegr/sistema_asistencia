@@ -87,6 +87,23 @@ async function sincronizarDatosInstitucionalesGlobal() {
             document.querySelectorAll('.jefe-personal').forEach(el => {
                 if (data.jefe_personal) el.innerText = data.jefe_personal;
             });
+
+            // Actualizar dirección y ciudad del plantel en toda la plataforma
+            const dirPlantel = data.direccion_plantel || '';
+            const cdPlantel = data.ciudad_plantel || (dirPlantel ? dirPlantel.split(',').slice(-2).join(',').trim() : '');
+
+            document.querySelectorAll('.direccion-plantel, .plantel-direccion, .domicilio-plantel').forEach(el => {
+                if (dirPlantel) el.innerText = dirPlantel;
+            });
+
+            document.querySelectorAll('.ciudad-plantel, .plantel-ciudad').forEach(el => {
+                if (cdPlantel) el.innerText = cdPlantel;
+            });
+
+            const climaUbicacion = document.getElementById('climaUbicacion');
+            if (climaUbicacion && (cdPlantel || dirPlantel)) {
+                climaUbicacion.innerText = cdPlantel || dirPlantel;
+            }
         }
 
         // Sincronizar ciclo escolar en el sidebar

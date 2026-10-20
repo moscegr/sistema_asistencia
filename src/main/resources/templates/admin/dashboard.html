@@ -423,7 +423,7 @@
                                 </div>
                             </div>
                             <div class="border-start border-white border-opacity-25 ps-3 text-start x-small" style="line-height: 1.3;">
-                                <div><i class="bi bi-geo-alt-fill text-warning me-1"></i><span id="climaUbicacion" class="fw-bold">Chilpancingo, Gro.</span></div>
+                                <div><i class="bi bi-geo-alt-fill text-warning me-1"></i><span id="climaUbicacion" class="fw-bold ciudad-plantel" th:text="${configSistema != null and configSistema['ciudad_plantel'] != null and !configSistema['ciudad_plantel'].isEmpty() ? configSistema['ciudad_plantel'] : (configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Chilpancingo, Gro.')}">Chilpancingo, Gro.</span></div>
                                 <div class="text-white-50" style="font-size: 0.72rem;"><i class="bi bi-droplet-fill me-1 text-info"></i><span id="climaHumedad">--%</span> • <i class="bi bi-wind me-1 text-light"></i><span id="climaViento">-- km/h</span></div>
                                 <div id="climaAlerta" class="text-warning fw-semibold mt-1" style="font-size: 0.70rem;"><i class="bi bi-stars me-1"></i>Sincronizando pronóstico...</div>
                             </div>
@@ -537,7 +537,7 @@
                                     <button type="button" class="btn btn-secondary active" id="btnCalFiltroTodos" onclick="filtrarEventosCalendario('TODOS')">Todos</button>
                                     <button type="button" class="btn btn-outline-danger" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">🇲🇽 Suspensiones DGETI</button>
                                     <button type="button" class="btn btn-outline-primary" id="btnCalFiltroPeriodos" onclick="filtrarEventosCalendario('PERIODOS')">📘 Periodos DGETI</button>
-                                    <button type="button" class="btn btn-outline-dark" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">🏫 CBTis 134</button>
+                                    <button type="button" class="btn btn-outline-dark" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">🏫 <span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Plantel'}">Plantel</span></button>
                                 </div>
                                 <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="sincronizarCalendarioSEP()" title="Recargar eventos y festivos">
                                     <i class="bi bi-arrow-repeat me-1"></i>Sincronizar DGETI
@@ -554,7 +554,7 @@
                             <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #dc3545; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inhábiles / Suspensión Oficial</span>
                             <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #198754; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inicio / Fin Semestre DGETI</span>
                             <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #0d6efd; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Periodos y Recesos DGETI</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #7b1b37; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Eventos Locales CBTis 134</span>
+                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #7b1b37; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Eventos Locales <span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Plantel'}">Plantel</span></span>
                         </div>
 
                         <div id="calendar" style="min-height: 440px;"></div>

@@ -154,8 +154,7 @@
             <div style="text-align: center; margin-top: -10px; margin-bottom: 25px;">
                 <h2 style="margin: 0; font-size: 16pt; font-weight: bold;">Dirección General de Educación Tecnológica Industrial</h2>
                 <h3 style="margin: 3px 0; font-size: 12pt; font-weight: normal;">Subdirección de Educación Media Superior</h3>
-                <h3 style="margin: 3px 0; font-size: 12pt; font-weight: normal;">Centro de Bachillerato Tecnológico, industrial y de servicios No. 134</h3>
-                <h3 style="margin: 3px 0; font-size: 12pt; font-weight: normal;">"Nicolás Catalán"</h3>
+                <h3 class="nombre-oficial-plantel" style="margin: 3px 0; font-size: 12pt; font-weight: normal;" th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios'}">Centro de Bachillerato Tecnológico Industrial y de Servicios</h3>
                 <h3 style="margin: 15px 0 15px 0; font-size: 11pt; font-weight: bold;">REPORTE DE INCIDENCIAS</h3>
             </div>
 

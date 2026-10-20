@@ -633,9 +633,7 @@
                             </div>
                             <div>
                                 <h6 class="fw-bold mb-1">Dirección Oficial</h6>
-                                <p class="text-muted small mb-0">
-                                    Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo de los Bravo, Guerrero, México.
-                                </p>
+                                <p class="text-muted small mb-0 direccion-plantel" th:text="${configSistema != null and configSistema.direccion_plantel != null and !configSistema.direccion_plantel.isBlank() ? configSistema.direccion_plantel : 'Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo de los Bravo, Guerrero, México.'}">Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo de los Bravo, Guerrero, México.</p>
                             </div>
                         </div>
 
@@ -805,9 +803,7 @@
                 <div>
                     &copy; <span th:text="${#calendars.format(#calendars.createNow(), 'yyyy')}">2026</span> <strong class="landing-nombre-oficial">Centro de Bachillerato Tecnológico industrial y de servicios No. 134 "Nicolás Catalán"</strong>. Todos los derechos reservados.
                 </div>
-                <div class="text-white-50">
-                    Chilpancingo, Guerrero &bull; DGETI - SEMS - SEP
-                </div>
+                <div class="text-white-50"><span class="ciudad-plantel" th:text="${configSistema != null and configSistema.ciudad_plantel != null and !configSistema.ciudad_plantel.isBlank() ? configSistema.ciudad_plantel : (configSistema != null and configSistema.direccion_plantel != null ? configSistema.direccion_plantel : 'Chilpancingo, Guerrero')}">Chilpancingo, Guerrero</span> &bull; DGETI - SEMS - SEP</div>
             </div>
         </div>
     </footer>

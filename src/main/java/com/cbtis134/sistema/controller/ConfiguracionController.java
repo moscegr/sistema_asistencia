@@ -46,6 +46,8 @@ public class ConfiguracionController {
                 doc.put("telefono_escuela", "747 47 2 34 64");
                 doc.put("vigencia_actual", "Agosto 2026");
                 doc.put("jefe_personal", "LIC. JUANA MORALES APARICIO");
+                doc.put("direccion_plantel", "Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo, Guerrero");
+                doc.put("ciudad_plantel", "Chilpancingo de los Bravo, Guerrero");
                 mongoTemplate.save(doc, "configuracion");
             } else if ("escolar".equals(id)) {
                 doc.put("especialidades", List.of(

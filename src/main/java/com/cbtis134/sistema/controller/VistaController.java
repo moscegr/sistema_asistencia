@@ -49,6 +49,8 @@ public class VistaController {
         String logoInicioEnv = System.getenv("PLANTEL_MASCOTA_URL");
         String cctEnv = System.getenv("PLANTEL_CCT");
         String telEnv = System.getenv("PLANTEL_TELEFONO");
+        String direccionEnv = System.getenv("PLANTEL_DIRECCION");
+        String ciudadEnv = System.getenv("PLANTEL_CIUDAD");
 
         fallback.put("nombre_plantel", nomPlantelEnv != null && !nomPlantelEnv.isBlank() ? nomPlantelEnv : "Control Escolar");
         fallback.put("nombre_oficial_plantel", nomOficialEnv != null && !nomOficialEnv.isBlank() ? nomOficialEnv : "Centro de Bachillerato Tecnológico Industrial y de Servicios");
@@ -57,6 +59,8 @@ public class VistaController {
         fallback.put("logo_inicio_url", logoInicioEnv != null && !logoInicioEnv.isBlank() ? logoInicioEnv : "/img/tigres.png");
         fallback.put("telefono_escuela", telEnv != null ? telEnv : "");
         fallback.put("cct_escuela", cctEnv != null ? cctEnv : "");
+        fallback.put("direccion_plantel", direccionEnv != null && !direccionEnv.isBlank() ? direccionEnv : "");
+        fallback.put("ciudad_plantel", ciudadEnv != null && !ciudadEnv.isBlank() ? ciudadEnv : "");
         return fallback;
     }
 

@@ -181,6 +181,8 @@ public class AdminSeeder implements ApplicationRunner {
             String cctEnv = System.getenv("PLANTEL_CCT");
             String directorEnv = System.getenv("PLANTEL_DIRECTOR");
             String telEnv = System.getenv("PLANTEL_TELEFONO");
+            String direccionEnv = System.getenv("PLANTEL_DIRECCION");
+            String ciudadEnv = System.getenv("PLANTEL_CIUDAD");
 
             docSistema = new Document("_id", "sistema")
                     .append("nombre_plantel", nomPlantelEnv != null && !nomPlantelEnv.isBlank() ? nomPlantelEnv : "CBTIS 134")
@@ -194,6 +196,8 @@ public class AdminSeeder implements ApplicationRunner {
                     .append("jefe_personal", "LIC. JUANA MORALES APARICIO")
                     .append("telefono_escuela", telEnv != null ? telEnv : "7474723464")
                     .append("nombre_director", directorEnv != null ? directorEnv : "JOSE MARTÍN RODEA ZUÑIGA")
+                    .append("direccion_plantel", direccionEnv != null && !direccionEnv.isBlank() ? direccionEnv : "Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo, Guerrero")
+                    .append("ciudad_plantel", ciudadEnv != null && !ciudadEnv.isBlank() ? ciudadEnv : "Chilpancingo de los Bravo, Guerrero")
                     .append("ultimaLimpieza", "2026-08-07");
             mongoTemplate.save(docSistema, col);
             System.out.println("-> [configuracion] Registro sembrado: sistema");
@@ -205,6 +209,16 @@ public class AdminSeeder implements ApplicationRunner {
             if (!docSistema.containsKey("logo_plantel_url")) { docSistema.put("logo_plantel_url", "/img/logo_aniversario.jpg"); mod = true; }
             if (!docSistema.containsKey("logo_inicio_url")) { docSistema.put("logo_inicio_url", "/img/tigres.png"); mod = true; }
             if (!docSistema.containsKey("jefe_personal")) { docSistema.put("jefe_personal", "LIC. JUANA MORALES APARICIO"); mod = true; }
+            if (!docSistema.containsKey("direccion_plantel") || docSistema.getString("direccion_plantel") == null || docSistema.getString("direccion_plantel").isBlank()) {
+                String dEnv = System.getenv("PLANTEL_DIRECCION");
+                docSistema.put("direccion_plantel", dEnv != null && !dEnv.isBlank() ? dEnv : "Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo, Guerrero");
+                mod = true;
+            }
+            if (!docSistema.containsKey("ciudad_plantel") || docSistema.getString("ciudad_plantel") == null || docSistema.getString("ciudad_plantel").isBlank()) {
+                String cEnv = System.getenv("PLANTEL_CIUDAD");
+                docSistema.put("ciudad_plantel", cEnv != null && !cEnv.isBlank() ? cEnv : "Chilpancingo de los Bravo, Guerrero");
+                mod = true;
+            }
             if (mod) mongoTemplate.save(docSistema, col);
         }
 

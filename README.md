@@ -1,4 +1,4 @@
-﻿# 🏫 Sistema de Control de Acceso y Gestión Escolar
+# 🏫 Sistema de Control de Acceso y Gestión Escolar
 
 Sistema web escolar integral para el control de acceso, registro de asistencia mediante código QR, reconocimiento facial, expedientes de alumnos, seguimiento conductual/médico y notificación automática a tutores por WhatsApp.
 
@@ -59,6 +59,8 @@ Configura las siguientes variables en el panel de tu aplicación en **Coolify** 
 | `PLANTEL_CCT` | Clave del Centro de Trabajo (CCT) | Texto | Opcional |
 | `PLANTEL_DIRECTOR` | Nombre del Director(a) del plantel | Texto | Opcional |
 | `PLANTEL_TELEFONO` | Teléfono institucional de contacto | Texto | Opcional |
+| `PLANTEL_DIRECCION` | Dirección física completa del plantel (calle, número, colonia, CP) | Texto | Opcional |
+| `PLANTEL_CIUDAD` | Ciudad y Estado del plantel para lugar/fecha en Justificantes y Reportes | Texto | Opcional |
 | `PLANTEL_LOGO_URL` | URL o ruta del logotipo oficial del plantel | `/img/logo_aniversario.jpg` o URL | Opcional |
 | `PLANTEL_MASCOTA_URL` | URL o ruta de la mascota o escudo de inicio | `/img/tigres.png` o URL | Opcional |
 

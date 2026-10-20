@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Panel de Configuración - CBTis 134 (MongoDB & REST API)
  */
 
@@ -90,6 +90,8 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('confCCT')) document.getElementById('confCCT').value = data.cct_escuela || "";
             if (document.getElementById('confTelefono')) document.getElementById('confTelefono').value = data.telefono_escuela || "";
             if (document.getElementById('confVigencia')) document.getElementById('confVigencia').value = data.vigencia_actual || "Agosto 2026";
+            if (document.getElementById('confDireccionPlantel')) document.getElementById('confDireccionPlantel').value = data.direccion_plantel || "";
+            if (document.getElementById('confCiudadPlantel')) document.getElementById('confCiudadPlantel').value = data.ciudad_plantel || "";
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             if (document.getElementById('imgPreviewLogoPlantel') && data.logo_plantel_url) {
                 document.getElementById('imgPreviewLogoPlantel').src = data.logo_plantel_url;
@@ -117,6 +119,8 @@ if (formInst) {
             cct_escuela: document.getElementById('confCCT').value.trim().toUpperCase(),
             telefono_escuela: document.getElementById('confTelefono').value.trim(),
             vigencia_actual: document.getElementById('confVigencia').value.trim(),
+            direccion_plantel: document.getElementById('confDireccionPlantel') ? document.getElementById('confDireccionPlantel').value.trim() : "",
+            ciudad_plantel: document.getElementById('confCiudadPlantel') ? document.getElementById('confCiudadPlantel').value.trim() : "",
             notificaciones_whatsapp_activas: document.getElementById('switchNotifWhatsapp') ? document.getElementById('switchNotifWhatsapp').checked : true
         };
 
