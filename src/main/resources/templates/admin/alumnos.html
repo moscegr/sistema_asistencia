@@ -106,9 +106,12 @@
             </div>
         </div>
     </div>
-    
+    </div>
+</div>
+
+    <!-- Modal QR Ficha de Identidad Digital (En la raíz de body para evitar problemas de z-index y overflow) -->
     <div class="modal fade" id="modalQR" tabindex="-1" aria-hidden="true">
-	    <div class="modal-dialog modal-dialog-centered">
+	    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
 	        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
 	            <div class="modal-header border-0 bg-light">
 	                <h5 class="modal-title fw-bold" style="color: #7b1b37;">
@@ -118,7 +121,7 @@
 	            </div>
 	            <div class="modal-body text-center pb-4">
 	                <div class="mb-3">
-	                    <img id="modalFoto" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png'" class="img-thumbnail rounded-circle shadow-sm" style="width: 100px; height: 100px; object-fit: cover;">
+	                    <img id="modalFoto" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png'" class="img-thumbnail rounded-circle shadow-sm" style="width: 75px; height: 75px; object-fit: cover;">
 	                </div>
 	                <h5 id="modalNombre" class="fw-bold mb-1 text-dark"></h5>
 	                <p id="modalEspecialidad" class="text-muted small mb-2"></p>
@@ -128,7 +131,7 @@
 	                </div>
 
 	                <div class="bg-white p-3 d-inline-block shadow-sm mb-3" style="border-radius: 15px; border: 1px solid #eee;">
-					    <div id="imgQR" class="d-inline-block" style="width: 200px; height: 200px;"></div>
+					    <div id="imgQR" class="d-inline-block" style="width: 170px; height: 170px;"></div>
 					</div>
 	                
 	                <div class="d-flex justify-content-center gap-2 mt-2">
@@ -139,8 +142,6 @@
 	            </div>
 	        </div>
 	    </div>
-	</div>
-	</div>
 	</div>
 	
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>

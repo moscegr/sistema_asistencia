@@ -170,8 +170,8 @@ async function verExpedienteQuick(matricula) {
             
             new QRCode(contenedorQR, {
                 text: qrText,
-                width: 200,
-                height: 200,
+                width: 170,
+                height: 170,
                 colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.L 

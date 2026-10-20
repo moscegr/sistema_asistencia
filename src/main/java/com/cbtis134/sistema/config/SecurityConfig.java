@@ -173,7 +173,7 @@ public class SecurityConfig {
                     "default-src 'self'; " +
                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
                         "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com " +
-                        "https://cdn.sweetalert2.com https://unpkg.com " +
+                        "https://cdn.sweetalert2.com https://unpkg.com https://cdn.sheetjs.com " +
                         "https://maps.googleapis.com https://maps.gstatic.com; " +
                     "style-src 'self' 'unsafe-inline' " +
                         "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com " +

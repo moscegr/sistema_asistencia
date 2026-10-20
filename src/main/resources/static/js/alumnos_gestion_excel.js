@@ -300,14 +300,17 @@ async function ejecutarCargaReal() {
 }
 
 function descargarPlantillaManual() {
+    if (typeof XLSX === 'undefined') {
+        return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
+    }
     const headers = [
         ["Matricula", "CURP", "Nombre", "ApePat", "ApeMat", "Genero", "Email", "Celular", "Direccion", "Especialidad", "Grado", "Grupo", "Tutor", "TelTutor", "Ocupacion"],
-        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUÑEZ", "M", "karime.ayala@cbtis134.edu.mx", "7471234567", "Col. Centro Calle Galeana #12", "PROGRAMACIÓN", "4", "A", "KARIME NUÑEZ HIDALGO", "7479876543", "COMERCIANTE"],
-        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCÍA", "RIVERA", "H", "carlos.garcia@cbtis134.edu.mx", "7472345678", "Av. Insurgentes #45", "ADMINISTRACIÓN DE RECURSOS HUMANOS", "4", "B", "EDUARDO GARCÍA LÓPEZ", "7478765432", "EMPLEADO"],
-        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNÁNDEZ", "MORALES", "M", "lizbeth.hernandez@cbtis134.edu.mx", "7473456789", "Col. Viguri Andador 3", "CONTABILIDAD", "2", "A", "GUADALUPE MORALES RÍOS", "7477654321", "DOCENTE"],
-        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTÍNEZ", "SÁNCHEZ", "H", "emiliano.martinez@cbtis134.edu.mx", "7474567890", "Calle 5 de Mayo #88", "CONSTRUCCIÓN", "6", "A", "ROSA SÁNCHEZ VEGA", "7476543210", "HOGAR"],
-        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRÍGUEZ", "TORRES", "M", "ana.rodriguez@cbtis134.edu.mx", "7475678901", "Barrio de San Mateo #14", "ELECTRICIDAD", "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
-        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@cbtis134.edu.mx", "7476789012", "Col. del PRI Manzana 4", "OFIMÁTICA", "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
+        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUÑEZ", "M", "karime.ayala@ejemplo.edu.mx", "7471234567", "Col. Centro Calle Galeana #12", "PROGRAMACIÓN", "4", "A", "KARIME NUÑEZ HIDALGO", "7479876543", "COMERCIANTE"],
+        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCÍA", "RIVERA", "H", "carlos.garcia@ejemplo.edu.mx", "7472345678", "Av. Insurgentes #45", "ADMINISTRACIÓN DE RECURSOS HUMANOS", "4", "B", "EDUARDO GARCÍA LÓPEZ", "7478765432", "EMPLEADO"],
+        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNÁNDEZ", "MORALES", "M", "lizbeth.hernandez@ejemplo.edu.mx", "7473456789", "Col. Viguri Andador 3", "CONTABILIDAD", "2", "A", "GUADALUPE MORALES RÍOS", "7477654321", "DOCENTE"],
+        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTÍNEZ", "SÁNCHEZ", "H", "emiliano.martinez@ejemplo.edu.mx", "7474567890", "Calle 5 de Mayo #88", "CONSTRUCCIÓN", "6", "A", "ROSA SÁNCHEZ VEGA", "7476543210", "HOGAR"],
+        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRÍGUEZ", "TORRES", "M", "ana.rodriguez@ejemplo.edu.mx", "7475678901", "Barrio de San Mateo #14", "ELECTRICIDAD", "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
+        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@ejemplo.edu.mx", "7476789012", "Col. del PRI Manzana 4", "OFIMÁTICA", "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(headers);
     ws['!cols'] = [
@@ -316,11 +319,21 @@ function descargarPlantillaManual() {
         { wch: 8 }, { wch: 8 }, { wch: 26 }, { wch: 14 }, { wch: 16 }
     ];
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Manual_CBTis134");
-    XLSX.writeFile(wb, "Plantilla_Manual_Alumnos.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla_Alumnos");
+    XLSX.writeFile(wb, "Plantilla_Carga_Masiva_Alumnos.xlsx");
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Plantilla Descargada',
+        text: 'Se ha descargado "Plantilla_Carga_Masiva_Alumnos.xlsx". Llena los datos y usa el panel de importación.',
+        confirmButtonColor: '#7b1b37'
+    });
 }
 
 function descargarPlantillaInstitucional() {
+    if (typeof XLSX === 'undefined') {
+        return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
+    }
     const headers = [
         ["GPO", "NO. CONTROL", "NOMBRE", "CURP", "GENERO", "TELEFONO CELULAR ALUMNO", "TELEFONO TUTOR", "NOMBRE TUTOR"],
         ["2A PRO", "25312051340001", "AYALA NUÑEZ KARIME ALEJANDRA", "AANK100908MGRYXRA6", "M", "7471234567", "7479876543", "KARIME NUÑEZ HIDALGO"],
@@ -338,7 +351,14 @@ function descargarPlantillaInstitucional() {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Layout_REDIS_Oficial");
-    XLSX.writeFile(wb, "Layout_REDIS_CBTis134.xlsx");
+    XLSX.writeFile(wb, "Layout_REDIS_Oficial.xlsx");
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Plantilla REDIS Descargada',
+        text: 'Se ha descargado "Layout_REDIS_Oficial.xlsx". Llena los datos y usa el panel de importación.',
+        confirmButtonColor: '#7b1b37'
+    });
 }
 
 async function descargarExcelFiltrado() {

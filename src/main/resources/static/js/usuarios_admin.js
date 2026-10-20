@@ -588,14 +588,14 @@ function descargarPlantillaLayoutExcel() {
 
     const headers = [
         ["NOMBRE_COMPLETO", "RFC", "ROL", "TURNO", "CORREO_INSTITUCIONAL", "TELEFONO"],
-        ["JUAN CARLOS PÉREZ LÓPEZ", "PELJ850101XYZ", "DOCENTE", "Matutino", "juan.perez@cbtis134.edu.mx", "7471234567"],
-        ["MARÍA ELENA GÓMEZ RÍOS", "GORM900215ABC", "DOCENTE", "Vespertino", "elena.gomez@cbtis134.edu.mx", "7479876543"],
-        ["ROBERTO SÁNCHEZ DÍAZ", "SADR781120H12", "ADMINISTRATIVO", "Tiempo Completo", "roberto.sanchez@cbtis134.edu.mx", "7475551234"],
-        ["ANA LAURA TORRES VEGA", "TOVA820410M34", "PREFECTO", "Matutino", "prefectura.mat@cbtis134.edu.mx", "7474448899"],
-        ["RICARDO HERNÁNDEZ CASTRO", "HECR870614P89", "DOCENTE", "Matutino", "ricardo.hernandez@cbtis134.edu.mx", "7473332211"],
-        ["PATRICIA MORALES JIMÉNEZ", "MOJP911205K56", "ORIENTACION", "Matutino", "orientacion.cbtis134@gmail.com", "7478889900"],
-        ["GUSTAVO RAMÍREZ FLORES", "RAFG800425R78", "GUARDIA", "Mixto", "vigilancia134@gmail.com", "7471112233"],
-        ["SANDRA LUZ DOMÍNGUEZ NAVA", "DONS840918L45", "ADMINISTRATIVO", "Vespertino", "sandra.dominguez@cbtis134.edu.mx", "7476667788"]
+        ["JUAN CARLOS PÉREZ LÓPEZ", "PELJ850101XYZ", "DOCENTE", "Matutino", "juan.perez@ejemplo.edu.mx", "7471234567"],
+        ["MARÍA ELENA GÓMEZ RÍOS", "GORM900215ABC", "DOCENTE", "Vespertino", "elena.gomez@ejemplo.edu.mx", "7479876543"],
+        ["ROBERTO SÁNCHEZ DÍAZ", "SADR781120H12", "ADMINISTRATIVO", "Tiempo Completo", "roberto.sanchez@ejemplo.edu.mx", "7475551234"],
+        ["ANA LAURA TORRES VEGA", "TOVA820410M34", "PREFECTO", "Matutino", "prefectura.mat@ejemplo.edu.mx", "7474448899"],
+        ["RICARDO HERNÁNDEZ CASTRO", "HECR870614P89", "DOCENTE", "Matutino", "ricardo.hernandez@ejemplo.edu.mx", "7473332211"],
+        ["PATRICIA MORALES JIMÉNEZ", "MOJP911205K56", "ORIENTACION", "Matutino", "orientacion@ejemplo.edu.mx", "7478889900"],
+        ["GUSTAVO RAMÍREZ FLORES", "RAFG800425R78", "GUARDIA", "Mixto", "vigilancia@ejemplo.edu.mx", "7471112233"],
+        ["SANDRA LUZ DOMÍNGUEZ NAVA", "DONS840918L45", "ADMINISTRATIVO", "Vespertino", "sandra.dominguez@ejemplo.edu.mx", "7476667788"]
     ];
 
     const wb = XLSX.utils.book_new();
@@ -611,12 +611,12 @@ function descargarPlantillaLayoutExcel() {
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, "Personal_Docentes");
-    XLSX.writeFile(wb, "Plantilla_Personal_Docentes_CBTIS134.xlsx");
+    XLSX.writeFile(wb, "Plantilla_Personal_Docentes.xlsx");
 
     Swal.fire({
         icon: 'success',
         title: 'Plantilla Descargada',
-        text: 'Se ha descargado "Plantilla_Personal_Docentes_CBTIS134.xlsx" con datos de prueba de referencia. Rellena los datos e impórtala con el botón Carga Masiva.',
+        text: 'Se ha descargado "Plantilla_Personal_Docentes.xlsx" con datos de prueba de referencia. Rellena los datos e impórtala con el botón Carga Masiva.',
         confirmButtonColor: '#7b1b37'
     });
 }
