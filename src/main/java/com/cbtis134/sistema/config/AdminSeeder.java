@@ -52,8 +52,8 @@ public class AdminSeeder implements ApplicationRunner {
         if (adminEmail == null || adminPassword == null) {
             System.out.println("-> [SEEDER] ADMIN_EMAIL / ADMIN_PASSWORD no configurados. Omitiendo creación automática de admin.");
         } else {
-            Usuario admin = usuarioRepository.findByCorreo(adminEmail)
-                    .or(() -> usuarioRepository.findByCorreo(adminEmail.toLowerCase()))
+            Usuario admin = usuarioRepository.findByCorreoIgnoreCase(adminEmail)
+                    .or(() -> usuarioRepository.findByCorreo(adminEmail))
                     .orElse(null);
 
             if (admin == null) {

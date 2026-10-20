@@ -1,6 +1,8 @@
 package com.cbtis134.sistema.config;
 
 import com.cbtis134.sistema.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -37,6 +39,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final Logger APP_LOG = LoggerFactory.getLogger(SecurityConfig.class);
+
     // ─── Constantes de Rate Limiting ───────────────────────────────────────────
     private static final int MAX_INTENTOS_LOGIN   = 15;  // intentos máximos permitidos
     private static final long VENTANA_BLOQUEO_MS  = 5L * 60 * 1000; // 5 minutos de ventana
@@ -55,16 +59,19 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService(UsuarioRepository usuarioRepository) {
         return username -> {
             String cleanUsername = (username != null) ? username.trim() : "";
-            return usuarioRepository.findByCorreo(cleanUsername)
-                    .or(() -> usuarioRepository.findByCorreo(cleanUsername.toLowerCase()))
-                    .or(() -> usuarioRepository.findByCorreo(cleanUsername.toUpperCase()))
+            APP_LOG.info("Intento de autenticación para usuario: '{}'", cleanUsername);
+            return usuarioRepository.findByCorreoIgnoreCase(cleanUsername)
+                    .or(() -> usuarioRepository.findByCorreo(cleanUsername))
                     .filter(u -> !"DOCENTE".equalsIgnoreCase(u.getRol()) && !"ADMINISTRATIVO".equalsIgnoreCase(u.getRol()))
                     .map(u -> new User(
                             u.getCorreo(),
                             u.getPassword() != null ? u.getPassword() : "",
-                            List.of(new SimpleGrantedAuthority("ROLE_" + u.getRol().toUpperCase()))
+                            List.of(new SimpleGrantedAuthority("ROLE_" + (u.getRol() != null ? u.getRol().toUpperCase() : "ADMIN")))
                     ))
-                    .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado o sin acceso: " + username));
+                    .orElseThrow(() -> {
+                        APP_LOG.warn("Usuario no encontrado o sin acceso en MongoDB: '{}'", cleanUsername);
+                        return new UsernameNotFoundException("Usuario no encontrado o sin acceso: " + cleanUsername);
+                    });
         };
     }
 
@@ -83,41 +90,33 @@ public class SecurityConfig {
                 if (esPostLogin) {
                     String ip = obtenerIpReal(request);
                     long ahora = Instant.now().toEpochMilli();
-                    long[] estado = loginAttempts.computeIfAbsent(ip, k -> new long[]{0, ahora});
+                    long[] estado = loginAttempts.get(ip);
 
-                    // Reiniciar ventana si ya pasaron los 15 minutos
-                    if (ahora - estado[1] > VENTANA_BLOQUEO_MS) {
-                        estado[0] = 0;
-                        estado[1] = ahora;
-                    }
-
-                    estado[0]++;
-
-                    if (estado[0] > MAX_INTENTOS_LOGIN) {
-                        long espera = (VENTANA_BLOQUEO_MS - (ahora - estado[1])) / 1000;
-                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                        response.setContentType("text/html;charset=UTF-8");
-                        response.getWriter().write(
-                            "<html><body><h2>Demasiados intentos fallidos.</h2>" +
-                            "<p>Tu IP ha sido bloqueada temporalmente. Intenta de nuevo en " + espera + " segundos.</p></body></html>"
-                        );
-                        return;
+                    if (estado != null) {
+                        // Reiniciar si la ventana de bloqueo ya expiró
+                        if (ahora - estado[1] > VENTANA_BLOQUEO_MS) {
+                            loginAttempts.remove(ip);
+                        } else if (estado[0] >= MAX_INTENTOS_LOGIN) {
+                            long espera = Math.max(1, (VENTANA_BLOQUEO_MS - (ahora - estado[1])) / 1000);
+                            APP_LOG.warn("IP bloqueada por exceso de intentos fallidos: {} (Espera restante: {}s)", ip, espera);
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("text/html;charset=UTF-8");
+                            response.getWriter().write(
+                                "<!DOCTYPE html><html lang='es'><head><meta charset='UTF-8'><title>Acceso Bloqueado</title>" +
+                                "<style>body{font-family:system-ui,sans-serif;background:#0d1117;color:#f0f6fc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}" +
+                                ".card{background:#161b22;padding:32px;border-radius:12px;border:1px solid #30363d;max-width:440px;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,0.5);}" +
+                                "h2{color:#f85149;margin-bottom:12px;}p{color:#8b949e;line-height:1.6;}.btn{display:inline-block;margin-top:20px;padding:10px 20px;background:#7b1b37;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;}</style></head>" +
+                                "<body><div class='card'><h2>Demasiados intentos fallidos</h2>" +
+                                "<p>Tu dirección IP (<code>" + ip + "</code>) ha sido bloqueada temporalmente por protección contra fuerza bruta.</p>" +
+                                "<p>Por favor espera <b>" + espera + " segundos</b> antes de volver a intentar.</p>" +
+                                "<a href='/login' class='btn'>Volver al Login</a>" +
+                                "</div></body></html>"
+                            );
+                            return;
+                        }
                     }
                 }
                 filterChain.doFilter(request, response);
-            }
-
-            /** Obtiene la IP real considerando proxies y Traefik (Coolify) */
-            private String obtenerIpReal(HttpServletRequest request) {
-                String xForwardedFor = request.getHeader("X-Forwarded-For");
-                if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-                    return xForwardedFor.split(",")[0].trim();
-                }
-                String xRealIp = request.getHeader("X-Real-IP");
-                if (xRealIp != null && !xRealIp.isBlank()) {
-                    return xRealIp.trim();
-                }
-                return request.getRemoteAddr();
             }
         };
     }
@@ -263,8 +262,9 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .successHandler((request, response, authentication) -> {
-                    // Limpiar conteo de intentos fallidos al loguearse bien
-                    loginAttempts.remove(obtenerIpReal(request));
+                    String ip = obtenerIpReal(request);
+                    loginAttempts.remove(ip);
+                    APP_LOG.info("Login EXITOSO para usuario: '{}' desde IP: {}", authentication.getName(), ip);
                     boolean isGuardia = authentication.getAuthorities().stream()
                             .anyMatch(a -> a.getAuthority().contains("GUARDIA"));
                     if (isGuardia) {
@@ -273,7 +273,23 @@ public class SecurityConfig {
                         response.sendRedirect("/admin/dashboard");
                     }
                 })
-                .failureUrl("/login?error")
+                .failureHandler((request, response, exception) -> {
+                    String ip = obtenerIpReal(request);
+                    long ahora = Instant.now().toEpochMilli();
+                    long[] estado = loginAttempts.computeIfAbsent(ip, k -> new long[]{0, ahora});
+
+                    if (ahora - estado[1] > VENTANA_BLOQUEO_MS) {
+                        estado[0] = 0;
+                        estado[1] = ahora;
+                    }
+                    estado[0]++;
+
+                    String username = request.getParameter("username");
+                    APP_LOG.warn("Intento de login FALLIDO ({}/{}) para usuario: '{}' desde IP: {}. Motivo: {}",
+                            estado[0], MAX_INTENTOS_LOGIN, username, ip, exception.getMessage());
+
+                    response.sendRedirect("/login?error");
+                })
                 .permitAll()
             )
 

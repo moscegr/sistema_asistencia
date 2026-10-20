@@ -33,8 +33,8 @@ public class UsuarioController {
             return ResponseEntity.status(401).body("No autenticado");
         }
         String correo = authentication.getName();
-        return usuarioRepository.findByCorreo(correo)
-                .or(() -> usuarioRepository.findByCorreo(correo.toLowerCase()))
+        return usuarioRepository.findByCorreoIgnoreCase(correo)
+                .or(() -> usuarioRepository.findByCorreo(correo))
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
                     return ResponseEntity.ok((Object) u);
@@ -74,8 +74,7 @@ public class UsuarioController {
         String idLimpio = id != null ? id.trim() : "";
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
                     return u;
@@ -147,7 +146,7 @@ public class UsuarioController {
                 existente = usuarioRepository.findByRfc(rfc).orElse(null);
             }
             if (existente == null && correo != null) {
-                existente = usuarioRepository.findByCorreo(correo).orElse(null);
+                existente = usuarioRepository.findByCorreoIgnoreCase(correo).orElse(null);
             }
 
             if (existente != null) {
@@ -212,8 +211,7 @@ public class UsuarioController {
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
                 .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(usuario -> {
                     if (usuarioActualizado.getNombre() != null) {
                         usuario.setNombre(usuarioActualizado.getNombre().toUpperCase());
@@ -258,8 +256,7 @@ public class UsuarioController {
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
                 .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(usuario -> {
                     usuario.setFotoUrl(null);
                     usuario.setDescriptor_facial(null);
@@ -279,8 +276,7 @@ public class UsuarioController {
         return usuarioRepository.findById(idLimpio)
                 .or(() -> usuarioRepository.findByUid(idLimpio))
                 .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio))
-                .or(() -> usuarioRepository.findByCorreo(idLimpio.toLowerCase()))
+                .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(usuario -> {
                     // Recopilar identificadores del usuario
                     String uid = usuario.getUid() != null ? usuario.getUid() : "";
