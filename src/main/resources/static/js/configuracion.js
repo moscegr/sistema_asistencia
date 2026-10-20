@@ -277,7 +277,7 @@ function cambiarFormularioWs(tipo) {
         lbl3.innerText = "Instance Name";
         document.getElementById('wsCampo1').placeholder = "Ej. https://evolution.cegr.cloud";
         document.getElementById('wsCampo2').placeholder = "Ej. 4296403A61694158...";
-        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
+        document.getElementById('wsCampo3').placeholder = "Ej. sesion_whatsapp";
         cont3.style.display = "block";
     }
     else if (tipo === 'WPPCONNECT') {
@@ -287,7 +287,7 @@ function cambiarFormularioWs(tipo) {
         lbl3.innerText = "Session Name";
         document.getElementById('wsCampo1').placeholder = "Ej. http://localhost:21465";
         document.getElementById('wsCampo2').placeholder = "Ej. THISISMYSECURETOKEN";
-        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
+        document.getElementById('wsCampo3').placeholder = "Ej. sesion_whatsapp";
         cont3.style.display = "block";
     }
     else if (tipo === 'META') {
@@ -314,7 +314,7 @@ function cambiarFormularioWs(tipo) {
         desc1.innerText = "Ej: http://localhost:2785";
         lbl2.innerText = "API Token";
         lbl3.innerText = "Session ID / Name";
-        document.getElementById('wsCampo3').placeholder = "Ej. cbtis134";
+        document.getElementById('wsCampo3').placeholder = "Ej. sesion_whatsapp";
         cont3.style.display = "block";
     }
 }
@@ -610,7 +610,7 @@ async function descargarRespaldoZipTotal() {
     try {
         const a = document.createElement('a');
         a.href = '/api/configuracion/backup/zip-completo';
-        a.download = `Respaldo_TOTAL_CBTis134_${new Date().toLocaleDateString('en-CA')}.zip`;
+        a.download = `Respaldo_TOTAL_${new Date().toLocaleDateString('en-CA')}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

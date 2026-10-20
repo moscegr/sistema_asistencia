@@ -485,7 +485,7 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
                 grado: al.grado || '1',
                 grupo: al.grupo || 'A',
                 turno: al.turno || 'Matutino',
-                foto: al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg',
+                foto: al.fotoUrl || al.foto_url || al.foto || '/img/default_avatar.png',
                 diasSinRegistro: diasSinRegistro,
                 nivelRiesgo: nivelRiesgo,
                 tutor: al.nombretutor || al.nombre_tutor || 'Tutor Registrado',
@@ -560,7 +560,7 @@ function renderizarTablaAlertaRiesgo() {
         tr.innerHTML = `
             <td class="ps-3 py-2">
                 <div class="d-flex align-items-center">
-                    <img src="${a.foto}" class="rounded-circle border me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
+                    <img src="${a.foto}" class="rounded-circle border me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.src='/img/default_avatar.png'">
                     <div>
                         <span class="d-block fw-bold text-dark">${a.nombre}</span>
                         <span class="x-small text-muted">Tutor: ${a.tutor}</span>
@@ -634,7 +634,7 @@ async function enviarWhatsappTutorDesercion(matricula) {
                 apiUrl: configWs.apiUrl || configWs.serverUrl,
                 apiKey: configWs.apiKey || configWs.token,
                 token: configWs.token || configWs.apiKey,
-                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                instanceName: configWs.instanceName || configWs.sessionName || (window.cfgSistemaGlobal && window.cfgSistemaGlobal.cct_escuela) || 'asistencia',
                 to: tel,
                 body: mensajeTxt
             })

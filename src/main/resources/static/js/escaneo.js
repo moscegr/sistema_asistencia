@@ -613,7 +613,7 @@ function mostrarResultadoPersonal(persona, accion) {
     const colorBanda = accion === "ENTRADA" ? "#198754" : "#dc3545";
     const rol = (persona.rol || "DOCENTE").toUpperCase();
     const titulo = accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA";
-    const foto = persona.fotoUrl || '/img/logo_aniversario.jpg';
+    const foto = persona.fotoUrl || '/img/default_avatar.png';
     const rfc = persona.rfc || persona.uid || 'N/A';
     const turno = persona.turno || 'Matutino';
     const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -635,7 +635,7 @@ function mostrarResultadoPersonal(persona, accion) {
                 <div class="d-flex justify-content-center mb-3">
                     <img src="${foto}" 
                          style="width: 140px; height: 140px; object-fit: cover; border-radius: 50%; border: 4px solid ${colorBanda}; box-shadow: 0 6px 16px rgba(0,0,0,0.15);"
-                         onerror="this.src='/img/logo_aniversario.jpg'">
+                         onerror="this.src='/img/default_avatar.png'">
                 </div>
                 <h4 class="fw-bold mb-1 text-dark">${persona.nombre}</h4>
                 <div class="mb-2">
@@ -663,7 +663,7 @@ function mostrarResultado(al, accion) {
     const titulo = accion === "ENTRADA" ? "ENTRADA REGISTRADA" : "SALIDA REGISTRADA";
     const pat = al.apepat || al.primerApellido || '';
     const matApe = al.apemat || al.segundoApellido || '';
-    const foto = al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg';
+    const foto = al.fotoUrl || al.foto_url || al.foto || '/img/default_avatar.png';
     const mat = al.ncontrol || al.matricula || '';
     const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
@@ -684,7 +684,7 @@ function mostrarResultado(al, accion) {
                 <div class="d-flex justify-content-center mb-3">
                     <img src="${foto}" 
                          style="width: 140px; height: 140px; object-fit: cover; border-radius: 50%; border: 4px solid ${colorBanda}; box-shadow: 0 6px 16px rgba(0,0,0,0.15);"
-                         onerror="this.src='/img/logo_aniversario.jpg'">
+                         onerror="this.src='/img/default_avatar.png'">
                 </div>
                 <h4 class="fw-bold mb-1 text-dark">${al.nombre} ${pat} ${matApe}</h4>
                 <div class="mb-2">
@@ -867,7 +867,7 @@ function renderizarListaFiltrada(filtro) {
                     idKey: a.ncontrol || a.matricula,
                     nombre: `${a.nombre} ${a.apepat || a.primerApellido || ''}`.trim(),
                     detalle: `${a.ncontrol || a.matricula} • ${a.grado || ''}°"${a.grupo || ''}" ${a.especialidad || ''}`,
-                    foto: a.fotoUrl || a.foto_url || a.foto || '/img/logo_aniversario.jpg',
+                    foto: a.fotoUrl || a.foto_url || a.foto || '/img/default_avatar.png',
                     raw: a
                 });
             }
@@ -890,7 +890,7 @@ function renderizarListaFiltrada(filtro) {
                     idKey: p.rfc || p.uid || p.id,
                     nombre: p.nombre,
                     detalle: `${p.rfc || 'SIN RFC'} • ${(p.rol || 'DOCENTE').toUpperCase()} • ${p.turno || 'Matutino'}`,
-                    foto: p.fotoUrl || '/img/logo_aniversario.jpg',
+                    foto: p.fotoUrl || '/img/default_avatar.png',
                     raw: p
                 });
             }
@@ -944,7 +944,7 @@ function renderizarListaFiltrada(filtro) {
 
         tr.innerHTML = `
             <td style="width: 46px;" class="py-2 ps-3">
-                <img src="${item.foto}" class="rounded-circle border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.src='/img/logo_aniversario.jpg'">
+                <img src="${item.foto}" class="rounded-circle border shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.src='/img/default_avatar.png'">
             </td>
             <td class="py-2">
                 <div class="fw-bold text-dark fs-6">${item.nombre}</div>

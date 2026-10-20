@@ -272,7 +272,7 @@ function eliminarFotoEstudiante() {
     const inputArchivo = document.getElementById('inputFotoArchivo');
     const btnDel = document.getElementById('btnEliminarFoto');
 
-    if (imgPrev) imgPrev.src = '/img/logo_aniversario.jpg';
+    if (imgPrev) imgPrev.src = '/img/default_avatar.png';
     if (inputArchivo) inputArchivo.value = '';
     if (btnDel) btnDel.style.display = 'none';
 

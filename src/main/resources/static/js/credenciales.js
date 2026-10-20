@@ -25,7 +25,7 @@ document.getElementById('inputFotoTemporal')?.addEventListener('change', functio
         reader.readAsDataURL(file);
     } else {
         fotoTemporalAlumno = null;
-        const fotoDefault = (alumnoSeleccionadoInd && (alumnoSeleccionadoInd.fotoUrl || alumnoSeleccionadoInd.foto_url || alumnoSeleccionadoInd.foto)) || '/img/logo_aniversario.jpg';
+        const fotoDefault = (alumnoSeleccionadoInd && (alumnoSeleccionadoInd.fotoUrl || alumnoSeleccionadoInd.foto_url || alumnoSeleccionadoInd.foto)) || '/img/default_avatar.png';
         if (recuadroFoto) {
             recuadroFoto.style.backgroundImage = `url('${fotoDefault}')`;
             recuadroFoto.style.backgroundSize = 'contain';
@@ -303,7 +303,7 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
 
         const recuadroFoto = document.getElementById('pvcFoto');
         if (recuadroFoto) {
-            const fotoReal = fotoTemporalAlumno || al.fotoUrl || al.foto_url || al.foto || '/img/logo_aniversario.jpg';
+            const fotoReal = fotoTemporalAlumno || al.fotoUrl || al.foto_url || al.foto || '/img/default_avatar.png';
             recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
             recuadroFoto.style.backgroundPosition = 'center';
             recuadroFoto.style.backgroundRepeat = 'no-repeat';
@@ -634,7 +634,7 @@ async function generarCanvasCredencialFrente(alumno) {
         const matApe = alumno.apemat || alumno.segundoApellido || '';
         const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase();
         const mat = alumno.ncontrol || alumno.matricula || '';
-        const fotoSrc = fotoTemporalAlumno || alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/logo_aniversario.jpg';
+        const fotoSrc = fotoTemporalAlumno || alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/default_avatar.png';
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
         const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
         const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';

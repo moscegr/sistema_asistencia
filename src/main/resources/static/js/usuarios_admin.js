@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('formNuevoUsuario').reset();
                 fotoBase64Temporal = null;
                 descriptorFacialTemporal = null;
-                document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
+                document.getElementById('prevFotoUsuario').src = '/img/default_avatar.png';
                 
                 const lblPass = document.getElementById('lblRegPassword');
                 const descPass = document.getElementById('descRegPassword');
@@ -159,7 +159,7 @@ function renderizarTablaUsuarios() {
         const rolKey = (user.rol || "").toUpperCase();
         const badgeClass = coloresRoles[rolKey] || 'bg-dark text-white';
         const estatusClass = user.estatus === 'Activo' ? 'text-success' : 'text-danger';
-        const foto = user.fotoUrl || '/img/logo_aniversario.jpg';
+        const foto = user.fotoUrl || '/img/default_avatar.png';
         const rfc = user.rfc || '<span class="text-muted fst-italic">Sin RFC</span>';
         const turno = user.turno || 'Matutino';
         const presenciaBadge = user.estado === 'DENTRO' 
@@ -333,7 +333,7 @@ async function eliminarFotoPersonal(confirmarBD = true) {
     const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
     const inputFoto = document.getElementById('inputFotoUsuario');
 
-    if (confirmarBD && editUserUID && fotoBase64Temporal && !fotoBase64Temporal.includes('logo_aniversario')) {
+    if (confirmarBD && editUserUID && fotoBase64Temporal && !fotoBase64Temporal.includes('default_avatar')) {
         const { isConfirmed } = await Swal.fire({
             title: '¿Eliminar foto de perfil?',
             text: 'Se eliminará la fotografía y el vector de FaceID de este usuario directamente de la base de datos.',
@@ -360,7 +360,7 @@ async function eliminarFotoPersonal(confirmarBD = true) {
 
             fotoBase64Temporal = null;
             descriptorFacialTemporal = null;
-            document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
+            document.getElementById('prevFotoUsuario').src = '/img/default_avatar.png';
             if (inputFoto) inputFoto.value = '';
             if (btnQuitar) btnQuitar.style.display = 'none';
 
@@ -383,7 +383,7 @@ async function eliminarFotoPersonal(confirmarBD = true) {
     // Reset local
     fotoBase64Temporal = null;
     descriptorFacialTemporal = null;
-    document.getElementById('prevFotoUsuario').src = '/img/logo_aniversario.jpg';
+    document.getElementById('prevFotoUsuario').src = '/img/default_avatar.png';
     if (inputFoto) inputFoto.value = '';
     if (btnQuitar) btnQuitar.style.display = 'none';
 }
@@ -509,11 +509,11 @@ async function prepararEdicion(id) {
 
         fotoBase64Temporal = u.fotoUrl || null;
         descriptorFacialTemporal = u.descriptor_facial || null;
-        document.getElementById('prevFotoUsuario').src = u.fotoUrl || '/img/logo_aniversario.jpg';
+        document.getElementById('prevFotoUsuario').src = u.fotoUrl || '/img/default_avatar.png';
 
         const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
         if (btnQuitar) {
-            btnQuitar.style.display = (u.fotoUrl && u.fotoUrl.trim() !== '' && !u.fotoUrl.includes('logo_aniversario')) ? 'inline-block' : 'none';
+            btnQuitar.style.display = (u.fotoUrl && u.fotoUrl.trim() !== '' && !u.fotoUrl.includes('default_avatar')) ? 'inline-block' : 'none';
         }
 
         const lblPass = document.getElementById('lblRegPassword');
@@ -976,7 +976,7 @@ async function abrirModalGafeteCredencialPersonal(id) {
     // Renderizar Credencial PVC Frente y Reverso
     const recuadroFoto = document.getElementById('persPvcFoto');
     if (recuadroFoto) {
-        const fotoReal = user.fotoUrl || '/img/logo_aniversario.jpg';
+        const fotoReal = user.fotoUrl || '/img/default_avatar.png';
         recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
         recuadroFoto.style.backgroundPosition = 'center';
         recuadroFoto.style.backgroundRepeat = 'no-repeat';
@@ -1063,11 +1063,11 @@ async function generarQRConTigrePersonal(texto) {
                 } else if (canvas) {
                     resolve(canvas.toDataURL("image/png"));
                 } else {
-                    resolve('/img/logo_aniversario.jpg');
+                    resolve('/img/default_avatar.png');
                 }
             }, 150);
         } else {
-            resolve('/img/logo_aniversario.jpg');
+            resolve('/img/default_avatar.png');
         }
     });
 }
@@ -1111,7 +1111,7 @@ async function generarImagenGafetePersonal(user) {
         
         imgEscuela.src = logoEscuelaSrc;
         imgTigre.src = logoInicioSrc;
-        imgFoto.src = user.fotoUrl || '/img/logo_aniversario.jpg';
+        imgFoto.src = user.fotoUrl || '/img/default_avatar.png';
 
         let cargas = 0;
         const totalImagenes = 3;
@@ -1294,7 +1294,7 @@ async function generarCanvasCredencialPersonalFrente(user) {
         const rfc = (user.rfc || 'SIN RFC').toUpperCase();
         const rol = (user.rol || 'DOCENTE').toUpperCase();
         const turno = user.turno || 'Matutino';
-        const fotoSrc = user.fotoUrl || '/img/logo_aniversario.jpg';
+        const fotoSrc = user.fotoUrl || '/img/default_avatar.png';
         const colorRol = (rol === 'DOCENTE') ? '#6f42c1' : ((rol === 'ADMINISTRATIVO') ? '#0d6efd' : '#7b1b37');
 
         const logoEscuelaSrc = cfgSistemaPersonal.logo_plantel_url || '/img/logo-cbtis.png';
@@ -1631,7 +1631,7 @@ async function enviarWhatsappPersonalPersonalizado(id) {
                 apiUrl: configWs.apiUrl || configWs.serverUrl,
                 apiKey: configWs.apiKey || configWs.token,
                 token: configWs.token || configWs.apiKey,
-                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                instanceName: configWs.instanceName || configWs.sessionName || (window.cfgSistemaGlobal && window.cfgSistemaGlobal.cct_escuela) || 'asistencia',
                 to: tel,
                 body: mensajeTxt
             })

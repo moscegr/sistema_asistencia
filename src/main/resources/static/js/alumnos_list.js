@@ -158,7 +158,7 @@ async function verExpedienteQuick(matricula) {
 
         const fotoEl = document.getElementById('modalFoto');
         if (fotoEl) {
-            const src = alumnoSeleccionado.fotoUrl || alumnoSeleccionado.foto_url || alumnoSeleccionado.foto || '/img/logo_aniversario.jpg';
+            const src = alumnoSeleccionado.fotoUrl || alumnoSeleccionado.foto_url || alumnoSeleccionado.foto || '/img/default_avatar.png';
             fotoEl.src = src;
         }
 
@@ -283,7 +283,7 @@ async function enviarWhatsappPersonalizado(matricula) {
                 apiUrl: configWs.apiUrl || configWs.serverUrl,
                 apiKey: configWs.apiKey || configWs.token,
                 token: configWs.token || configWs.apiKey,
-                instanceName: configWs.instanceName || configWs.sessionName || 'cbtis134',
+                instanceName: configWs.instanceName || configWs.sessionName || (window.cfgSistemaGlobal && window.cfgSistemaGlobal.cct_escuela) || 'asistencia',
                 to: tel,
                 body: mensajeTxt
             })

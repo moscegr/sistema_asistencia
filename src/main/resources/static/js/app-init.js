@@ -33,9 +33,9 @@ async function sincronizarDatosInstitucionalesGlobal() {
             const data = await res.json();
             window.cfgSistemaGlobal = data;
 
-            const nomPlantel = data.nombre_plantel || 'CBTis 134';
-            const nomOficial = data.nombre_oficial_plantel || 'CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS NO. 134';
-            const slogan = data.slogan_plantel || '"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134"';
+            const nomPlantel = data.nombre_plantel || 'Control Escolar';
+            const nomOficial = data.nombre_oficial_plantel || 'CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS';
+            const slogan = data.slogan_plantel || '';
             const logoPlantel = data.logo_plantel_url || '/img/logo-cbtis.png';
             const logoInicio = data.logo_inicio_url || '/img/logo.png';
 
@@ -45,7 +45,7 @@ async function sincronizarDatosInstitucionalesGlobal() {
             }
 
             // Actualizar logotipos
-            document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, img[src*="logo_aniversario"]').forEach(img => {
+            document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo').forEach(img => {
                 if (img.tagName === 'IMG') img.src = logoPlantel;
             });
 

@@ -196,7 +196,7 @@ function abrirModalDetalles(matricula) {
         elTotal.innerText = alumno.totalIncidencias;
 
         if (elFoto) {
-            elFoto.src = alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/logo_aniversario.jpg';
+            elFoto.src = alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/default_avatar.png';
         }
 
         if (elTutor) {

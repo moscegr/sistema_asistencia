@@ -171,19 +171,19 @@ public class AdminSeeder implements ApplicationRunner {
                 .append("actual", "FEB-JUL 2026")
                 .append("ciclo_anterior", "AGO-DIC 2025"));
 
+        String nomPlantelEnv = System.getenv("PLANTEL_NOMBRE_CORTO");
+        String nomOficialEnv = System.getenv("PLANTEL_NOMBRE_OFICIAL");
+        String sloganEnv = System.getenv("PLANTEL_SLOGAN");
+        String logoPlantelEnv = System.getenv("PLANTEL_LOGO_URL");
+        String logoInicioEnv = System.getenv("PLANTEL_MASCOTA_URL");
+        String cctEnv = System.getenv("PLANTEL_CCT");
+        String directorEnv = System.getenv("PLANTEL_DIRECTOR");
+        String telEnv = System.getenv("PLANTEL_TELEFONO");
+        String direccionEnv = System.getenv("PLANTEL_DIRECCION");
+        String ciudadEnv = System.getenv("PLANTEL_CIUDAD");
+
         Document docSistema = mongoTemplate.findById("sistema", Document.class, col);
         if (docSistema == null) {
-            String nomPlantelEnv = System.getenv("PLANTEL_NOMBRE_CORTO");
-            String nomOficialEnv = System.getenv("PLANTEL_NOMBRE_OFICIAL");
-            String sloganEnv = System.getenv("PLANTEL_SLOGAN");
-            String logoPlantelEnv = System.getenv("PLANTEL_LOGO_URL");
-            String logoInicioEnv = System.getenv("PLANTEL_MASCOTA_URL");
-            String cctEnv = System.getenv("PLANTEL_CCT");
-            String directorEnv = System.getenv("PLANTEL_DIRECTOR");
-            String telEnv = System.getenv("PLANTEL_TELEFONO");
-            String direccionEnv = System.getenv("PLANTEL_DIRECCION");
-            String ciudadEnv = System.getenv("PLANTEL_CIUDAD");
-
             docSistema = new Document("_id", "sistema")
                     .append("nombre_plantel", nomPlantelEnv != null && !nomPlantelEnv.isBlank() ? nomPlantelEnv : "CBTIS 134")
                     .append("nombre_oficial_plantel", nomOficialEnv != null && !nomOficialEnv.isBlank() ? nomOficialEnv : "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\"")
@@ -203,23 +203,67 @@ public class AdminSeeder implements ApplicationRunner {
             System.out.println("-> [configuracion] Registro sembrado: sistema");
         } else {
             boolean mod = false;
-            if (!docSistema.containsKey("nombre_plantel")) { docSistema.put("nombre_plantel", "CBTIS 134"); mod = true; }
-            if (!docSistema.containsKey("nombre_oficial_plantel")) { docSistema.put("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico industrial y de servicios No. 134 \"Nicolás Catalán\""); mod = true; }
-            if (!docSistema.containsKey("slogan_plantel")) { docSistema.put("slogan_plantel", "\"POR QUE PRESTIGIO SE GANA CON ESFUERZO... SOMOS CBTIS 134\""); mod = true; }
+            // Sincronizar con variables de entorno del plantel si están definidas en despliegue (Coolify / Docker)
+            if (nomPlantelEnv != null && !nomPlantelEnv.isBlank() && !nomPlantelEnv.equals(docSistema.getString("nombre_plantel"))) {
+                docSistema.put("nombre_plantel", nomPlantelEnv);
+                mod = true;
+            }
+            if (nomOficialEnv != null && !nomOficialEnv.isBlank() && !nomOficialEnv.equals(docSistema.getString("nombre_oficial_plantel"))) {
+                docSistema.put("nombre_oficial_plantel", nomOficialEnv);
+                mod = true;
+            }
+            if (sloganEnv != null && !sloganEnv.equals(docSistema.getString("slogan_plantel"))) {
+                docSistema.put("slogan_plantel", sloganEnv);
+                mod = true;
+            }
+            if (logoPlantelEnv != null && !logoPlantelEnv.isBlank() && !logoPlantelEnv.equals(docSistema.getString("logo_plantel_url"))) {
+                docSistema.put("logo_plantel_url", logoPlantelEnv);
+                mod = true;
+            }
+            if (logoInicioEnv != null && !logoInicioEnv.isBlank() && !logoInicioEnv.equals(docSistema.getString("logo_inicio_url"))) {
+                docSistema.put("logo_inicio_url", logoInicioEnv);
+                mod = true;
+            }
+            if (direccionEnv != null && !direccionEnv.isBlank() && !direccionEnv.equals(docSistema.getString("direccion_plantel"))) {
+                docSistema.put("direccion_plantel", direccionEnv);
+                mod = true;
+            }
+            if (ciudadEnv != null && !ciudadEnv.isBlank() && !ciudadEnv.equals(docSistema.getString("ciudad_plantel"))) {
+                docSistema.put("ciudad_plantel", ciudadEnv);
+                mod = true;
+            }
+            if (cctEnv != null && !cctEnv.isBlank() && !cctEnv.equals(docSistema.getString("cct_escuela"))) {
+                docSistema.put("cct_escuela", cctEnv);
+                mod = true;
+            }
+            if (directorEnv != null && !directorEnv.isBlank() && !directorEnv.equals(docSistema.getString("nombre_director"))) {
+                docSistema.put("nombre_director", directorEnv);
+                mod = true;
+            }
+            if (telEnv != null && !telEnv.isBlank() && !telEnv.equals(docSistema.getString("telefono_escuela"))) {
+                docSistema.put("telefono_escuela", telEnv);
+                mod = true;
+            }
+
+            // Valores de fallback por si la base de datos existía pero no contenía los campos
+            if (!docSistema.containsKey("nombre_plantel")) { docSistema.put("nombre_plantel", "Control Escolar"); mod = true; }
+            if (!docSistema.containsKey("nombre_oficial_plantel")) { docSistema.put("nombre_oficial_plantel", "Centro de Bachillerato Tecnológico Industrial y de Servicios"); mod = true; }
+            if (!docSistema.containsKey("slogan_plantel")) { docSistema.put("slogan_plantel", ""); mod = true; }
             if (!docSistema.containsKey("logo_plantel_url")) { docSistema.put("logo_plantel_url", "/img/logo_aniversario.jpg"); mod = true; }
             if (!docSistema.containsKey("logo_inicio_url")) { docSistema.put("logo_inicio_url", "/img/tigres.png"); mod = true; }
-            if (!docSistema.containsKey("jefe_personal")) { docSistema.put("jefe_personal", "LIC. JUANA MORALES APARICIO"); mod = true; }
+            if (!docSistema.containsKey("jefe_personal")) { docSistema.put("jefe_personal", "OFICINA DE PERSONAL"); mod = true; }
             if (!docSistema.containsKey("direccion_plantel") || docSistema.getString("direccion_plantel") == null || docSistema.getString("direccion_plantel").isBlank()) {
-                String dEnv = System.getenv("PLANTEL_DIRECCION");
-                docSistema.put("direccion_plantel", dEnv != null && !dEnv.isBlank() ? dEnv : "Carretera Nacional México - Acapulco Km. 275.5, Col. Salubridad, C.P. 39096, Chilpancingo, Guerrero");
+                docSistema.put("direccion_plantel", direccionEnv != null && !direccionEnv.isBlank() ? direccionEnv : "");
                 mod = true;
             }
             if (!docSistema.containsKey("ciudad_plantel") || docSistema.getString("ciudad_plantel") == null || docSistema.getString("ciudad_plantel").isBlank()) {
-                String cEnv = System.getenv("PLANTEL_CIUDAD");
-                docSistema.put("ciudad_plantel", cEnv != null && !cEnv.isBlank() ? cEnv : "Chilpancingo de los Bravo, Guerrero");
+                docSistema.put("ciudad_plantel", ciudadEnv != null && !ciudadEnv.isBlank() ? ciudadEnv : "");
                 mod = true;
             }
-            if (mod) mongoTemplate.save(docSistema, col);
+            if (mod) {
+                mongoTemplate.save(docSistema, col);
+                System.out.println("-> [configuracion] Sincronización institucional actualizada en MongoDB");
+            }
         }
 
         // Configuración de WhatsApp — se siembra vacía.
