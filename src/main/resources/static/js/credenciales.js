@@ -407,26 +407,34 @@ async function generarImagenGafete(alumno) {
             cargas++;
             if (cargas < 2) return;
 
-            // Logo Escuela a la izquierda (Formato Circular Redondo e Impecable)
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
-            ctx.closePath();
-            ctx.clip();
-            ctx.drawImage(imgEscuela, 18, 14, 60, 60);
-            ctx.restore();
+            const dibujarMedallonCircular = (imgObj, cx, cy, r) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fill();
+                ctx.clip();
+                const maxDim = (r - 3) * 2;
+                const iw = imgObj.naturalWidth || imgObj.width || maxDim;
+                const ih = imgObj.naturalHeight || imgObj.height || maxDim;
+                const ratio = Math.min(maxDim / iw, maxDim / ih);
+                const dw = iw * ratio;
+                const dh = ih * ratio;
+                ctx.drawImage(imgObj, cx - dw / 2, cy - dh / 2, dw, dh);
+                ctx.restore();
 
-            // Borde circular blanco de realce alrededor del logo de la escuela
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(48, 44, 30, 0, Math.PI * 2, true);
-            ctx.strokeStyle = "#FFFFFF";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.restore();
-            
-            // Logo Mascota / Inicio a la derecha
-            ctx.drawImage(imgTigre, 322, 14, 60, 60);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
+                ctx.strokeStyle = "#FFFFFF";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+            };
+
+            dibujarMedallonCircular(imgEscuela, 48, 44, 30);
+            dibujarMedallonCircular(imgTigre, 352, 44, 30);
 
             // Cabecera Central
             ctx.fillStyle = "#FFFFFF"; ctx.font = "bold 20px Arial"; ctx.textAlign = "center";
@@ -645,12 +653,12 @@ async function generarCanvasCredencialFrente(alumno) {
         container.innerHTML = `
             <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: cover; background: #fff;">
+                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
                     <div style="text-align: center; flex: 1; margin: 0 4px;">
                         <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">${nomPlantel}</div>
                         <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
-                    <img src="${logoInicioSrc}" style="width: 24px; height: 24px; object-fit: contain;">
+                    <img src="${logoInicioSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
                 </div>
                 
                 <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
@@ -732,9 +740,9 @@ async function generarCanvasCredencialReverso(alumno) {
         container.innerHTML = `
             <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
-                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: cover; background: #fff;">
+                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
                     <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
-                    <img src="${logoInicioSrc}" style="width: 20px; height: 20px; object-fit: contain;">
+                    <img src="${logoInicioSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
                 </div>
                 
                 <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">

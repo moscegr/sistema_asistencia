@@ -56,19 +56,14 @@ async function obtenerDataURLQR(texto, size = 400) {
             canvas.height = size;
 
             const imgQR = divTemp.querySelector('img');
-            const imgTigre = new Image();
-            imgTigre.src = '/img/tigres.png';
+            const finalQR = new Image();
+            finalQR.src = imgQR ? imgQR.src : (divTemp.querySelector('canvas') ? divTemp.querySelector('canvas').toDataURL() : '');
 
-            imgTigre.onload = () => {
-                if (imgQR) ctx.drawImage(imgQR, 0, 0, size, size);
-                const logoSize = size * 0.22;
-                const pos = (size - logoSize) / 2;
-                ctx.fillStyle = "#FFFFFF";
-                ctx.fillRect(pos - 5, pos - 5, logoSize + 10, logoSize + 10);
-                ctx.drawImage(imgTigre, pos, pos, logoSize, logoSize);
+            finalQR.onload = () => {
+                ctx.drawImage(finalQR, 0, 0, size, size);
                 resolve(canvas.toDataURL("image/png"));
             };
-            imgTigre.onerror = () => resolve(imgQR ? imgQR.src : divTemp.querySelector('canvas') ? divTemp.querySelector('canvas').toDataURL() : '');
+            finalQR.onerror = () => resolve(divTemp.querySelector('canvas') ? divTemp.querySelector('canvas').toDataURL() : '');
         }, 150);
     });
 }

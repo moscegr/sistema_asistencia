@@ -67,10 +67,12 @@
 
         .sb-logo {
             width: 72px; height: 72px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid rgba(255,255,255,0.3);
-            box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+            border-radius: 50% !important;
+            object-fit: contain !important;
+            background-color: #ffffff !important;
+            padding: 4px !important;
+            border: 2px solid rgba(255,255,255,0.4) !important;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.35) !important;
             transition: transform 0.35s ease, box-shadow 0.35s ease;
             position: relative;
         }

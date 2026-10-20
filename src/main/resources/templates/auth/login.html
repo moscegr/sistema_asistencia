@@ -34,8 +34,8 @@
             <img id="loginLogoPlantel" 
                  th:src="${configSistema != null and configSistema['logo_plantel_url'] != null ? configSistema['logo_plantel_url'] : '/img/logo_aniversario.jpg'}" 
                  alt="Logo Plantel" 
-                 class="img-fluid mb-4" 
-                 style="max-height: 160px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); border-radius: 10px; object-fit: contain;"
+                 class="mb-4" 
+                 style="width: 130px; height: 130px; border-radius: 50%; background-color: #ffffff; padding: 6px; border: 3px solid rgba(255,255,255,0.4); box-shadow: 0 6px 18px rgba(0,0,0,0.35); object-fit: contain;"
                  onerror="this.src='/img/logo_aniversario.jpg'">
             <h4 id="loginNombrePlantel" class="fw-bold mb-3" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Control Escolar'}">Control Escolar</h4>
             <p id="loginSloganPlantel" class="mb-0 text-white-50 system-title" th:text="${configSistema != null and configSistema['slogan_plantel'] != null ? configSistema['slogan_plantel'] : ' '}">
@@ -47,8 +47,8 @@
                 <img id="loginLogoInicio" 
                      th:src="${configSistema != null and configSistema['logo_inicio_url'] != null ? configSistema['logo_inicio_url'] : '/img/tigres.png'}" 
                      alt="Logo / Mascota" 
-                     class="img-fluid mb-3" 
-                     style="max-height: 100px; object-fit: contain;"
+                     class="mb-3" 
+                     style="width: 90px; height: 90px; border-radius: 50%; background-color: #ffffff; padding: 5px; border: 2px solid rgba(123, 27, 55, 0.25); box-shadow: 0 4px 12px rgba(123, 27, 55, 0.15); object-fit: contain;"
                      onerror="this.src='/img/tigres.png'">
                 <h4 class="fw-bold text-uppercase" style="color: #7b1b37;">Iniciar Sesión</h4>
                 <p id="loginDescripcionPlantel" class="mb-1 small text-muted fw-semibold"

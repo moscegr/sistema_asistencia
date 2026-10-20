@@ -35,12 +35,12 @@
                      src="/img/logo_aniversario.jpg" 
                      alt="Logo Plantel Oficial" 
                      class="brand-logo-item landing-logo-plantel rounded-circle" 
-                     style="height: 46px; width: 46px; object-fit: cover; border: 2px solid var(--dorado-base); background: #ffffff;">
+                     style="height: 46px; width: 46px; border-radius: 50%; object-fit: contain; padding: 2px; border: 2px solid var(--dorado-base); background: #ffffff;">
                 <img th:src="${configSistema != null and configSistema.logo_inicio_url != null and !#strings.isEmpty(configSistema.logo_inicio_url) ? configSistema.logo_inicio_url : '/img/tigres.png'}" 
                      src="/img/tigres.png" 
                      alt="Logo Mascota" 
-                     class="brand-logo-item landing-logo-mascota" 
-                     style="height: 44px; width: auto; object-fit: contain;">
+                     class="brand-logo-item landing-logo-mascota rounded-circle" 
+                     style="height: 46px; width: 46px; border-radius: 50%; object-fit: contain; padding: 2px; border: 2px solid var(--dorado-base); background: #ffffff;">
                 <div class="brand-text-container ms-1">
                     <span class="brand-title landing-nombre-plantel" th:text="${configSistema != null and configSistema.nombre_plantel != null ? configSistema.nombre_plantel : 'CBTis 134'}">CBTis 134</span>
                     <span class="brand-sub landing-slogan-corto">"Nicolás Catalán"</span>
@@ -138,7 +138,8 @@
                             <img th:src="${configSistema != null and configSistema.logo_inicio_url != null and !#strings.isEmpty(configSistema.logo_inicio_url) ? configSistema.logo_inicio_url : '/img/tigres.png'}" 
                                  src="/img/tigres.png" 
                                  alt="Mascota Institucional" 
-                                 class="hero-mascot-img landing-logo-mascota mb-3">
+                                 class="hero-mascot-img landing-logo-mascota rounded-circle mb-3"
+                                 style="width: 110px; height: 110px; border-radius: 50%; object-fit: contain; background: #ffffff; padding: 6px; border: 3px solid rgba(123, 27, 55, 0.2); box-shadow: 0 6px 18px rgba(0,0,0,0.12);">
                             <h4 class="fw-bold mb-1 landing-nombre-plantel" style="color: var(--guinda-base);" th:text="${configSistema != null and configSistema.nombre_plantel != null ? configSistema.nombre_plantel : 'Tigres CBTis 134'}">Tigres CBTis 134</h4>
                             <p class="text-muted small mb-3">"Nicolás Catalán" &bull; Orgullo y Disciplina</p>
                             
@@ -727,7 +728,7 @@
                              src="/img/logo_aniversario.jpg" 
                              alt="Logo Plantel" 
                              class="landing-logo-plantel rounded-circle" 
-                             style="height: 50px; width: 50px; object-fit: cover; background: #ffffff;">
+                             style="height: 50px; width: 50px; border-radius: 50%; object-fit: contain; padding: 3px; background: #ffffff;">
                         <div>
                             <h5 class="text-white fw-bold mb-0 landing-nombre-plantel" th:text="${configSistema != null and configSistema.nombre_plantel != null ? configSistema.nombre_plantel : 'CBTis 134'}">CBTis 134</h5>
                             <span class="text-white-50 small">"Nicolás Catalán"</span>
