@@ -2,6 +2,7 @@ package com.cbtis134.sistema.controller;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +22,14 @@ public class VistaController {
 
     @Autowired(required = false)
     private MongoTemplate mongoTemplate;
+
+    /**
+     * Control de visualización de la página landing institucional.
+     * Por defecto (false): redirige directamente al login para despliegues multi-escuela DGETI.
+     * Solo si se define ENABLE_LANDING_PAGE=true se muestra la landing page informativa.
+     */
+    @Value("${app.landing.enabled:${ENABLE_LANDING_PAGE:${HABILITAR_LANDING_PAGE:false}}}")
+    private boolean habilitarLanding;
 
     @ModelAttribute("configSistema")
     public Map<String, Object> cargarConfiguracionGlobal() {
@@ -45,6 +54,9 @@ public class VistaController {
 
     @GetMapping({"/", "/index", "/landing"})
     public String index(org.springframework.security.core.Authentication auth, Model model) {
+        if (!habilitarLanding) {
+            return "redirect:/login";
+        }
         boolean estaAutenticado = (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken));
         model.addAttribute("autenticado", estaAutenticado);
         return "landing";

@@ -47,6 +47,7 @@ Configura las siguientes variables en el panel de tu aplicación en **Coolify** 
 | Variable | Descripción | Formato / Ejemplo Genérico | Requerido |
 | :--- | :--- | :--- | :---: |
 | `SPRING_DATA_MONGODB_URI` | Cadena de conexión interna a MongoDB dentro de la red Docker | `mongodb://<usuario>:<password>@<servicio_mongo>:27017/<nombre_db>?authSource=admin` | **Sí** |
+| `ENABLE_LANDING_PAGE` | Activar la página de presentación / landing del CBTis 134. Por defecto es `false` (las rutas `/` e `/index` redirigen directamente a `/login` para uso multi-plantel DGETI). Configurar en `true` para activar el index informativo. | `false` o `true` | Opcional (Default: `false`) |
 | `ADMIN_EMAIL` | Correo electrónico de la cuenta de Administrador Principal | `admin@institucion.edu.mx` | Opcional |
 | `ADMIN_PASSWORD` | Contraseña segura para el Administrador Principal | `TuPasswordFuerteYUnico2026!#` | Opcional |
 | `APP_UPLOAD_DIR` | Directorio interno del contenedor para subidas y respaldos | `/app/uploads` | Opcional (Default: `/app/uploads`) |
@@ -102,7 +103,7 @@ El sistema incluye endpoints proxy para enviar notificaciones automáticas a tut
 
 1. **Base de Datos**: Crea un servicio privado de **MongoDB** en Coolify y obtén su URI interna.
 2. **Aplicación Web**: Crea una nueva aplicación desde tu repositorio Git en Coolify.
-3. **Variables de Entorno**: Agrega `SPRING_DATA_MONGODB_URI`, `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
+3. **Variables de Entorno**: Agrega `SPRING_DATA_MONGODB_URI`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` (y opcionalmente `ENABLE_LANDING_PAGE=true` si deseas la página de bienvenida).
 4. **Almacenamiento**: Configura el volumen persistente en `/app/uploads`.
 5. **Dominio**: Asigna tu dominio en **FQDN** con HTTPS (ej. `https://control.institucion.edu.mx`).
 6. **Desplegar**: Coolify utilizará el `Dockerfile` multietapa para compilar y ejecutar el proyecto con un usuario no-root seguro.
