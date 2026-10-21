@@ -150,7 +150,7 @@ function renderizarTablaUsuarios() {
     };
 
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-4 text-muted small"><i class="bi bi-inbox me-1"></i>No se encontraron registros de personal o docentes.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-muted small"><i class="bi bi-inbox me-1"></i>No se encontraron registros de personal o docentes.</td></tr>`;
         return;
     }
 
@@ -168,40 +168,44 @@ function renderizarTablaUsuarios() {
 
         tbody.innerHTML += `
             <tr>
-                <td class="ps-4 text-start">
+                <td class="ps-3 text-start">
                     <div class="d-flex align-items-center">
-                        <img src="${foto}" class="rounded-circle me-3 border" style="width: 40px; height: 40px; object-fit: cover;">
-                        <div>
-                            <span class="d-block fw-bold text-dark">${user.nombre}</span>
-                            <small class="text-muted">${user.correo || idDoc}</small>
+                        <img src="${foto}" class="rounded-circle me-2 border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;">
+                        <div class="text-truncate" style="max-width: 240px;">
+                            <span class="d-block fw-bold text-dark text-truncate" title="${user.nombre}">${user.nombre}</span>
+                            <small class="text-muted d-block text-truncate" title="${user.correo || idDoc}">${user.correo || idDoc}</small>
                         </div>
                     </div>
                 </td>
-                <td><span class="font-monospace fw-bold text-dark small">${rfc}</span></td>
-                <td><span class="badge ${badgeClass} rounded-pill shadow-sm">${rolKey}</span></td>
-                <td><span class="badge bg-light text-dark border">${turno}</span></td>
-                <td><small class="text-muted">${user.telefono || 'N/A'}</small></td>
-                <td>${presenciaBadge}</td>
-                <td>
-                    <div class="form-check form-switch d-inline-block">
+                <td class="text-nowrap"><span class="font-monospace fw-bold text-dark small">${rfc}</span></td>
+                <td class="text-nowrap">
+                    <div class="d-inline-flex flex-column align-items-center gap-1">
+                        <span class="badge ${badgeClass} rounded-pill shadow-sm">${rolKey}</span>
+                        <span class="badge bg-light text-dark border" style="font-size: 0.7rem;">${turno}</span>
+                    </div>
+                </td>
+                <td class="text-nowrap"><small class="text-muted">${user.telefono || 'N/A'}</small></td>
+                <td class="text-nowrap">${presenciaBadge}</td>
+                <td class="text-nowrap">
+                    <div class="form-check form-switch d-inline-block mb-0">
                         <input class="form-check-input shadow-none" type="checkbox" 
                                ${user.estatus === 'Activo' ? 'checked' : ''} 
                                onchange="toggleEstatusUsuario('${idDoc}', this.checked)">
                         <label class="small ${estatusClass} fw-bold ms-1">${user.estatus || 'Activo'}</label>
                     </div>
                 </td>
-                <td class="text-center pe-4">
-                    <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-success border-0" onclick="enviarWhatsappPersonalPersonalizado('${idDoc}')" title="Enviar WhatsApp a Personal / Docente">
+                <td class="text-center pe-3 text-nowrap">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-sm btn-outline-success border-0 px-2" onclick="enviarWhatsappPersonalPersonalizado('${idDoc}')" title="Enviar WhatsApp a Personal / Docente">
                             <i class="bi bi-whatsapp fs-5"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-guinda border-0" onclick="abrirModalGafeteCredencialPersonal('${idDoc}')" title="Generar Gafete y Credencial">
+                        <button class="btn btn-sm btn-outline-guinda border-0 px-2" onclick="abrirModalGafeteCredencialPersonal('${idDoc}')" title="Generar Gafete y Credencial">
                             <i class="bi bi-person-badge fs-5"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-primary border-0" onclick="prepararEdicion('${idDoc}')" title="Editar">
+                        <button class="btn btn-sm btn-outline-primary border-0 px-2" onclick="prepararEdicion('${idDoc}')" title="Editar">
                             <i class="bi bi-pencil-square fs-5"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="eliminarUsuario('${idDoc}')" title="Eliminar">
+                        <button class="btn btn-sm btn-outline-danger border-0 px-2" onclick="eliminarUsuario('${idDoc}')" title="Eliminar">
                             <i class="bi bi-trash3-fill fs-5"></i>
                         </button>
                     </div>
