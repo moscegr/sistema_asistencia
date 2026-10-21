@@ -146,6 +146,9 @@ async function abrirModalMiPerfil() {
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-4">
+                        <div class="text-center mb-3">
+                            <img id="miPerfilAvatarPreview" src="/img/default_avatar.png" alt="Mi Foto" class="rounded-circle border shadow-sm" style="width: 76px; height: 76px; object-fit: cover;" onerror="this.src='/img/default_avatar.png'">
+                        </div>
                         <form id="formMiPerfil">
                             <div class="mb-3">
                                 <label class="form-label small fw-bold text-dark">Nombre Completo</label>
@@ -181,6 +184,10 @@ async function abrirModalMiPerfil() {
 
     const currentEmail = localStorage.getItem('userEmail') || localStorage.getItem('userEmailAuth') || '';
     const currentName = localStorage.getItem('userName') || 'Administrador';
+    const currentFoto = localStorage.getItem('userFotoUrl') || '/img/default_avatar.png';
+
+    const prevAvatar = document.getElementById('miPerfilAvatarPreview');
+    if (prevAvatar) prevAvatar.src = currentFoto || '/img/default_avatar.png';
 
     document.getElementById('miPerfilNombre').value = currentName;
     document.getElementById('miPerfilCorreo').value = currentEmail;

@@ -116,14 +116,24 @@
         }
 
         .welcome-avatar {
-            width: 52px; height: 52px;
+            width: 56px; height: 56px;
             border-radius: 50%;
             background: rgba(255,255,255,0.15);
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(255,255,255,0.45);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
-            font-size: 22px;
+            font-size: 24px;
             color: rgba(255,255,255,0.85);
+            overflow: hidden;
+        }
+
+        .welcome-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
         }
 
         .welcome-name {
@@ -398,7 +408,7 @@
                 <div class="col-12">
                     <div class="welcome-banner d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="welcome-avatar">
+                            <div class="welcome-avatar" id="welcomeAvatarContainer">
                                 <i class="bi bi-person-circle"></i>
                             </div>
                             <div>

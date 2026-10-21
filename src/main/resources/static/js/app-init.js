@@ -13,13 +13,19 @@ async function sincronizarRolDesdeServidor() {
             const user = await res.json();
             const rolReal = (user.rol || 'ADMIN').toUpperCase();
             const nombreReal = user.nombre || user.correo;
+            const fotoReal = user.fotoUrl || '';
 
             localStorage.setItem('userRole', rolReal);
             localStorage.setItem('userName', nombreReal);
             localStorage.setItem('userEmail', user.correo || '');
+            if (fotoReal) {
+                localStorage.setItem('userFotoUrl', fotoReal);
+            } else {
+                localStorage.removeItem('userFotoUrl');
+            }
 
             window.rolUsuarioActual = rolReal;
-            actualizarEncabezadoUsuario(nombreReal, rolReal);
+            actualizarEncabezadoUsuario(nombreReal, rolReal, fotoReal);
         }
     } catch (e) {
         console.error("Error al sincronizar sesión de usuario:", e);
@@ -125,12 +131,24 @@ async function sincronizarDatosInstitucionalesGlobal() {
 }
 window.sincronizarDatosInstitucionalesGlobal = sincronizarDatosInstitucionalesGlobal;
 
-function actualizarEncabezadoUsuario(nombre, rol) {
+function actualizarEncabezadoUsuario(nombre, rol, fotoUrl) {
     const elName = document.getElementById('userName');
     const elBannerName = document.getElementById('userBannerName');
     const elBannerRole = document.getElementById('userBannerRole');
+    const elBannerRol = document.getElementById('userBannerRol');
 
     if (elName) elName.innerText = nombre;
     if (elBannerName) elBannerName.innerText = nombre;
     if (elBannerRole) elBannerRole.innerText = `Rol: ${rol || 'SISTEMA'}`;
+    if (elBannerRol) elBannerRol.innerText = rol || 'SISTEMA';
+
+    const foto = fotoUrl || localStorage.getItem('userFotoUrl') || '';
+    document.querySelectorAll('.welcome-avatar, #welcomeAvatarContainer').forEach(avatarEl => {
+        if (foto && !foto.includes('default_avatar.png')) {
+            avatarEl.innerHTML = `<img src="${foto}" alt="${nombre || 'Perfil'}" onerror="this.parentElement.innerHTML='<i class=&quot;bi bi-person-circle&quot;></i>'">`;
+        } else {
+            avatarEl.innerHTML = `<i class="bi bi-person-circle"></i>`;
+        }
+    });
 }
+window.actualizarEncabezadoUsuario = actualizarEncabezadoUsuario;

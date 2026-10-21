@@ -113,17 +113,24 @@ async function inicializarSesion() {
     const rawRole = localStorage.getItem('userRole') || "ADMIN";
     let userName = localStorage.getItem('userName') || "Administrador";
     let userEmail = localStorage.getItem('userEmail') || "";
+    let userFotoUrl = localStorage.getItem('userFotoUrl') || "";
 
     try {
         const list = await safeFetchJson('/api/usuarios');
         if (list && Array.isArray(list)) {
-            const found = list.find(u => u.correo === userName || u.correo === userEmail || u.nombre === userName);
+            const found = list.find(u =>
+                (u.correo && userEmail && u.correo.toLowerCase() === userEmail.toLowerCase()) ||
+                (u.correo && userName && u.correo.toLowerCase() === userName.toLowerCase()) ||
+                (u.nombre && userName && u.nombre.toUpperCase() === userName.toUpperCase())
+            );
             if (found) {
                 userName = found.nombre;
                 userEmail = found.correo;
+                userFotoUrl = found.fotoUrl || "";
                 localStorage.setItem('userName', found.nombre);
                 localStorage.setItem('userEmail', found.correo);
                 if (found.rol) localStorage.setItem('userRole', found.rol);
+                if (userFotoUrl) localStorage.setItem('userFotoUrl', userFotoUrl);
             }
         }
     } catch(e){}
@@ -137,6 +144,12 @@ async function inicializarSesion() {
     if (elUserName) elUserName.innerText = userName;
     if (elUserRol) elUserRol.innerText = userRole;
     if (elBannerName) elBannerName.innerText = userName;
+
+    document.querySelectorAll('.welcome-avatar, #welcomeAvatarContainer').forEach(avatarEl => {
+        if (userFotoUrl && !userFotoUrl.includes('default_avatar.png')) {
+            avatarEl.innerHTML = `<img src="${userFotoUrl}" alt="${userName}" onerror="this.parentElement.innerHTML='<i class=&quot;bi bi-person-circle&quot;></i>'">`;
+        }
+    });
 
     if (userRole === "ADMIN") {
         determinarCicloSugerido();
