@@ -619,7 +619,7 @@ async function enviarWhatsappTutorDesercion(matricula) {
                 <div class="mb-1"><b>Teléfono:</b> <code class="text-success fw-bold">${tel}</code></div>
                 <div><b>Inasistencias continuas:</b> <span class="badge bg-danger">${alumno.diasSinRegistro} días</span></div>
             </div>
-            <textarea id="swalWsMensajeDesercion" class="form-control form-control-sm border-danger mt-2" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">🏫 *[CBTis 134 - AVISO URGENTE DE ORIENTACIÓN EDUCATIVA]*:\nEstimado(a) ${alumno.tutor}, le informamos que el alumno(a) ${alumno.nombre} ha acumulado ${alumno.diasSinRegistro} días consecutivos sin registro de asistencia en el plantel. Favor de comunicarse al departamento de Orientación Educativa.</textarea>
+            <textarea id="swalWsMensajeDesercion" class="form-control form-control-sm border-danger mt-2" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">*[CBTis 134 - AVISO URGENTE DE ORIENTACIÓN EDUCATIVA]*:\nEstimado(a) ${alumno.tutor}, le informamos que el alumno(a) ${alumno.nombre} ha acumulado ${alumno.diasSinRegistro} días consecutivos sin registro de asistencia en el plantel. Favor de comunicarse al departamento de Orientación Educativa.</textarea>
         `,
         showCancelButton: true,
         confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Alerta WhatsApp',
@@ -672,32 +672,32 @@ const PALETA_COLORES_CALENDARIO = [
 // Catálogo base oficial DGETI de suspensiones y periodos escolares
 const EVENTOS_CALENDARIO_DGETI = [
     // 2025
-    { id: 'DGETI_2025_01', title: "🇲🇽 Inicio de Cursos Semestre Ago-Dic 2025", start: "2025-08-25", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre escolar DGETI" },
-    { id: 'DGETI_2025_02', title: "🏫 Aniversario de la DGETI", start: "2025-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
-    { id: 'DGETI_2025_03', title: "🇲🇽 Aniversario de la Independencia", start: "2025-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
-    { id: 'DGETI_2025_04', title: "🇲🇽 Día de Muertos", start: "2025-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
-    { id: 'DGETI_2025_05', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2025-11-17", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
-    { id: 'DGETI_2025_06', title: "🎓 Fin de Cursos Semestre Ago-Dic 2025", start: "2025-12-12", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de actividades académicas" },
-    { id: 'DGETI_2025_07', title: "❄️ Periodo Vacacional de Invierno", start: "2025-12-22", end: "2026-01-10", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de fin de año" },
+    { id: 'DGETI_2025_01', title: "Inicio de Cursos Semestre Ago-Dic 2025", start: "2025-08-25", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre escolar DGETI" },
+    { id: 'DGETI_2025_02', title: "Aniversario de la DGETI", start: "2025-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
+    { id: 'DGETI_2025_03', title: "Aniversario de la Independencia", start: "2025-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'DGETI_2025_04', title: "Día de Muertos", start: "2025-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'DGETI_2025_05', title: "Revolución Mexicana (Suspensión)", start: "2025-11-17", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
+    { id: 'DGETI_2025_06', title: "Fin de Cursos Semestre Ago-Dic 2025", start: "2025-12-12", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de actividades académicas" },
+    { id: 'DGETI_2025_07', title: "Periodo Vacacional de Invierno", start: "2025-12-22", end: "2026-01-10", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de fin de año" },
     
     // 2026
-    { id: 'DGETI_2026_01', title: "🇲🇽 Día de la Constitución Mexicana", start: "2026-02-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
-    { id: 'DGETI_2026_02', title: "🇲🇽 Inicio de Cursos Semestre Feb-Jul 2026", start: "2026-02-03", color: "#198754", tipo: "PERIODOS", descripcion: "Inicio de clases para semestres pares DGETI" },
-    { id: 'DGETI_2026_03', title: "🇲🇽 Natalicio de Benito Juárez", start: "2026-03-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial (3er lunes de marzo)" },
-    { id: 'DGETI_2026_04', title: "🌴 Receso Escolar de Semana Santa", start: "2026-03-30", end: "2026-04-11", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Periodo vacacional de primavera DGETI" },
-    { id: 'DGETI_2026_05', title: "🇲🇽 Día del Trabajo", start: "2026-05-01", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
-    { id: 'DGETI_2026_06', title: "🇲🇽 Batalla de Puebla", start: "2026-05-05", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
-    { id: 'DGETI_2026_07', title: "👩‍🏫 Día del Maestro", start: "2026-05-15", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial del magisterio" },
-    { id: 'DGETI_2026_08', title: "🎓 Fin de Cursos Semestre Feb-Jul 2026", start: "2026-07-03", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
-    { id: 'DGETI_2026_09', title: "🏛️ Ceremonia de Graduación CBTis 134", start: "2026-07-10", color: "#7b1b37", tipo: "PLANTEL", descripcion: "Clausura y entrega de constancias/certificados" },
-    { id: 'DGETI_2026_10', title: "🛠️ Cursos Intersemestrales y Planeación DGETI", start: "2026-07-13", end: "2026-07-25", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Capacitación y planeación docente DGETI" },
-    { id: 'DGETI_2026_11', title: "🇲🇽 Inicio de Cursos Semestre Ago 2026 - Ene 2027", start: "2026-08-24", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre nones DGETI" },
-    { id: 'DGETI_2026_12', title: "🏫 Aniversario de la DGETI", start: "2026-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
-    { id: 'DGETI_2026_13', title: "🇲🇽 Aniversario de la Independencia", start: "2026-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
-    { id: 'DGETI_2026_14', title: "🇲🇽 Día de Muertos", start: "2026-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
-    { id: 'DGETI_2026_15', title: "🇲🇽 Revolución Mexicana (Suspensión)", start: "2026-11-16", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
-    { id: 'DGETI_2026_16', title: "🎓 Fin de Cursos Semestre Ago 2026", start: "2026-12-11", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
-    { id: 'DGETI_2026_17', title: "❄️ Periodo Vacacional de Invierno", start: "2026-12-21", end: "2027-01-09", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de invierno" }
+    { id: 'DGETI_2026_01', title: "Día de la Constitución Mexicana", start: "2026-02-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'DGETI_2026_02', title: "Inicio de Cursos Semestre Feb-Jul 2026", start: "2026-02-03", color: "#198754", tipo: "PERIODOS", descripcion: "Inicio de clases para semestres pares DGETI" },
+    { id: 'DGETI_2026_03', title: "Natalicio de Benito Juárez", start: "2026-03-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial (3er lunes de marzo)" },
+    { id: 'DGETI_2026_04', title: "Receso Escolar de Semana Santa", start: "2026-03-30", end: "2026-04-11", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Periodo vacacional de primavera DGETI" },
+    { id: 'DGETI_2026_05', title: "Día del Trabajo", start: "2026-05-01", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial" },
+    { id: 'DGETI_2026_06', title: "Batalla de Puebla", start: "2026-05-05", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión de labores oficial" },
+    { id: 'DGETI_2026_07', title: "👩‍Día del Maestro", start: "2026-05-15", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial del magisterio" },
+    { id: 'DGETI_2026_08', title: "Fin de Cursos Semestre Feb-Jul 2026", start: "2026-07-03", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
+    { id: 'DGETI_2026_09', title: "Ceremonia de Graduación CBTis 134", start: "2026-07-10", color: "#7b1b37", tipo: "PLANTEL", descripcion: "Clausura y entrega de constancias/certificados" },
+    { id: 'DGETI_2026_10', title: "Cursos Intersemestrales y Planeación DGETI", start: "2026-07-13", end: "2026-07-25", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Capacitación y planeación docente DGETI" },
+    { id: 'DGETI_2026_11', title: "Inicio de Cursos Semestre Ago 2026 - Ene 2027", start: "2026-08-24", color: "#198754", tipo: "PERIODOS", descripcion: "Apertura oficial del semestre nones DGETI" },
+    { id: 'DGETI_2026_12', title: "Aniversario de la DGETI", start: "2026-09-01", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Conmemoración de la Creación de la DGETI" },
+    { id: 'DGETI_2026_13', title: "Aniversario de la Independencia", start: "2026-09-16", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión oficial de labores" },
+    { id: 'DGETI_2026_14', title: "Día de Muertos", start: "2026-11-02", color: "#dc3545", tipo: "SEP", descripcion: "Suspensión cívica oficial" },
+    { id: 'DGETI_2026_15', title: "Revolución Mexicana (Suspensión)", start: "2026-11-16", color: "#dc3545", tipo: "SEP", descripcion: "Día inhábil oficial (3er lunes de noviembre)" },
+    { id: 'DGETI_2026_16', title: "Fin de Cursos Semestre Ago 2026", start: "2026-12-11", color: "#198754", tipo: "PERIODOS", descripcion: "Cierre de cursos DGETI" },
+    { id: 'DGETI_2026_17', title: "Periodo Vacacional de Invierno", start: "2026-12-21", end: "2027-01-09", color: "#0d6efd", tipo: "PERIODOS", descripcion: "Receso escolar de invierno" }
 ];
 
 async function inicializarCalendario(userRole) {
@@ -709,11 +709,11 @@ async function inicializarCalendario(userRole) {
     calendarioInstancia = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'es',
-        height: 'auto',
+        height: 340,
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,dayGridWeek,listMonth'
+            right: 'dayGridMonth,listMonth'
         },
         buttonText: {
             today: 'Hoy', month: 'Mes', week: 'Semana', list: 'Agenda'
@@ -768,7 +768,7 @@ async function inicializarCalendario(userRole) {
                             lista.forEach(f => {
                                 feriadosApiMapeados.push({
                                     id: `FERIADO_${f.date}`,
-                                    title: `🇲🇽 ${f.localName || f.name}`,
+                                    title: `${f.localName || f.name}`,
                                     start: f.date,
                                     allDay: true,
                                     backgroundColor: '#dc3545',
@@ -846,10 +846,10 @@ function filtrarEventosCalendario(tipo) {
     const btnPeriodos = document.getElementById('btnCalFiltroPeriodos');
     const btnPlantel = document.getElementById('btnCalFiltroPlantel');
 
-    if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-secondary active' : 'btn btn-outline-secondary';
-    if (btnSEP) btnSEP.className = (tipo === 'SEP') ? 'btn btn-danger active' : 'btn btn-outline-danger';
-    if (btnPeriodos) btnPeriodos.className = (tipo === 'PERIODOS') ? 'btn btn-primary active' : 'btn btn-outline-primary';
-    if (btnPlantel) btnPlantel.className = (tipo === 'PLANTEL') ? 'btn btn-dark active' : 'btn btn-outline-dark';
+    if (btnTodos) btnTodos.className = (tipo === 'TODOS') ? 'btn btn-secondary active py-1' : 'btn btn-outline-secondary py-1';
+    if (btnSEP) btnSEP.className = (tipo === 'SEP') ? 'btn btn-danger active py-1' : 'btn btn-outline-danger py-1';
+    if (btnPeriodos) btnPeriodos.className = (tipo === 'PERIODOS') ? 'btn btn-primary active py-1' : 'btn btn-outline-primary py-1';
+    if (btnPlantel) btnPlantel.className = (tipo === 'PLANTEL') ? 'btn btn-dark active py-1' : 'btn btn-outline-dark py-1';
 
     if (calendarioInstancia) {
         calendarioInstancia.refetchEvents();
@@ -1024,7 +1024,7 @@ async function abrirModalDetalleEvento(eventObj, esAdmin) {
                 <div class="text-start p-2" style="font-size: 14px;">
                     <div class="mb-2">
                         <span class="badge" style="background-color: ${colorHex}; font-size: 12px;">${categoriaNombre}</span>
-                        ${esOficialSEP ? '<span class="badge bg-danger ms-1">🇲🇽 Calendario Oficial SEP</span>' : ''}
+                        ${esOficialSEP ? '<span class="badge bg-danger ms-1"><i class="bi bi-flag-fill me-1"></i>Calendario Oficial SEP</span>' : ''}
                     </div>
                     <p class="mb-1"><strong><i class="bi bi-clock me-1"></i>Periodo:</strong> ${startStr} ${endStr ? ' hasta ' + endStr : ''}</p>
                     ${props.descripcion ? `<p class="mb-1"><strong><i class="bi bi-card-text me-1"></i>Detalles:</strong> ${props.descripcion}</p>` : ''}

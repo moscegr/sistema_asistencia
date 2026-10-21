@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title th:text="'Dashboard Admin - ' + (${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Control Escolar'})">Dashboard Admin - Control Escolar</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" th:href="@{/css/nav_tigre.css}">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/img/favicon.png">
@@ -227,18 +226,61 @@
 
         #calendar {
             background: white;
-            padding: 16px;
+            padding: 8px;
             border-radius: 10px;
+            font-size: 11.5px;
+        }
+
+        #calendar .fc-toolbar {
+            margin-bottom: 0.65rem !important;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        #calendar .fc-toolbar-title {
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            color: var(--guinda);
+            text-transform: capitalize;
         }
 
         .fc-button-primary {
             background-color: var(--guinda) !important;
             border-color: var(--guinda) !important;
             text-transform: capitalize;
-            border-radius: 7px !important;
-            font-family: var(--font) !important;
-            font-size: 13px !important;
+            border-radius: 6px !important;
+            font-size: 11.5px !important;
+            padding: 3px 8px !important;
             transition: background 0.2s !important;
+        }
+
+        .fc-button-primary .fc-icon {
+            font-family: 'fcicons' !important;
+            font-size: 12px !important;
+        }
+
+        .kpi-unified-tile {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .kpi-unified-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        .kpi-unified-tile.kpi-critical {
+            background: #fff5f5;
+            border-color: #feb2b2;
+            border-left: 4px solid #dc3545;
         }
 
         .fc-button-primary:hover { background-color: var(--guinda-dark) !important; }
@@ -451,256 +493,23 @@
                 </div>
             </div>
 
-            <!-- ── 2. STAT CARDS ALUMNOS ── -->
-            <div class="row g-3 mb-3">
-                <div class="col-6 col-lg-3 anim-up anim-d2">
-                    <div class="stat-card s-blue">
-                        <div>
-                            <h3 id="totalAlumnos" class="stat-num">0</h3>
-                            <p class="stat-label">Alumnos Matriculados</p>
-                        </div>
-                        <div class="stat-icon s-blue"><i class="bi bi-people-fill"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d3">
-                    <div class="stat-card s-green">
-                        <div>
-                            <h3 id="totalPases" class="stat-num">0</h3>
-                            <p class="stat-label">Pases Activos Hoy</p>
-                        </div>
-                        <div class="stat-icon s-green"><i class="bi bi-check-square-fill"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d4">
-                    <div class="stat-card s-amber">
-                        <div>
-                            <h3 id="totalJustificantes" class="stat-num">0</h3>
-                            <p class="stat-label">Justificantes</p>
-                        </div>
-                        <div class="stat-icon s-amber"><i class="bi bi-file-earmark-check-fill"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d5">
-                    <div class="stat-card s-red">
-                        <div>
-                            <h3 id="totalIncidencias" class="stat-num">0</h3>
-                            <p class="stat-label">Incidencias</p>
-                        </div>
-                        <div class="stat-icon s-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── 2.1 STAT CARDS PERSONAL Y ASISTENCIA ── -->
-            <div class="row g-3 mb-4">
-                <div class="col-6 col-lg-3 anim-up anim-d2">
-                    <div class="stat-card" style="border-top-color: #6f42c1;">
-                        <div>
-                            <h3 id="totalDocentes" class="stat-num" style="color: #6f42c1;">0</h3>
-                            <p class="stat-label">Docentes Registrados</p>
-                        </div>
-                        <div class="stat-icon" style="background: #f3e8ff; color: #6f42c1;"><i class="bi bi-mortarboard-fill"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d3">
-                    <div class="stat-card s-blue">
-                        <div>
-                            <h3 id="totalAdminis" class="stat-num text-primary">0</h3>
-                            <p class="stat-label">Personal Administrativo</p>
-                        </div>
-                        <div class="stat-icon s-blue"><i class="bi bi-person-badge"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d4">
-                    <div class="stat-card s-green">
-                        <div>
-                            <h3 id="totalPersonalDentro" class="stat-num text-success">0</h3>
-                            <p class="stat-label">Personal en Plantel Hoy</p>
-                        </div>
-                        <div class="stat-icon s-green"><i class="bi bi-person-check"></i></div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3 anim-up anim-d5">
-                    <div class="stat-card" style="border-top-color: #fd7e14;">
-                        <div>
-                            <h3 id="totalPersonalTurnos" class="stat-num fs-5" style="font-size: 1.15rem !important;">0 Mat / 0 Ves</h3>
-                            <p class="stat-label">Distribución de Turnos</p>
-                        </div>
-                        <div class="stat-icon" style="background: #fff4e6; color: #fd7e14;"><i class="bi bi-clock-history"></i></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── 3. CALENDARIO OFICIAL DGETI Y AGENDA ESCOLAR ── -->
-            <div class="row g-4 mb-4 anim-up anim-d5">
+            <!-- ── 2. TARJETA UNIFICADA DE INDICADORES Y RESUMEN OPERATIVO ── -->
+            <div class="row mb-4 anim-up anim-d2">
                 <div class="col-12">
-                    <div class="card-dash p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <div>
-                                <h5 class="section-title mb-1" style="color: var(--guinda);">
-                                    <i class="bi bi-calendar-check-fill me-2"></i>Agenda Escolar y Calendario Oficial DGETI
-                                </h5>
-                                <p class="section-sub mb-0">Sincronización en tiempo real con días festivos oficiales y calendario escolar DGETI</p>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <div class="btn-group btn-group-sm shadow-sm" role="group">
-                                    <button type="button" class="btn btn-secondary active" id="btnCalFiltroTodos" onclick="filtrarEventosCalendario('TODOS')">Todos</button>
-                                    <button type="button" class="btn btn-outline-danger" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">🇲🇽 Suspensiones DGETI</button>
-                                    <button type="button" class="btn btn-outline-primary" id="btnCalFiltroPeriodos" onclick="filtrarEventosCalendario('PERIODOS')">📘 Periodos DGETI</button>
-                                    <button type="button" class="btn btn-outline-dark" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">🏫 <span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Plantel'}">Plantel</span></button>
-                                </div>
-                                <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="sincronizarCalendarioSEP()" title="Recargar eventos y festivos">
-                                    <i class="bi bi-arrow-repeat me-1"></i>Sincronizar DGETI
-                                </button>
-                                <button class="btn btn-sm btn-guinda rounded-pill px-3 shadow-sm requiere-permiso" data-roles="ADMIN,ORIENTACION" onclick="abrirModalNuevoEvento()">
-                                    <i class="bi bi-calendar-plus-fill me-1"></i> Agregar Evento
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Leyenda de colores del calendario -->
-                        <div class="d-flex align-items-center gap-3 mb-3 p-2 bg-light rounded-3 border x-small flex-wrap">
-                            <span class="fw-bold text-muted text-uppercase" style="font-size: 0.72rem;"><i class="bi bi-tags-fill me-1"></i>Categorías:</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #dc3545; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inhábiles / Suspensión Oficial</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #198754; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Inicio / Fin Semestre DGETI</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #0d6efd; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Periodos y Recesos DGETI</span>
-                            <span class="d-flex align-items-center gap-1"><span class="badge rounded-pill" style="background-color: #7b1b37; width: 10px; height: 10px; padding: 0;">&nbsp;</span> Eventos Locales <span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Plantel'}">Plantel</span></span>
-                        </div>
-
-                        <div id="calendar" style="min-height: 440px;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── 4. SESIÓN ACTIVA + CAMBIO DE CICLO ── -->
-            <div class="row g-4 mb-4 requiere-permiso" data-roles="ADMIN">
-
-                <!-- Sesión activa -->
-                <div class="col-md-4 anim-up anim-d6">
-                    <div class="card-dash p-4 h-100">
-                        <h5 class="section-title mb-3">
-                            <i class="bi bi-person-circle"></i> Sesión Activa
-                        </h5>
-                        <p class="mb-1" style="font-size:14px;">
-                            Bienvenido, <span id="userName" class="fw-bold text-uppercase">...</span>
-                        </p>
-                        <hr class="inner-divider">
-
-                        <div class="contingency-box">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" role="switch" id="switchSalidaGeneral">
-                                <label class="form-check-label fw-bold text-danger" for="switchSalidaGeneral" style="font-size:13px;">
-                                    <i class="bi bi-exclamation-octagon-fill me-1"></i> MODO CONTINGENCIA
-                                </label>
-                            </div>
-                            <p class="x-small text-muted mt-2 mb-0">
-                                Activa la salida libre de todo el plantel. Se notificará a los tutores.
-                            </p>
-                        </div>
-
-                        <p class="x-small text-muted mt-3 mb-0">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Tu última conexión ha sido registrada en el log de auditoría.
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Cambio de ciclo -->
-                <div class="col-md-8 anim-up anim-d7">
-                    <div class="ciclo-card p-4 h-100">
-                        <h5 class="section-title mb-3">
-                            <i class="bi bi-calendar-check"></i> Cambio de Ciclo Escolar
-                        </h5>
-
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label small fw-bold" style="color:var(--guinda);">
-                                    1. Definir Alcance del Movimiento
-                                </label>
-                                <select id="promocionScope" class="form-select" onchange="cambiarScope(this.value)">
-                                    <option value="">--- Selecciona qué quieres promover ---</option>
-                                    <option value="especialidad">Por Especialidad (Toda la carrera)</option>
-                                    <option value="grupo">Por Grupo Específico (Control total)</option>
-                                    <option value="general">Todo el Plantel (General)</option>
-                                </select>
-                            </div>
-
-                            <div id="infoInicioPromocion" class="col-12">
-                                <div class="alert-info-guinda">
-                                    <p class="x-small fw-bold text-muted text-uppercase mb-2">Información de los Modos:</p>
-                                    <ul class="list-unstyled mb-0 x-small">
-                                        <li class="mb-2">
-                                            <i class="bi bi-collection-fill text-guinda me-1"></i>
-                                            <b>Por Especialidad:</b> Mantiene letras de grupo al subir de semestre.
-                                        </li>
-                                        <li class="mb-2">
-                                            <i class="bi bi-person-badge-fill text-guinda me-1"></i>
-                                            <b>Por Grupo:</b> Permite cambios de letra (ej. 2A a 3B).
-                                        </li>
-                                        <li>
-                                            <i class="bi bi-buildings-fill text-guinda me-1"></i>
-                                            <b>General:</b> Sube un grado a todos. 6° pasan a egresados.
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6" id="colEsp" style="display:none;">
-                                <label class="form-label small fw-bold">2. Carrera</label>
-                                <select id="selectCicloEsp" class="form-select" onchange="actualizarGruposPromocion(this.value)">
-                                    <option value="">-- Seleccionar --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3" id="colGpo" style="display:none;">
-                                <label class="form-label small fw-bold">3. Grupo Actual</label>
-                                <select id="selectCicloGpo" class="form-select" onchange="previsualizarImpacto()">
-                                    <option value="">-- Seleccionar --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3" id="colNuevaLetra" style="display:none;">
-                                <label class="form-label small fw-bold text-primary">Nueva Letra</label>
-                                <input type="text" id="nuevaLetraGrupo" class="form-control text-uppercase border-primary"
-                                       placeholder="Ej: B" maxlength="1" oninput="previsualizarImpacto()">
-                            </div>
-
-                            <div class="col-12">
-                                <div id="previewImpacto" class="mt-1 p-3" style="display:none;">
-                                    <h6 class="x-small fw-bold text-uppercase text-muted mb-2">Previsualización de Cambios:</h6>
-                                    <div id="detalleImpacto" class="small"></div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 d-grid">
-                                <button id="btnEjecutarCambio" class="btn-guinda py-2"
-                                        onclick="confirmarCambioCiclo()" disabled>
-                                    <i class="bi bi-rocket-takeoff-fill me-2"></i>Aplicar Cambios
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── 5. CENTRO DE INTELIGENCIA Y ANALÍTICA DE DATOS ── -->
-            <div class="row mb-4 anim-up anim-d7" id="centroInteligencia">
-                <div class="col-12">
-                    <div class="intel-card border-0 shadow-sm" style="border-radius: var(--radius-card); background: #ffffff;">
-                        
-                        <!-- Encabezado Principal del Centro de Inteligencia -->
-                        <div class="intel-header p-4 pb-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #ffffff 0%, #fdf8f9 100%);">
-                            <div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-guinda p-2 rounded-3 text-white">
-                                        <i class="bi bi-graph-up-arrow fs-6"></i>
-                                    </span>
-                                    <div>
-                                        <h5 class="section-title fw-bold mb-0" style="color: var(--guinda);">
-                                            Centro de Inteligencia y Analítica Educativa
-                                        </h5>
-                                        <p class="section-sub mb-0 text-muted small">
-                                            Monitoreo predictivo de afluencia, detección de deserción escolar (EWS) y reportes ejecutivos oficiales
-                                        </p>
-                                    </div>
+                    <div class="card-dash overflow-hidden border-0">
+                        <!-- Cabecera de la tarjeta unificada -->
+                        <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2" style="background: linear-gradient(135deg, #ffffff 0%, #fdf8f9 100%);">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-guinda p-2 rounded-3 text-white d-inline-flex align-items-center justify-content-center">
+                                    <i class="bi bi-speedometer2 fs-6"></i>
+                                </span>
+                                <div>
+                                    <h5 class="section-title fw-bold mb-0" style="color: var(--guinda);">
+                                        Resumen Ejecutivo del Plantel en Tiempo Real
+                                    </h5>
+                                    <p class="section-sub mb-0 text-muted x-small">
+                                        Indicadores clave de deserción escolar (EWS), matrícula, asistencia diaria, incidencias y plantilla de personal
+                                    </p>
                                 </div>
                             </div>
                             <div class="d-flex align-items-center gap-2">
@@ -708,62 +517,288 @@
                                     <i class="bi bi-clock-history text-guinda"></i>
                                     Corte en Vivo: <strong id="ultimaAct" class="text-dark">Sincronizando...</strong>
                                 </div>
-                                <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="cargarDashboardCompleto()" title="Actualizar datos en tiempo real">
+                                <button class="btn btn-sm btn-outline-guinda rounded-pill px-3 shadow-sm" onclick="cargarDashboardCompleto(); cargarEstadisticas(); cargarEstadisticasPersonal();" title="Actualizar datos en tiempo real">
                                     <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
                                 </button>
                             </div>
                         </div>
 
-                        <div class="p-4">
-                            <!-- Mini KPIs de Alto Impacto -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+                        <!-- Cuerpo con los indicadores combinados -->
+                        <div class="p-3 p-md-4">
+                            <div class="row g-3">
+                                <!-- 1. Alerta de Deserción Escolar (EWS) - PRIORIDAD VISUAL -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile kpi-critical">
                                         <div>
-                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Permanencia Hoy</span>
-                                            <h4 class="fw-bold mb-0 text-dark" id="kpiPermanencia">0%</h4>
-                                            <small class="text-success x-small" id="kpiPermanenciaSub"><i class="bi bi-check-circle-fill me-1"></i>0 presentes</small>
+                                            <span class="x-small text-danger fw-bold text-uppercase d-block mb-1">
+                                                <i class="bi bi-shield-exclamation me-1"></i>Alerta Deserción (EWS)
+                                            </span>
+                                            <h3 class="fw-bold mb-0 text-danger" id="kpiRiesgoDesercion" style="font-size: 1.65rem;">0</h3>
+                                            <small class="text-danger x-small fw-semibold d-block mt-1" id="kpiRiesgoDesercionSub">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Inasistencias &ge; 3 días
+                                            </small>
                                         </div>
-                                        <div class="stat-icon s-blue rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-person-check-fill"></i></div>
+                                        <div class="stat-icon s-red rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-person-x-fill"></i>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+
+                                <!-- 2. Matrícula y Permanencia Hoy -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #3b82f6;">
                                         <div>
-                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Alerta Deserción (EWS)</span>
-                                            <h4 class="fw-bold mb-0 text-danger" id="kpiRiesgoDesercion">0</h4>
-                                            <small class="text-danger x-small" id="kpiRiesgoDesercionSub"><i class="bi bi-exclamation-triangle-fill me-1"></i>Inasistencias &ge; 3 días</small>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Alumnos y Permanencia</span>
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <h3 id="totalAlumnos" class="fw-bold mb-0 text-dark" style="font-size: 1.65rem;">0</h3>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 x-small fw-bold">
+                                                    <span id="kpiPermanencia">0%</span> hoy
+                                                </span>
+                                            </div>
+                                            <small class="text-success x-small d-block mt-1" id="kpiPermanenciaSub">
+                                                <i class="bi bi-check-circle-fill me-1"></i>0 presentes en plantel
+                                            </small>
                                         </div>
-                                        <div class="stat-icon s-red rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-person-x-fill"></i></div>
+                                        <div class="stat-icon s-blue rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-people-fill"></i>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+
+                                <!-- 3. Pases de Salida y Justificantes -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #22c55e;">
                                         <div>
-                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Pases Autorizados</span>
-                                            <h4 class="fw-bold mb-0 text-success" id="kpiPasesHoy">0</h4>
-                                            <small class="text-muted x-small">Pases vigentes hoy</small>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Pases y Justificantes</span>
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <h3 id="totalPases" class="fw-bold mb-0 text-success" style="font-size: 1.65rem;">0</h3>
+                                                <span class="x-small text-muted">pases hoy (<span id="kpiPasesHoy" class="fw-bold">0</span> vig.)</span>
+                                            </div>
+                                            <small class="text-muted x-small d-block mt-1">
+                                                <i class="bi bi-file-earmark-check-fill text-warning me-1"></i><strong id="totalJustificantes" class="text-dark">0</strong> justificantes registrados
+                                            </small>
                                         </div>
-                                        <div class="stat-icon s-green rounded-3" style="width: 42px; height: 42px;"><i class="bi bi-card-checklist"></i></div>
+                                        <div class="stat-icon s-green rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-check-square-fill"></i>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-6 col-md-3">
-                                    <div class="p-3 bg-light rounded-3 border h-100 d-flex align-items-center justify-content-between">
+
+                                <!-- 4. Incidencias Conductuales -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #f59e0b;">
                                         <div>
-                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Personal en Plantel</span>
-                                            <h4 class="fw-bold mb-0" style="color: #6f42c1;" id="kpiPersonalPresente">0</h4>
-                                            <small class="text-muted x-small" id="kpiPersonalPresenteSub">0 Docentes / 0 Admin</small>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Incidencias / Reportes</span>
+                                            <h3 id="totalIncidencias" class="fw-bold mb-0 text-dark" style="font-size: 1.65rem;">0</h3>
+                                            <small class="text-muted x-small d-block mt-1">
+                                                <i class="bi bi-journal-medical text-danger me-1"></i>Prefectura y Orientación
+                                            </small>
                                         </div>
-                                        <div class="stat-icon rounded-3" style="width: 42px; height: 42px; background: #f3e8ff; color: #6f42c1;"><i class="bi bi-person-workspace"></i></div>
+                                        <div class="stat-icon s-amber rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 5. Personal en Plantel Hoy -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #198754;">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Personal en Plantel Hoy</span>
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <h3 id="totalPersonalDentro" class="fw-bold mb-0 text-success" style="font-size: 1.55rem;">0</h3>
+                                                <span id="kpiPersonalPresente" class="d-none">0</span>
+                                                <span class="badge bg-success bg-opacity-10 text-success x-small">Activos hoy</span>
+                                            </div>
+                                            <small class="text-muted x-small d-block mt-1" id="kpiPersonalPresenteSub">
+                                                0 Docentes / 0 Admin
+                                            </small>
+                                        </div>
+                                        <div class="stat-icon s-green rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-person-check-fill"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 6. Docentes Registrados -->
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #6f42c1;">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Docentes Registrados</span>
+                                            <h3 id="totalDocentes" class="fw-bold mb-0" style="color: #6f42c1; font-size: 1.55rem;">0</h3>
+                                            <small class="text-muted x-small d-block mt-1">
+                                                <i class="bi bi-mortarboard-fill me-1" style="color: #6f42c1;"></i>Plantilla académica activa
+                                            </small>
+                                        </div>
+                                        <div class="stat-icon rounded-3" style="width: 44px; height: 44px; background: #f3e8ff; color: #6f42c1;">
+                                            <i class="bi bi-mortarboard-fill"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 7. Personal Administrativo -->
+                                <div class="col-6 col-md-6 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #0d6efd;">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Personal Administrativo</span>
+                                            <h3 id="totalAdminis" class="fw-bold mb-0 text-primary" style="font-size: 1.55rem;">0</h3>
+                                            <small class="text-muted x-small d-block mt-1">
+                                                <i class="bi bi-person-badge-fill text-primary me-1"></i>Directivos y apoyo escolar
+                                            </small>
+                                        </div>
+                                        <div class="stat-icon s-blue rounded-3" style="width: 44px; height: 44px;">
+                                            <i class="bi bi-person-workspace"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 8. Distribución de Turnos -->
+                                <div class="col-6 col-md-6 col-xl-3">
+                                    <div class="kpi-unified-tile" style="border-left: 4px solid #fd7e14;">
+                                        <div>
+                                            <span class="x-small text-muted fw-bold text-uppercase d-block mb-1">Distribución de Turnos</span>
+                                            <h3 id="totalPersonalTurnos" class="fw-bold mb-0 text-dark" style="font-size: 1.2rem;">0 Mat / 0 Ves</h3>
+                                            <small class="text-muted x-small d-block mt-1">
+                                                <i class="bi bi-clock-fill me-1" style="color: #fd7e14;"></i>Matutino vs Vespertino
+                                            </small>
+                                        </div>
+                                        <div class="stat-icon rounded-3" style="width: 44px; height: 44px; background: #fff4e6; color: #fd7e14;">
+                                            <i class="bi bi-clock-history"></i>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- ── 3. FILA PRIORITARIA: ALERTA TEMPRANA DE DESERCIÓN (EWS) + CALENDARIO COMPACTO ── -->
+            <div class="row g-4 mb-4 anim-up anim-d3">
+                <!-- Columna Izquierda: Sistema de Alerta Temprana de Deserción Escolar (EWS) -->
+                <div class="col-12 col-xl-7">
+                    <div class="card-dash p-4 h-100 d-flex flex-column" style="border-top: 4px solid #dc3545;">
+                        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                            <div>
+                                <h5 class="section-title mb-1 text-danger fw-bold">
+                                    <i class="bi bi-shield-exclamation me-1"></i>Sistema de Alerta Temprana de Deserción Escolar (EWS)
+                                </h5>
+                                <p class="section-sub mb-0">
+                                    Detección prioritaria de estudiantes con ausentismo recurrente (&ge; 3 inasistencias consecutivas)
+                                </p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                    <button type="button" class="btn btn-secondary active" id="btnFiltroRiesgoTodos" onclick="filtrarAlertaRiesgo('TODOS')">
+                                        Todos (<span id="countRiesgoTotal">0</span>)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" id="btnFiltroRiesgoCritico" onclick="filtrarAlertaRiesgo('CRITICO')">
+                                        <i class="bi bi-exclamation-octagon-fill me-1"></i>Crítico &ge;5d (<span id="countRiesgoCritico">0</span>)
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning text-dark" id="btnFiltroRiesgoModerado" onclick="filtrarAlertaRiesgo('MODERADO')">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Moderado 3-4d (<span id="countRiesgoModerado">0</span>)
+                                    </button>
+                                </div>
+                                <button class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold shadow-sm" onclick="generarExcelRiesgoDesercion()">
+                                    <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar EWS
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive bg-white rounded-3 border shadow-sm flex-grow-1" style="max-height: 365px; overflow-y: auto;">
+                            <table class="table table-hover align-middle mb-0 small">
+                                <thead class="table-light text-uppercase x-small text-muted sticky-top">
+                                    <tr>
+                                        <th class="ps-3 py-2">Estudiante</th>
+                                        <th class="py-2">No. Control</th>
+                                        <th class="py-2">Carrera / Semestre</th>
+                                        <th class="py-2 text-center">Sin Registro</th>
+                                        <th class="py-2 text-center">Riesgo</th>
+                                        <th class="py-2 text-center pe-3">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaAlertaDesercionBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">
+                                            <div class="spinner-border spinner-border-sm text-guinda me-2" role="status"></div>
+                                            Calculando índice de permanencia escolar...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Calendario Oficial DGETI (Compacto) -->
+                <div class="col-12 col-xl-5">
+                    <div class="card-dash p-3 p-md-4 h-100 d-flex flex-column" style="border-top: 4px solid var(--guinda);">
+                        <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+                            <div>
+                                <h5 class="section-title mb-0" style="color: var(--guinda); font-size: 14.5px;">
+                                    <i class="bi bi-calendar-check-fill me-1"></i>Agenda y Calendario Oficial DGETI
+                                </h5>
+                                <p class="section-sub mb-0" style="font-size: 11px;">Días festivos oficiales SEP y actividades del plantel</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <button class="btn btn-sm btn-outline-guinda py-1 px-2 rounded-pill shadow-sm" style="font-size: 11px;" onclick="sincronizarCalendarioSEP()" title="Sincronizar Calendario DGETI">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                                <button class="btn btn-sm btn-guinda py-1 px-2 rounded-pill shadow-sm requiere-permiso" style="font-size: 11px;" data-roles="ADMIN,ORIENTACION" onclick="abrirModalNuevoEvento()">
+                                    <i class="bi bi-calendar-plus-fill me-1"></i>Evento
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filtros rápidos del calendario con iconos Bootstrap limpios -->
+                        <div class="d-flex align-items-center justify-content-between gap-1 mb-2 flex-wrap">
+                            <div class="btn-group btn-group-sm w-100 shadow-sm" role="group">
+                                <button type="button" class="btn btn-secondary active py-1" style="font-size: 11px;" id="btnCalFiltroTodos" onclick="filtrarEventosCalendario('TODOS')">
+                                    Todos
+                                </button>
+                                <button type="button" class="btn btn-outline-danger py-1" style="font-size: 11px;" id="btnCalFiltroSEP" onclick="filtrarEventosCalendario('SEP')">
+                                    <i class="bi bi-flag-fill me-1"></i>SEP / DGETI
+                                </button>
+                                <button type="button" class="btn btn-outline-primary py-1" style="font-size: 11px;" id="btnCalFiltroPeriodos" onclick="filtrarEventosCalendario('PERIODOS')">
+                                    <i class="bi bi-journal-bookmark-fill me-1"></i>Periodos
+                                </button>
+                                <button type="button" class="btn btn-outline-dark py-1" style="font-size: 11px;" id="btnCalFiltroPlantel" onclick="filtrarEventosCalendario('PLANTEL')">
+                                    <i class="bi bi-building-fill me-1"></i><span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Plantel'}">Plantel</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="calendar" class="flex-grow-1" style="min-height: 310px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 4. CENTRO DE INTELIGENCIA: GRÁFICAS ANALÍTICAS Y REPORTES EJECUTIVOS ── -->
+            <div class="row mb-4 anim-up anim-d4" id="centroInteligencia">
+                <div class="col-12">
+                    <div class="intel-card border-0 shadow-sm" style="border-radius: var(--radius-card); background: #ffffff;">
+                        <div class="intel-header p-4 pb-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #ffffff 0%, #fdf8f9 100%);">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-guinda p-2 rounded-3 text-white">
+                                    <i class="bi bi-graph-up-arrow fs-6"></i>
+                                </span>
+                                <div>
+                                    <h5 class="section-title fw-bold mb-0" style="color: var(--guinda);">
+                                        Analítica de Afluencia y Hub de Reportes Oficiales
+                                    </h5>
+                                    <p class="section-sub mb-0 text-muted small">
+                                        Comportamiento estadístico por carrera, flujo horario, incidencias y exportación de sábanas en Excel (.xlsx)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4">
                             <!-- ── SUITE DE GRÁFICAS ANALÍTICAS (2x2) ── -->
                             <div class="row g-4 mb-4">
                                 <!-- Gráfica 1: Afluencia por Carrera (Inscritos vs Presentes) -->
                                 <div class="col-12 col-xl-6">
-                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                    <div class="chart-box h-100" style="min-height: 290px;">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <p class="chart-label mb-0">
                                                 <i class="bi bi-bar-chart-fill me-1 text-guinda"></i>
@@ -771,7 +806,7 @@
                                             </p>
                                             <span class="badge bg-light text-muted border x-small">Hoy</span>
                                         </div>
-                                        <div style="height: 250px; position: relative;">
+                                        <div style="height: 235px; position: relative;">
                                             <canvas id="graficoEspecialidades"></canvas>
                                         </div>
                                     </div>
@@ -779,7 +814,7 @@
 
                                 <!-- Gráfica 2: Curva de Flujo Horario de Accesos -->
                                 <div class="col-12 col-xl-6">
-                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                    <div class="chart-box h-100" style="min-height: 290px;">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <p class="chart-label mb-0">
                                                 <i class="bi bi-activity me-1 text-primary"></i>
@@ -787,7 +822,7 @@
                                             </p>
                                             <span class="badge bg-light text-muted border x-small">Entradas vs Salidas</span>
                                         </div>
-                                        <div style="height: 250px; position: relative;">
+                                        <div style="height: 235px; position: relative;">
                                             <canvas id="graficoFlujoHorario"></canvas>
                                         </div>
                                     </div>
@@ -795,7 +830,7 @@
 
                                 <!-- Gráfica 3: Incidencias Conductuales por Semestre -->
                                 <div class="col-12 col-xl-6">
-                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                    <div class="chart-box h-100" style="min-height: 290px;">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <p class="chart-label mb-0">
                                                 <i class="bi bi-diagram-3-fill me-1 text-danger"></i>
@@ -808,7 +843,7 @@
                                                 <span class="badge bg-danger rounded-pill px-2 py-1" id="totalEvidenciasModulo">0</span>
                                             </div>
                                         </div>
-                                        <div style="height: 245px; position: relative;">
+                                        <div style="height: 230px; position: relative;">
                                             <canvas id="graficoGruposModulo"></canvas>
                                         </div>
                                     </div>
@@ -816,7 +851,7 @@
 
                                 <!-- Gráfica 4: Personal y Cumplimiento de Turnos -->
                                 <div class="col-12 col-xl-6">
-                                    <div class="chart-box h-100" style="min-height: 310px;">
+                                    <div class="chart-box h-100" style="min-height: 290px;">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <p class="chart-label mb-0">
                                                 <i class="bi bi-pie-chart-fill me-1 text-success"></i>
@@ -824,68 +859,21 @@
                                             </p>
                                             <span class="badge bg-light text-muted border x-small">Docentes vs Admin</span>
                                         </div>
-                                        <div style="height: 245px; position: relative;">
+                                        <div style="height: 230px; position: relative;">
                                             <canvas id="graficoPersonalTurnos"></canvas>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <hr class="inner-divider">
-
-                            <!-- ── 5.1 SISTEMA DE ALERTA TEMPRANA DE DESERCIÓN (EWS) ── -->
-                            <div class="card border-0 bg-light rounded-4 p-4 mb-4 shadow-sm">
-                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                    <div>
-                                        <h6 class="fw-bold mb-0 text-dark">
-                                            <i class="bi bi-shield-exclamation text-danger me-2"></i>Sistema de Alerta Temprana de Deserción Escolar (EWS)
-                                        </h6>
-                                        <p class="x-small text-muted mb-0">Detección algorítmica de estudiantes con ausentismo recurrente (&ge; 3 inasistencias consecutivas)</p>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                                        <div class="btn-group btn-group-sm shadow-sm" role="group">
-                                            <button type="button" class="btn btn-outline-secondary active" id="btnFiltroRiesgoTodos" onclick="filtrarAlertaRiesgo('TODOS')">Todos (<span id="countRiesgoTotal">0</span>)</button>
-                                            <button type="button" class="btn btn-outline-danger" id="btnFiltroRiesgoCritico" onclick="filtrarAlertaRiesgo('CRITICO')">🔴 Crítico &ge;5d (<span id="countRiesgoCritico">0</span>)</button>
-                                            <button type="button" class="btn btn-outline-warning text-dark" id="btnFiltroRiesgoModerado" onclick="filtrarAlertaRiesgo('MODERADO')">🟡 Moderado 3-4d (<span id="countRiesgoModerado">0</span>)</button>
-                                        </div>
-                                        <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold shadow-sm" onclick="generarExcelRiesgoDesercion()">
-                                            <i class="bi bi-file-earmark-excel-fill me-1"></i>Exportar Padrón
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="table-responsive bg-white rounded-3 border shadow-sm" style="max-height: 280px; overflow-y: auto;">
-                                    <table class="table table-hover align-middle mb-0 small">
-                                        <thead class="table-light text-uppercase x-small text-muted sticky-top">
-                                            <tr>
-                                                <th class="ps-3 py-2">Estudiante</th>
-                                                <th class="py-2">No. Control</th>
-                                                <th class="py-2">Carrera / Semestre</th>
-                                                <th class="py-2 text-center">Días Sin Registro</th>
-                                                <th class="py-2 text-center">Nivel de Riesgo</th>
-                                                <th class="py-2 text-center pe-3">Acción Inmediata</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tablaAlertaDesercionBody">
-                                            <tr>
-                                                <td colspan="6" class="text-center py-3 text-muted">
-                                                    <div class="spinner-border spinner-border-sm text-guinda me-2" role="status"></div>
-                                                    Calculando índice de permanencia escolar...
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- ── 5.2 HUB DE REPORTES Y EXPORTACIONES MASIVAS EN EXCEL ── -->
+                            <!-- ── HUB DE REPORTES Y EXPORTACIONES MASIVAS EN EXCEL ── -->
                             <div class="card border-0 bg-white rounded-4 p-4 shadow-sm" style="border-left: 4px solid var(--guinda) !important;">
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <div>
                                         <h6 class="fw-bold mb-0 text-dark">
                                             <i class="bi bi-file-earmark-spreadsheet-fill text-success me-2"></i>Hub de Reportes Ejecutivos y Exportaciones Masivas
                                         </h6>
-                                        <p class="x-small text-muted mb-0">Generación y descarga de sábanas oficiales en formato Excel (.xlsx)</p>
+                                        <p class="x-small text-muted mb-0">Generación y descarga directa de sábanas oficiales en formato Excel (.xlsx)</p>
                                     </div>
                                 </div>
 
@@ -972,12 +960,119 @@
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- ── 5. CONTROLES ADMINISTRATIVOS AL FINAL: SALIDA DE EMERGENCIA + CAMBIO DE CICLO ESCOLAR ── -->
+            <div class="row g-4 mb-2 requiere-permiso" data-roles="ADMIN">
+
+                <!-- Salida de Emergencia / Modo Contingencia -->
+                <div class="col-md-4 anim-up anim-d5">
+                    <div class="card-dash p-4 h-100" style="border-top: 4px solid #dc3545;">
+                        <h5 class="section-title mb-3 text-danger">
+                            <i class="bi bi-shield-fill-exclamation"></i> Salida de Emergencia y Sesión
+                        </h5>
+                        <p class="mb-1" style="font-size:13.5px;">
+                            Operador activo: <span id="userName" class="fw-bold text-uppercase">...</span>
+                        </p>
+                        <hr class="inner-divider my-3">
+
+                        <div class="contingency-box">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="switchSalidaGeneral">
+                                <label class="form-check-label fw-bold text-danger" for="switchSalidaGeneral" style="font-size:13px;">
+                                    <i class="bi bi-exclamation-octagon-fill me-1"></i> MODO CONTINGENCIA
+                                </label>
+                            </div>
+                            <p class="x-small text-muted mt-2 mb-0">
+                                Activa la salida libre de emergencia de todo el plantel. Se notificará a los tutores.
+                            </p>
+                        </div>
+
+                        <p class="x-small text-muted mt-3 mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Tu sesión y acciones críticas quedan registradas en el log de auditoría.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Cambio de Ciclo Escolar -->
+                <div class="col-md-8 anim-up anim-d6">
+                    <div class="ciclo-card p-4 h-100">
+                        <h5 class="section-title mb-3">
+                            <i class="bi bi-calendar-check"></i> Cambio de Ciclo Escolar y Promoción
+                        </h5>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold" style="color:var(--guinda);">
+                                    1. Definir Alcance del Movimiento
+                                </label>
+                                <select id="promocionScope" class="form-select" onchange="cambiarScope(this.value)">
+                                    <option value="">--- Selecciona qué quieres promover ---</option>
+                                    <option value="especialidad">Por Especialidad (Toda la carrera)</option>
+                                    <option value="grupo">Por Grupo Específico (Control total)</option>
+                                    <option value="general">Todo el Plantel (General)</option>
+                                </select>
+                            </div>
+
+                            <div id="infoInicioPromocion" class="col-12">
+                                <div class="alert-info-guinda">
+                                    <p class="x-small fw-bold text-muted text-uppercase mb-2">Información de los Modos:</p>
+                                    <ul class="list-unstyled mb-0 x-small">
+                                        <li class="mb-2">
+                                            <i class="bi bi-collection-fill text-guinda me-1"></i>
+                                            <b>Por Especialidad:</b> Mantiene letras de grupo al subir de semestre.
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-person-badge-fill text-guinda me-1"></i>
+                                            <b>Por Grupo:</b> Permite cambios de letra (ej. 2A a 3B).
+                                        </li>
+                                        <li>
+                                            <i class="bi bi-buildings-fill text-guinda me-1"></i>
+                                            <b>General:</b> Sube un grado a todos. 6° pasan a egresados.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6" id="colEsp" style="display:none;">
+                                <label class="form-label small fw-bold">2. Carrera</label>
+                                <select id="selectCicloEsp" class="form-select" onchange="actualizarGruposPromocion(this.value)">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="colGpo" style="display:none;">
+                                <label class="form-label small fw-bold">3. Grupo Actual</label>
+                                <select id="selectCicloGpo" class="form-select" onchange="previsualizarImpacto()">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="colNuevaLetra" style="display:none;">
+                                <label class="form-label small fw-bold text-primary">Nueva Letra</label>
+                                <input type="text" id="nuevaLetraGrupo" class="form-control text-uppercase border-primary"
+                                       placeholder="Ej: B" maxlength="1" oninput="previsualizarImpacto()">
+                            </div>
+
+                            <div class="col-12">
+                                <div id="previewImpacto" class="mt-1 p-3" style="display:none;">
+                                    <h6 class="x-small fw-bold text-uppercase text-muted mb-2">Previsualización de Cambios:</h6>
+                                    <div id="detalleImpacto" class="small"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 d-grid">
+                                <button id="btnEjecutarCambio" class="btn-guinda py-2"
+                                        onclick="confirmarCambioCiclo()" disabled>
+                                    <i class="bi bi-rocket-takeoff-fill me-2"></i>Aplicar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div><!-- /container-fluid -->
     </div><!-- /page-content-wrapper -->
 </div><!-- /wrapper -->
