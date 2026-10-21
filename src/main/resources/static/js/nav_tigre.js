@@ -292,12 +292,12 @@ document.addEventListener("input", function(e) {
     }
 
     if (type === "text" || type === "search" || type === "tel" || el.tagName === "TEXTAREA") {
-        const start = el.selectionStart;
-        const end = el.selectionEnd;
         const limpio = sanitizarTextoSinAcentos(el.value).toUpperCase();
         if (el.value !== limpio) {
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
             el.value = limpio;
             try { el.setSelectionRange(start, end); } catch (_) {}
         }
     }
-});
+}, true);

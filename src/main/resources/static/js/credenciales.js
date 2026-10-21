@@ -220,18 +220,17 @@ function renderizarAlumnosGrupo() {
         return;
     }
 
-    tbody.innerHTML = "";
-    alumnosDelGrupoSeleccionado.forEach(al => {
+    tbody.innerHTML = alumnosDelGrupoSeleccionado.map(al => {
         const mat = al.ncontrol || al.matricula || '';
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
-        tbody.innerHTML += `
+        return `
             <tr style="cursor: pointer;" onclick="seleccionarAlumnoCredencial('${mat}', this)">
                 <td class="fw-bold text-secondary">${mat}</td>
                 <td class="text-start fw-bold" style="font-size: 0.85rem;">${pat} ${matApe} ${al.nombre}</td>
                 <td><i class="bi bi-check-circle-fill text-success"></i></td>
             </tr>`;
-    });
+    }).join('');
 
     const total = alumnosDelGrupoSeleccionado.length;
     if (btnPdfGaf) {

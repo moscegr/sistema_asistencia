@@ -111,7 +111,7 @@ function renderizarTarjetas(listaRenderizar) {
 
     const paginados = listaRenderizar.slice(0, limiteSalud);
 
-    paginados.forEach(al => {
+    let cardsHtml = paginados.map(al => {
         const mat = al.ncontrol || al.matricula;
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
@@ -125,7 +125,7 @@ function renderizarTarjetas(listaRenderizar) {
             ? `<small class="text-danger fw-bold"><i class="bi bi-file-medical-fill me-1"></i>${cantPadecimientos} Condición(es) registradas</small>` 
             : `<small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Sin condiciones graves</small>`;
 
-        contenedor.innerHTML += `
+        return `
             <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
                 <div class="card h-100 shadow-sm border-0" style="border-top: 5px solid ${colorHex} !important; cursor: pointer; transition: transform 0.2s;" 
                      onclick="abrirModalPadecimiento('${mat}')"
@@ -147,16 +147,17 @@ function renderizarTarjetas(listaRenderizar) {
                     </div>
                 </div>
             </div>`;
-    });
+    }).join('');
 
     if (listaRenderizar.length > limiteSalud) {
-        contenedor.innerHTML += `
+        cardsHtml += `
             <div class="col-12 text-center mt-3 mb-4">
                 <button class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm" onclick="limiteSalud += 12; filtrarTarjetasSalud();">
                     <i class="bi bi-arrow-clockwise me-2"></i>Cargar más expedientes...
                 </button>
             </div>`;
     }
+    contenedor.innerHTML = cardsHtml;
 }
 
 function filtrarTarjetasSalud() {

@@ -2,9 +2,13 @@
  * Expediente Digital Alumnos (MongoDB REST API)
  */
 
+let timerBusquedaExpediente = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await cargarEspecialidades();
-    await cargarAlumnosBusqueda();
+    await Promise.all([
+        cargarEspecialidades(),
+        cargarAlumnosBusqueda()
+    ]);
 
     // Si viene con parámetro matricula o ncontrol en la URL, abrir su expediente directamente
     const params = new URLSearchParams(window.location.search);
@@ -96,7 +100,15 @@ async function cargarAlumnosBusqueda() {
     try {
         const res = await fetch('/api/alumnos');
         if (res.ok) {
-            todosLosAlumnos = await res.json();
+            const raw = await res.json();
+            todosLosAlumnos = (Array.isArray(raw) ? raw : []).map(al => {
+                const mat = al.ncontrol || al.matricula || '';
+                const pat = al.apepat || al.primerApellido || '';
+                const matApe = al.apemat || al.segundoApellido || '';
+                al._searchStr = `${al.nombre || ''} ${pat} ${matApe} ${mat}`.toLowerCase();
+                al._espUpper = (al.especialidad || '').trim().toUpperCase();
+                return al;
+            });
             const selectEsp = document.getElementById('filtroEspecialidad');
             if (selectEsp) {
                 const espAlumnos = [...new Set(todosLosAlumnos.map(a => (a.especialidad || '').trim()).filter(Boolean))];
@@ -119,37 +131,30 @@ async function cargarAlumnosBusqueda() {
 function filtrarYMostrarAlumnos() {
     const tbody = document.getElementById('tablaAlumnosBody');
     if (!tbody) return;
-    tbody.innerHTML = "";
     
-    const b = (document.getElementById('busquedaGeneral')?.value || '').toLowerCase();
+    const b = (document.getElementById('busquedaGeneral')?.value || '').toLowerCase().trim();
     const fEsp = (document.getElementById('filtroEspecialidad')?.value || '').trim().toUpperCase();
     const fGrado = document.getElementById('filtroGrado')?.value || '';
-    const fGpo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase();
+    const fGpo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase().trim();
 
-    let filtrados = todosLosAlumnos.filter(al => {
-        const mat = al.ncontrol || al.matricula || '';
-        const pat = al.apepat || al.primerApellido || '';
-        const matApe = al.apemat || al.segundoApellido || '';
-        const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.toLowerCase();
-        const alEsp = (al.especialidad || '').trim().toUpperCase();
-
-        if (b && !nombreCompleto.includes(b) && !mat.includes(b)) return false;
-        if (fEsp && alEsp !== fEsp) return false;
+    const filtrados = todosLosAlumnos.filter(al => {
+        if (b && !(al._searchStr || '').includes(b)) return false;
+        if (fEsp && al._espUpper !== fEsp) return false;
         if (fGrado && String(al.grado) !== fGrado) return false;
-        if (fGpo && al.grupo !== fGpo) return false;
+        if (fGpo && (al.grupo || '').toUpperCase() !== fGpo) return false;
         return true;
     });
 
     const limitados = filtrados.slice(0, 30);
 
-    limitados.forEach(al => {
+    let rowsHtml = limitados.map(al => {
         const mat = al.ncontrol || al.matricula || '';
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
         const estatus = al.estatus_escolar || al.estatus || 'Activo';
         const statusClass = estatus === 'Activo' ? 'bg-success' : 'bg-secondary';
         
-        tbody.innerHTML += `
+        return `
             <tr>
                 <td class="fw-bold text-guinda">${mat}</td>
                 <td>${al.nombre} ${pat} ${matApe}</td>
@@ -162,14 +167,19 @@ function filtrarYMostrarAlumnos() {
                     </button>        
                 </td>
             </tr>`;
-    });
+    }).join('');
 
     if (filtrados.length > 30) {
-        tbody.innerHTML += `<tr><td colspan="6" class="text-center text-muted small py-2">Mostrando 30 de ${filtrados.length} expedientes. Utiliza el buscador para más precisión.</td></tr>`;
+        rowsHtml += `<tr><td colspan="6" class="text-center text-muted small py-2">Mostrando 30 de ${filtrados.length} expedientes. Utiliza el buscador para más precisión.</td></tr>`;
     }
+
+    tbody.innerHTML = rowsHtml;
 }
 
-document.getElementById('busquedaGeneral')?.addEventListener('input', filtrarYMostrarAlumnos);
+document.getElementById('busquedaGeneral')?.addEventListener('input', () => {
+    if (timerBusquedaExpediente) clearTimeout(timerBusquedaExpediente);
+    timerBusquedaExpediente = setTimeout(filtrarYMostrarAlumnos, 65);
+});
 document.getElementById('filtroEspecialidad')?.addEventListener('change', filtrarYMostrarAlumnos);
 document.getElementById('filtroGrado')?.addEventListener('input', filtrarYMostrarAlumnos);
 document.getElementById('filtroGrupo')?.addEventListener('input', filtrarYMostrarAlumnos);

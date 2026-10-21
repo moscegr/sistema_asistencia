@@ -1,15 +1,26 @@
 let alumnosCache = [];
 let especialidadesConfig = [];
 let alumnoSeleccionado = null;
+let timerBusquedaAlumnos = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await cargarConfiguracionEscolar();
-    await cargarAlumnos();
+document.addEventListener('DOMContentLoaded', () => {
     conectarEventosFiltros();
+    Promise.all([
+        cargarConfiguracionEscolar(),
+        cargarAlumnos()
+    ]);
 });
 
 function conectarEventosFiltros() {
-    ['busquedaGeneral', 'filtroEspecialidad', 'filtroEstatus', 'filtroGrado', 'filtroGrupo', 'filtroTurno'].forEach(id => {
+    const inputBusqueda = document.getElementById('busquedaGeneral');
+    if (inputBusqueda) {
+        inputBusqueda.addEventListener('input', () => {
+            if (timerBusquedaAlumnos) clearTimeout(timerBusquedaAlumnos);
+            timerBusquedaAlumnos = setTimeout(filtrarAlumnos, 65);
+        });
+    }
+
+    ['filtroEspecialidad', 'filtroEstatus', 'filtroGrado', 'filtroGrupo', 'filtroTurno'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', filtrarAlumnos);
@@ -27,10 +38,20 @@ async function cargarConfiguracionEscolar() {
             
             const selectEsp = document.getElementById('filtroEspecialidad');
             if (selectEsp) {
-                selectEsp.innerHTML = '<option value="">-- Todas las Especialidades --</option>';
+                const existentes = new Set(Array.from(selectEsp.options).map(o => o.value));
+                const nuevasOpts = [];
+                if (!existentes.has("")) {
+                    nuevasOpts.push('<option value="">-- Todas las Especialidades --</option>');
+                }
                 especialidadesConfig.forEach(esp => {
-                    selectEsp.innerHTML += `<option value="${esp.nombre}">${esp.nombre}</option>`;
+                    if (esp.nombre && !existentes.has(esp.nombre)) {
+                        existentes.add(esp.nombre);
+                        nuevasOpts.push(`<option value="${esp.nombre}">${esp.nombre}</option>`);
+                    }
                 });
+                if (nuevasOpts.length > 0) {
+                    selectEsp.insertAdjacentHTML('beforeend', nuevasOpts.join(''));
+                }
             }
         }
     } catch (e) { console.error("Error al cargar especialidades:", e); }
@@ -40,14 +61,23 @@ async function cargarAlumnos() {
     try {
         const res = await fetch('/api/alumnos');
         if (res.ok) {
-            alumnosCache = await res.json();
+            const raw = await res.json();
+            alumnosCache = (Array.isArray(raw) ? raw : []).map(al => {
+                const mat = al.ncontrol || al.matricula || '';
+                const pat = al.apepat || al.primerApellido || '';
+                const matApe = al.apemat || al.segundoApellido || '';
+                al._searchStr = `${al.nombre || ''} ${pat} ${matApe} ${mat}`.toLowerCase();
+                return al;
+            });
             
             // Auto-sincronizar cualquier especialidad de alumnos que no esté en la lista
             const especialidadesAlumnos = [...new Set(alumnosCache.map(a => a.especialidad).filter(Boolean))];
             const selectEsp = document.getElementById('filtroEspecialidad');
             if (selectEsp) {
+                const existentes = new Set(Array.from(selectEsp.options).map(o => o.value));
                 especialidadesAlumnos.forEach(espNombre => {
-                    if (!Array.from(selectEsp.options).some(opt => opt.value === espNombre)) {
+                    if (!existentes.has(espNombre)) {
+                        existentes.add(espNombre);
                         const option = document.createElement('option');
                         option.value = espNombre;
                         option.textContent = espNombre;
@@ -72,33 +102,28 @@ function filtrarAlumnos() {
     const filtroEstatus = document.getElementById('filtroEstatus')?.value || '';
     const filtroGrado = document.getElementById('filtroGrado')?.value || '';
     const filtroGrupo = (document.getElementById('filtroGrupo')?.value || '').toUpperCase().trim();
-    const filtroTurno = document.getElementById('filtroTurno')?.value || '';
+    const filtroTurno = (document.getElementById('filtroTurno')?.value || '').toLowerCase();
 
     const filtrados = alumnosCache.filter(al => {
-        const mat = al.ncontrol || al.matricula || '';
-        const pat = al.apepat || al.primerApellido || '';
-        const matApe = al.apemat || al.segundoApellido || '';
-        const nombreCompleto = `${al.nombre} ${pat} ${matApe}`.toLowerCase();
         const estatusVal = (al.estatus_escolar || al.estatus || 'Activo');
 
-        if (busqueda && !nombreCompleto.includes(busqueda) && !mat.includes(busqueda)) return false;
+        if (busqueda && !(al._searchStr || '').includes(busqueda)) return false;
         if (filtroEsp && al.especialidad !== filtroEsp) return false;
         if (filtroEstatus && estatusVal !== filtroEstatus) return false;
         if (filtroGrado && String(al.grado) !== filtroGrado) return false;
         if (filtroGrupo && (al.grupo || '').toUpperCase() !== filtroGrupo) return false;
-        if (filtroTurno && String(al.turno || '').toLowerCase() !== filtroTurno.toLowerCase()) return false;
+        if (filtroTurno && String(al.turno || '').toLowerCase() !== filtroTurno) return false;
 
         return true;
     });
-
-    tbody.innerHTML = "";
 
     if (filtrados.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No se encontraron estudiantes con los filtros seleccionados.</td></tr>`;
         return;
     }
 
-    filtrados.forEach(al => {
+    // Renderizado en lote único (O(N)) para eliminar el congelamiento del navegador
+    const rowsHtml = filtrados.map(al => {
         const mat = al.ncontrol || al.matricula || '';
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
@@ -113,7 +138,7 @@ function filtrarAlumnos() {
         const tieneFoto = !!(al.fotoUrl || al.foto_url || al.foto);
         const iconFoto = tieneFoto ? '<i class="bi bi-person-circle text-primary me-1" title="Foto Registrada"></i>' : '';
 
-        tbody.innerHTML += `
+        return `
             <tr>
                 <td class="fw-bold text-guinda">${iconFoto}${mat}</td>
                 <td class="text-start">${pat} ${matApe} ${al.nombre}</td>
@@ -140,7 +165,9 @@ function filtrarAlumnos() {
                     </div>
                 </td>
             </tr>`;
-    });
+    }).join('');
+
+    tbody.innerHTML = rowsHtml;
 }
 
 async function verExpedienteQuick(matricula) {

@@ -22,14 +22,20 @@ async function cargarConfiguracionSistemaPersonal() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    await cargarConfiguracionSistemaPersonal();
-    listarUsuarios();
-    inicializarModelosFacialesSilencioso();
+let timerBusquedaUsuarios = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Cargar directorio y configuración en paralelo sin bloquear la interfaz
+    Promise.all([
+        listarUsuarios(),
+        cargarConfiguracionSistemaPersonal()
+    ]);
 
     const modalElement = document.getElementById('modalNuevoUsuario');
     if (modalElement) {
         modalElement.addEventListener('show.bs.modal', function () {
+            // Diferir carga de modelos FaceAPI únicamente cuando se abre el modal de registro/edición
+            inicializarModelosFacialesSilencioso();
             if (!editUserUID) {
                 document.getElementById('formNuevoUsuario').reset();
                 fotoBase64Temporal = null;
@@ -82,7 +88,12 @@ async function listarUsuarios() {
     try {
         const response = await fetch('/api/usuarios');
         if (!response.ok) return;
-        usuariosCache = await response.json();
+        const raw = await response.json();
+        usuariosCache = (Array.isArray(raw) ? raw : []).map(u => {
+            u._rolUpper = (u.rol || "").toUpperCase();
+            u._searchStr = `${u.nombre || ''} ${u.rfc || ''} ${u.correo || ''} ${u.telefono || ''}`.toLowerCase();
+            return u;
+        });
 
         renderizarTablaUsuarios();
     } catch (e) {
@@ -107,7 +118,8 @@ function cambiarFiltroRol(rol) {
 }
 
 function filtrarTablaUsuarios() {
-    renderizarTablaUsuarios();
+    if (timerBusquedaUsuarios) clearTimeout(timerBusquedaUsuarios);
+    timerBusquedaUsuarios = setTimeout(renderizarTablaUsuarios, 65);
 }
 
 function renderizarTablaUsuarios() {
@@ -115,25 +127,20 @@ function renderizarTablaUsuarios() {
     const contador = document.getElementById('contadorUsuarios');
     if (!tbody) return;
 
-    tbody.innerHTML = "";
-
     const texto = (document.getElementById('filtroTexto')?.value || "").trim().toLowerCase();
 
     const filtrados = usuariosCache.filter(u => {
-        const rol = (u.rol || "").toUpperCase();
+        const rol = u._rolUpper || (u.rol || "").toUpperCase();
         
         // Filtro por Rol
         if (filtroRolActual === 'DOCENTE' && rol !== 'DOCENTE') return false;
         if (filtroRolActual === 'ADMINISTRATIVO' && rol !== 'ADMINISTRATIVO') return false;
         if (filtroRolActual === 'PLATAFORMA' && (rol === 'DOCENTE' || rol === 'ADMINISTRATIVO')) return false;
 
-        // Filtro por Texto
+        // Filtro por Texto pre-indexado
         if (texto) {
-            const nom = (u.nombre || "").toLowerCase();
-            const rfc = (u.rfc || "").toLowerCase();
-            const cor = (u.correo || "").toLowerCase();
-            const tel = (u.telefono || "").toLowerCase();
-            return nom.includes(texto) || rfc.includes(texto) || cor.includes(texto) || tel.includes(texto);
+            const idx = u._searchStr || `${u.nombre || ''} ${u.rfc || ''} ${u.correo || ''} ${u.telefono || ''}`.toLowerCase();
+            return idx.includes(texto);
         }
         return true;
     });
@@ -154,9 +161,10 @@ function renderizarTablaUsuarios() {
         return;
     }
 
-    filtrados.forEach((user) => {
+    // Construcción en un solo lote (O(N)) para evitar re-parseo DOM e imágenes base64 en cada fila
+    const rowsHtml = filtrados.map((user) => {
         const idDoc = user.id || user.uid || user.correo;
-        const rolKey = (user.rol || "").toUpperCase();
+        const rolKey = user._rolUpper || (user.rol || "").toUpperCase();
         const badgeClass = coloresRoles[rolKey] || 'bg-dark text-white';
         const estatusClass = user.estatus === 'Activo' ? 'text-success' : 'text-danger';
         const foto = user.fotoUrl || '/img/default_avatar.png';
@@ -166,11 +174,11 @@ function renderizarTablaUsuarios() {
             ? '<span class="badge bg-success">DENTRO</span>' 
             : '<span class="badge bg-danger">FUERA</span>';
 
-        tbody.innerHTML += `
+        return `
             <tr>
                 <td class="ps-3 text-start">
                     <div class="d-flex align-items-center">
-                        <img src="${foto}" class="rounded-circle me-2 border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;">
+                        <img src="${foto}" loading="lazy" decoding="async" class="rounded-circle me-2 border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;" onerror="this.src='/img/default_avatar.png'">
                         <div class="text-truncate" style="max-width: 240px;">
                             <span class="d-block fw-bold text-dark text-truncate" title="${user.nombre}">${user.nombre}</span>
                             <small class="text-muted d-block text-truncate" title="${user.correo || idDoc}">${user.correo || idDoc}</small>
@@ -211,7 +219,9 @@ function renderizarTablaUsuarios() {
                     </div>
                 </td>
             </tr>`;
-    });
+    }).join('');
+
+    tbody.innerHTML = rowsHtml;
 }
 
 // 2. Control de visibilidad de contraseña según el Rol

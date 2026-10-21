@@ -110,7 +110,7 @@ function renderizarTablaConductual(listaRenderizar) {
 
     const paginados = listaRenderizar.slice(0, limiteConductual);
 
-    paginados.forEach(al => {
+    let rowsHtml = paginados.map(al => {
         const nivelAlerta = al.totalIncidencias >= 3 ? 'danger' : (al.totalIncidencias === 2 ? 'warning' : 'secondary');
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
@@ -119,7 +119,7 @@ function renderizarTablaConductual(listaRenderizar) {
         const ultimaIncidencia = al.listaIncidencias[0];
         const fechaTxt = ultimaIncidencia ? ultimaIncidencia.fechaStr : 'S/F';
 
-        tbody.innerHTML += `
+        return `
             <tr class="align-middle">
                 <td>
                     <div class="fw-bold" style="color: #7b1b37;">${al.nombre} ${pat} ${matApe}</div>
@@ -139,10 +139,10 @@ function renderizarTablaConductual(listaRenderizar) {
                     </button>
                 </td>
             </tr>`;
-    });
+    }).join('');
 
     if (listaRenderizar.length > limiteConductual) {
-        tbody.innerHTML += `
+        rowsHtml += `
             <tr>
                 <td colspan="4" class="text-center py-3 bg-light">
                     <button class="btn btn-link text-guinda btn-sm fw-bold text-decoration-none" onclick="limiteConductual += 10; filtrarTablaConductual();">
@@ -151,6 +151,7 @@ function renderizarTablaConductual(listaRenderizar) {
                 </td>
             </tr>`;
     }
+    tbody.innerHTML = rowsHtml;
 }
 
 function filtrarTablaConductual() {
