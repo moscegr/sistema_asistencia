@@ -94,31 +94,65 @@ public class UsuarioController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    private static String sanitizarTexto(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", " ").trim().toUpperCase();
+    }
+
+    private static String sanitizarAlfanumerico(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^A-Za-z0-9]", "").trim().toUpperCase();
+    }
+
+    private static String sanitizarCorreo(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", "").toLowerCase();
+    }
+
+    private static String sanitizarTelefono(String s) {
+        if (s == null) return null;
+        return s.replaceAll("[^0-9]", "");
+    }
+
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Usuario usuario) {
-        if (usuario.getCorreo() != null && !usuario.getCorreo().trim().isEmpty() && usuarioRepository.existsByCorreo(usuario.getCorreo().trim().toLowerCase())) {
-            return ResponseEntity.badRequest().body("El correo ya está registrado.");
+        if (usuario.getCorreo() != null && !usuario.getCorreo().trim().isEmpty()) {
+            usuario.setCorreo(sanitizarCorreo(usuario.getCorreo()));
+            if (usuarioRepository.existsByCorreo(usuario.getCorreo())) {
+                return ResponseEntity.badRequest().body("El correo ya está registrado.");
+            }
         }
-        if (usuario.getRfc() != null && !usuario.getRfc().trim().isEmpty() && usuarioRepository.existsByRfc(usuario.getRfc().trim().toUpperCase())) {
-            return ResponseEntity.badRequest().body("El RFC ya está registrado.");
+        if (usuario.getRfc() != null && !usuario.getRfc().trim().isEmpty()) {
+            usuario.setRfc(sanitizarAlfanumerico(usuario.getRfc()));
+            if (usuarioRepository.existsByRfc(usuario.getRfc())) {
+                return ResponseEntity.badRequest().body("El RFC ya está registrado.");
+            }
         }
         if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
             usuario.setUid(UUID.randomUUID().toString());
         }
-        if (usuario.getCorreo() != null) {
-            usuario.setCorreo(usuario.getCorreo().trim().toLowerCase());
-        }
         if (usuario.getNombre() != null) {
-            usuario.setNombre(usuario.getNombre().toUpperCase());
+            usuario.setNombre(sanitizarTexto(usuario.getNombre()));
         }
-        if (usuario.getRfc() != null) {
-            usuario.setRfc(usuario.getRfc().trim().toUpperCase());
+        if (usuario.getRol() != null) {
+            usuario.setRol(sanitizarTexto(usuario.getRol()));
+        }
+        if (usuario.getTelefono() != null) {
+            usuario.setTelefono(sanitizarTelefono(usuario.getTelefono()));
         }
         if (usuario.getTurno() != null) {
             usuario.setTurno(usuario.getTurno().trim());
         }
         if (usuario.getQrCode() == null || usuario.getQrCode().isEmpty()) {
             usuario.setQrCode(usuario.getRfc() != null && !usuario.getRfc().isEmpty() ? usuario.getRfc() : usuario.getUid());
+        } else {
+            usuario.setQrCode(sanitizarTexto(usuario.getQrCode()));
         }
         if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
@@ -138,8 +172,9 @@ public class UsuarioController {
         for (Usuario u : lista) {
             if (u.getNombre() == null || u.getNombre().trim().isEmpty()) continue;
 
-            String rfc = (u.getRfc() != null) ? u.getRfc().trim().toUpperCase() : null;
-            String correo = (u.getCorreo() != null && !u.getCorreo().trim().isEmpty()) ? u.getCorreo().trim().toLowerCase() : null;
+            String rfc = (u.getRfc() != null && !u.getRfc().trim().isEmpty()) ? sanitizarAlfanumerico(u.getRfc()) : null;
+            String correo = (u.getCorreo() != null && !u.getCorreo().trim().isEmpty()) ? sanitizarCorreo(u.getCorreo()) : null;
+            String nombreLimpio = sanitizarTexto(u.getNombre());
 
             Usuario existente = null;
             if (rfc != null && !rfc.isEmpty()) {
@@ -150,12 +185,12 @@ public class UsuarioController {
             }
 
             if (existente != null) {
-                existente.setNombre(u.getNombre().toUpperCase());
+                existente.setNombre(nombreLimpio);
                 if (rfc != null) existente.setRfc(rfc);
                 if (correo != null) existente.setCorreo(correo);
-                if (u.getRol() != null) existente.setRol(u.getRol().toUpperCase());
+                if (u.getRol() != null) existente.setRol(sanitizarTexto(u.getRol()));
                 if (u.getTurno() != null) existente.setTurno(u.getTurno());
-                if (u.getTelefono() != null) existente.setTelefono(u.getTelefono());
+                if (u.getTelefono() != null) existente.setTelefono(sanitizarTelefono(u.getTelefono()));
                 if (u.getFotoUrl() != null) existente.setFotoUrl(u.getFotoUrl());
                 if (u.getDescriptor_facial() != null) existente.setDescriptor_facial(u.getDescriptor_facial());
                 if (u.getEstatus() != null) existente.setEstatus(u.getEstatus());
@@ -165,14 +200,17 @@ public class UsuarioController {
                 if (u.getUid() == null || u.getUid().isEmpty()) {
                     u.setUid(UUID.randomUUID().toString());
                 }
-                u.setNombre(u.getNombre().toUpperCase());
+                u.setNombre(nombreLimpio);
                 if (rfc != null) u.setRfc(rfc);
                 if (correo != null) u.setCorreo(correo);
                 if (u.getRol() == null || u.getRol().isEmpty()) u.setRol("DOCENTE");
-                else u.setRol(u.getRol().toUpperCase());
+                else u.setRol(sanitizarTexto(u.getRol()));
+                if (u.getTelefono() != null) u.setTelefono(sanitizarTelefono(u.getTelefono()));
                 if (u.getTurno() == null || u.getTurno().isEmpty()) u.setTurno("Matutino");
                 if (u.getQrCode() == null || u.getQrCode().isEmpty()) {
                     u.setQrCode(rfc != null && !rfc.isEmpty() ? rfc : u.getUid());
+                } else {
+                    u.setQrCode(sanitizarTexto(u.getQrCode()));
                 }
                 if (u.getPassword() != null && !u.getPassword().isEmpty()) {
                     u.setPassword(passwordEncoder.encode(u.getPassword()));
@@ -214,14 +252,14 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(usuario -> {
                     if (usuarioActualizado.getNombre() != null) {
-                        usuario.setNombre(usuarioActualizado.getNombre().toUpperCase());
+                        usuario.setNombre(sanitizarTexto(usuarioActualizado.getNombre()));
                     }
                     if (usuarioActualizado.getCorreo() != null && !usuarioActualizado.getCorreo().trim().isEmpty()) {
-                        usuario.setCorreo(usuarioActualizado.getCorreo().trim().toLowerCase());
+                        usuario.setCorreo(sanitizarCorreo(usuarioActualizado.getCorreo()));
                     }
-                    if (usuarioActualizado.getRfc() != null) usuario.setRfc(usuarioActualizado.getRfc().trim().toUpperCase());
+                    if (usuarioActualizado.getRfc() != null) usuario.setRfc(sanitizarAlfanumerico(usuarioActualizado.getRfc()));
                     if (usuarioActualizado.getTurno() != null) usuario.setTurno(usuarioActualizado.getTurno());
-                    if (usuarioActualizado.getTelefono() != null) usuario.setTelefono(usuarioActualizado.getTelefono());
+                    if (usuarioActualizado.getTelefono() != null) usuario.setTelefono(sanitizarTelefono(usuarioActualizado.getTelefono()));
                     if (usuarioActualizado.getFotoUrl() != null) {
                         if (usuarioActualizado.getFotoUrl().trim().isEmpty()) {
                             usuario.setFotoUrl(null);
@@ -238,8 +276,8 @@ public class UsuarioController {
                         }
                     }
                     if (usuarioActualizado.getEstado() != null) usuario.setEstado(usuarioActualizado.getEstado());
-                    if (usuarioActualizado.getQrCode() != null) usuario.setQrCode(usuarioActualizado.getQrCode());
-                    if (usuarioActualizado.getRol() != null) usuario.setRol(usuarioActualizado.getRol());
+                    if (usuarioActualizado.getQrCode() != null) usuario.setQrCode(sanitizarTexto(usuarioActualizado.getQrCode()));
+                    if (usuarioActualizado.getRol() != null) usuario.setRol(sanitizarTexto(usuarioActualizado.getRol()));
                     if (usuarioActualizado.getEstatus() != null) usuario.setEstatus(usuarioActualizado.getEstatus());
                     if (usuarioActualizado.getPermisos() != null) usuario.setPermisos(usuarioActualizado.getPermisos());
                     if (usuarioActualizado.getPassword() != null && !usuarioActualizado.getPassword().isEmpty()) {

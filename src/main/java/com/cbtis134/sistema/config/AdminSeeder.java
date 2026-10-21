@@ -1,6 +1,9 @@
 package com.cbtis134.sistema.config;
 
+import com.cbtis134.sistema.controller.AlumnoController;
+import com.cbtis134.sistema.model.Alumno;
 import com.cbtis134.sistema.model.Usuario;
+import com.cbtis134.sistema.repository.AlumnoRepository;
 import com.cbtis134.sistema.repository.UsuarioRepository;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +22,9 @@ public class AdminSeeder implements ApplicationRunner {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
+    private AlumnoRepository alumnoRepository;
+
+    @Autowired
     private MongoTemplate mongoTemplate;
 
     @Autowired
@@ -31,6 +37,7 @@ public class AdminSeeder implements ApplicationRunner {
         try {
             seederUsuarios();
             seederCalendario();
+            sanitizarRegistrosExistentes();
             seederConfiguracion();
 
             System.out.println("=== [SEEDER SEGURA] Verificación de sistema completada sin afectar registros existentes. ===");
@@ -38,6 +45,38 @@ public class AdminSeeder implements ApplicationRunner {
         } catch (Exception e) {
             System.err.println("=== [SEEDER SEGURA] Error durante la inicialización: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private String sanitizarSinAcentos(String s) {
+        if (s == null) return "";
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", " ").trim().toUpperCase();
+    }
+
+    private void sanitizarRegistrosExistentes() {
+        try {
+            List<Alumno> alumnos = alumnoRepository.findAll();
+            if (!alumnos.isEmpty()) {
+                for (Alumno a : alumnos) {
+                    AlumnoController.sanitizarAlumno(a);
+                }
+                alumnoRepository.saveAll(alumnos);
+            }
+
+            List<Usuario> usuarios = usuarioRepository.findAll();
+            if (!usuarios.isEmpty()) {
+                for (Usuario u : usuarios) {
+                    if (u.getNombre() != null) u.setNombre(sanitizarSinAcentos(u.getNombre()));
+                    if (u.getRfc() != null) u.setRfc(sanitizarSinAcentos(u.getRfc()).replaceAll("[^A-Z0-9]", ""));
+                    if (u.getRol() != null) u.setRol(sanitizarSinAcentos(u.getRol()));
+                    if (u.getQrCode() != null) u.setQrCode(sanitizarSinAcentos(u.getQrCode()));
+                }
+                usuarioRepository.saveAll(usuarios);
+            }
+        } catch (Exception e) {
+            System.err.println("-> [SEEDER] Aviso al sanitizar registros existentes: " + e.getMessage());
         }
     }
 
@@ -156,31 +195,31 @@ public class AdminSeeder implements ApplicationRunner {
         String col = "configuracion";
 
         List<Document> defaultEspecialidades = new ArrayList<>(Arrays.asList(
-                new Document("alias", "PRO").append("turno", "Matutino").append("color", "#0088cc").append("nombre", "PROGRAMACIÓN"),
-                new Document("alias", "ARH").append("turno", "Matutino").append("color", "#6f42c1").append("nombre", "ADMINISTRACIÓN DE RECURSOS HUMANOS"),
+                new Document("alias", "PRO").append("turno", "Matutino").append("color", "#0088cc").append("nombre", "PROGRAMACION"),
+                new Document("alias", "ARH").append("turno", "Matutino").append("color", "#6f42c1").append("nombre", "ADMINISTRACION DE RECURSOS HUMANOS"),
                 new Document("alias", "CON").append("turno", "Matutino").append("color", "#198754").append("nombre", "CONTABILIDAD"),
-                new Document("alias", "CST").append("turno", "Matutino").append("color", "#dc3545").append("nombre", "CONSTRUCCIÓN"),
+                new Document("alias", "CST").append("turno", "Matutino").append("color", "#dc3545").append("nombre", "CONSTRUCCION"),
                 new Document("alias", "ELE").append("turno", "Matutino").append("color", "#fd7e14").append("nombre", "ELECTRICIDAD"),
-                new Document("alias", "OFI").append("turno", "Matutino").append("color", "#0dcaf0").append("nombre", "OFIMÁTICA")
+                new Document("alias", "OFI").append("turno", "Matutino").append("color", "#0dcaf0").append("nombre", "OFIMATICA")
         ));
 
         Document docEscolar = mongoTemplate.findById("escolar", Document.class, col);
         if (docEscolar == null) {
             docEscolar = new Document("_id", "escolar")
-                    .append("migrado_especialidades_v2", true)
+                    .append("migrado_especialidades_v3", true)
                     .append("especialidades", defaultEspecialidades);
             mongoTemplate.save(docEscolar, col);
-        } else if (!Boolean.TRUE.equals(docEscolar.getBoolean("migrado_especialidades_v2"))) {
+        } else if (!Boolean.TRUE.equals(docEscolar.getBoolean("migrado_especialidades_v3"))) {
             List<Document> todosAlumnos = mongoTemplate.findAll(Document.class, "alumnos");
             Set<String> espEnAlumnos = new LinkedHashSet<>();
             for (Document al : todosAlumnos) {
                 String esp = al.getString("especialidad");
                 if (esp != null && !esp.trim().isEmpty()) {
-                    espEnAlumnos.add(esp.trim().toUpperCase());
+                    espEnAlumnos.add(sanitizarSinAcentos(esp));
                 }
             }
 
-            Set<String> legacyCbtis = Set.of("LABORATORISTA CLÍNICO", "E.COMMERCE", "INTELIGENCIA ARTIFICIAL", "MECATRÓNICA");
+            Set<String> legacyCbtis = Set.of("LABORATORISTA CLINICO", "E.COMMERCE", "INTELIGENCIA ARTIFICIAL", "MECATRONICA");
             List<Document> actuales = docEscolar.getList("especialidades", Document.class, new ArrayList<>());
             List<Document> depuradas = new ArrayList<>();
             Set<String> nombresPresentes = new HashSet<>();
@@ -188,17 +227,21 @@ public class AdminSeeder implements ApplicationRunner {
             for (Document espDoc : actuales) {
                 String nom = espDoc.getString("nombre");
                 if (nom == null) continue;
-                String nomUpper = nom.trim().toUpperCase();
+                String nomUpper = sanitizarSinAcentos(nom);
                 if (legacyCbtis.contains(nomUpper) && !espEnAlumnos.contains(nomUpper)) {
                     continue;
                 }
                 if (nombresPresentes.add(nomUpper)) {
+                    espDoc.put("nombre", nomUpper);
+                    if (espDoc.getString("alias") != null) {
+                        espDoc.put("alias", sanitizarSinAcentos(espDoc.getString("alias")));
+                    }
                     depuradas.add(espDoc);
                 }
             }
 
             for (Document defEsp : defaultEspecialidades) {
-                String nomDef = defEsp.getString("nombre").toUpperCase();
+                String nomDef = defEsp.getString("nombre");
                 if ((espEnAlumnos.isEmpty() || espEnAlumnos.contains(nomDef)) && !nombresPresentes.contains(nomDef)) {
                     depuradas.add(defEsp);
                     nombresPresentes.add(nomDef);
@@ -220,7 +263,7 @@ public class AdminSeeder implements ApplicationRunner {
             }
 
             docEscolar.put("especialidades", depuradas);
-            docEscolar.put("migrado_especialidades_v2", true);
+            docEscolar.put("migrado_especialidades_v3", true);
             mongoTemplate.save(docEscolar, col);
         }
 

@@ -47,8 +47,71 @@ public class AlumnoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    private static String sanitizarTexto(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", " ").trim().toUpperCase();
+    }
+
+    private static String sanitizarAlfanumerico(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^A-Za-z0-9]", "").trim().toUpperCase();
+    }
+
+    private static String sanitizarCorreo(String s) {
+        if (s == null) return null;
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", "").toLowerCase();
+    }
+
+    private static String sanitizarTelefono(String s) {
+        if (s == null) return null;
+        return s.replaceAll("[^0-9]", "");
+    }
+
+    public static void sanitizarAlumno(Alumno a) {
+        if (a == null) return;
+        String mat = sanitizarAlfanumerico(a.getNcontrol() != null ? a.getNcontrol() : a.getMatricula());
+        if (mat != null && !mat.isEmpty()) {
+            a.setNcontrol(mat);
+            a.setMatricula(mat);
+        }
+        if (a.getCurp() != null) a.setCurp(sanitizarAlfanumerico(a.getCurp()));
+        if (a.getNombre() != null) a.setNombre(sanitizarTexto(a.getNombre()));
+        if (a.getApepat() != null) a.setApepat(sanitizarTexto(a.getApepat()));
+        if (a.getApemat() != null) a.setApemat(sanitizarTexto(a.getApemat()));
+        if (a.getPrimerApellido() != null) a.setPrimerApellido(sanitizarTexto(a.getPrimerApellido()));
+        if (a.getSegundoApellido() != null) a.setSegundoApellido(sanitizarTexto(a.getSegundoApellido()));
+        if (a.getGenero() != null) a.setGenero(sanitizarTexto(a.getGenero()));
+        if (a.getEmail() != null) a.setEmail(sanitizarCorreo(a.getEmail()));
+        if (a.getCelular() != null) a.setCelular(sanitizarTelefono(a.getCelular()));
+        if (a.getDireccion() != null) a.setDireccion(sanitizarTexto(a.getDireccion()));
+        if (a.getEspecialidad() != null) a.setEspecialidad(sanitizarTexto(a.getEspecialidad()));
+        if (a.getGrado() != null) a.setGrado(sanitizarAlfanumerico(a.getGrado()));
+        if (a.getGrupo() != null) a.setGrupo(sanitizarAlfanumerico(a.getGrupo()));
+        if (a.getNombretutor() != null) a.setNombretutor(sanitizarTexto(a.getNombretutor()));
+        if (a.getTeltutor() != null) a.setTeltutor(sanitizarTelefono(a.getTeltutor()));
+        if (a.getOcupaciontutor() != null) a.setOcupaciontutor(sanitizarTexto(a.getOcupaciontutor()));
+        if (a.getAula_especifica() != null) a.setAula_especifica(sanitizarTexto(a.getAula_especifica()));
+        if (a.getEscuela_procedencia() != null) a.setEscuela_procedencia(sanitizarTexto(a.getEscuela_procedencia()));
+        if (a.getMotivo_baja() != null) a.setMotivo_baja(sanitizarTexto(a.getMotivo_baja()));
+
+        String nomCompleto = ((a.getNombre() != null ? a.getNombre() : "") + " " +
+                (a.getApepat() != null ? a.getApepat() : "") + " " +
+                (a.getApemat() != null ? a.getApemat() : "")).replaceAll("\\s+", " ").trim();
+        String qrLimpiado = ((mat != null ? mat : "") + "|" + nomCompleto).trim();
+        if (qrLimpiado.length() > 48) qrLimpiado = qrLimpiado.substring(0, 48).trim();
+        a.setQrCode(qrLimpiado);
+        a.setQr_texto(qrLimpiado);
+    }
+
     @PostMapping
     public Alumno guardar(@RequestBody Alumno alumno) {
+        sanitizarAlumno(alumno);
         if (alumno.getId() == null) {
             String searchKey = alumno.getNcontrol() != null ? alumno.getNcontrol() : alumno.getMatricula();
             if (searchKey != null) {
@@ -65,6 +128,7 @@ public class AlumnoController {
             return ResponseEntity.ok(List.of());
         }
         for (Alumno a : alumnos) {
+            sanitizarAlumno(a);
             String searchKey = a.getNcontrol() != null ? a.getNcontrol() : a.getMatricula();
             if (a.getId() == null && searchKey != null) {
                 alumnoRepository.findFirstByNcontrolOrMatricula(searchKey, searchKey)
@@ -77,6 +141,7 @@ public class AlumnoController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Alumno> actualizar(@PathVariable String id, @RequestBody Alumno alumnoActualizado) {
+        sanitizarAlumno(alumnoActualizado);
         return alumnoRepository.findById(id)
                 .map(alumno -> {
                     alumnoActualizado.setId(id);

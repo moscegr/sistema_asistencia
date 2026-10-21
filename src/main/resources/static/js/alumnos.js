@@ -10,6 +10,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await verificarEdicion();
 });
 
+function limpiarTextoSinAcentos(val) {
+    return String(val || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
 async function cargarEspecialidadesForm() {
     const selectEsp = document.getElementById('especialidad');
     if (!selectEsp) return;
@@ -20,9 +30,11 @@ async function cargarEspecialidadesForm() {
             const especialidades = data.especialidades || [];
             selectEsp.innerHTML = '<option value="" disabled selected>-- Seleccionar Carrera --</option>';
             especialidades.forEach(esp => {
+                const nomEsp = limpiarTextoSinAcentos(esp.nombre);
+                if (!nomEsp) return;
                 const opt = document.createElement('option');
-                opt.value = esp.nombre;
-                opt.textContent = esp.nombre;
+                opt.value = nomEsp;
+                opt.textContent = nomEsp;
                 selectEsp.appendChild(opt);
             });
         }
@@ -48,47 +60,50 @@ async function verificarEdicion() {
             alumnoEdicionId = d.id;
 
             if (document.getElementById('matricula')) {
-                document.getElementById('matricula').value = d.ncontrol || d.matricula;
+                document.getElementById('matricula').value = limpiarTextoSinAcentos(d.ncontrol || d.matricula).replace(/[^A-Z0-9]/g, '');
                 document.getElementById('matricula').readOnly = true;
             }
-            if (document.getElementById('curp')) document.getElementById('curp').value = d.curp || '';
+            if (document.getElementById('curp')) document.getElementById('curp').value = limpiarTextoSinAcentos(d.curp).replace(/[^A-Z0-9]/g, '');
             if (document.getElementById('genero')) {
-                const g = (d.genero || '').toUpperCase();
+                const g = limpiarTextoSinAcentos(d.genero);
                 if (g.startsWith('H') || g.includes('HOMB') || g.includes('MASC')) {
                     document.getElementById('genero').value = 'H';
                 } else if (g.startsWith('M') || g.includes('MUJ') || g.includes('FEM')) {
                     document.getElementById('genero').value = 'M';
                 } else {
-                    document.getElementById('genero').value = d.genero || '';
+                    document.getElementById('genero').value = g;
                 }
             }
-            if (document.getElementById('nombre')) document.getElementById('nombre').value = d.nombre || '';
-            if (document.getElementById('apepat')) document.getElementById('apepat').value = d.apepat || d.primerApellido || '';
-            if (document.getElementById('apemat')) document.getElementById('apemat').value = d.apemat || d.segundoApellido || '';
-            if (document.getElementById('email')) document.getElementById('email').value = d.email || '';
-            if (document.getElementById('celular')) document.getElementById('celular').value = d.celular || '';
-            if (document.getElementById('direccion')) document.getElementById('direccion').value = d.direccion || '';
+            if (document.getElementById('nombre')) document.getElementById('nombre').value = limpiarTextoSinAcentos(d.nombre);
+            if (document.getElementById('apepat')) document.getElementById('apepat').value = limpiarTextoSinAcentos(d.apepat || d.primerApellido);
+            if (document.getElementById('apemat')) document.getElementById('apemat').value = limpiarTextoSinAcentos(d.apemat || d.segundoApellido);
+            if (document.getElementById('email')) document.getElementById('email').value = String(d.email || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
+            if (document.getElementById('celular')) document.getElementById('celular').value = String(d.celular || '').replace(/[^0-9]/g, '');
+            if (document.getElementById('direccion')) document.getElementById('direccion').value = limpiarTextoSinAcentos(d.direccion);
             
             if (document.getElementById('especialidad') && d.especialidad) {
                 const selectEsp = document.getElementById('especialidad');
-                let exists = Array.from(selectEsp.options).some(opt => opt.value === d.especialidad);
-                if (!exists) {
+                const espLimpia = limpiarTextoSinAcentos(d.especialidad);
+                const matchOpt = Array.from(selectEsp.options).find(opt => limpiarTextoSinAcentos(opt.value) === espLimpia);
+                if (matchOpt) {
+                    selectEsp.value = matchOpt.value;
+                } else {
                     const opt = document.createElement('option');
-                    opt.value = d.especialidad;
-                    opt.textContent = d.especialidad;
+                    opt.value = espLimpia;
+                    opt.textContent = espLimpia;
                     selectEsp.appendChild(opt);
+                    selectEsp.value = espLimpia;
                 }
-                selectEsp.value = d.especialidad;
             }
 
             if (document.getElementById('grado')) document.getElementById('grado').value = d.grado || '';
-            if (document.getElementById('grupo')) document.getElementById('grupo').value = d.grupo || '';
+            if (document.getElementById('grupo')) document.getElementById('grupo').value = limpiarTextoSinAcentos(d.grupo).replace(/[^A-Z0-9]/g, '');
             if (document.getElementById('turno')) document.getElementById('turno').value = d.turno || 'Matutino';
             if (document.getElementById('estatus_escolar')) document.getElementById('estatus_escolar').value = d.estatus_escolar || d.estatus || 'Activo';
             if (document.getElementById('color_semaforo')) document.getElementById('color_semaforo').value = d.color_semaforo || 'Verde';
-            if (document.getElementById('nombretutor')) document.getElementById('nombretutor').value = d.nombretutor || '';
-            if (document.getElementById('teltutor')) document.getElementById('teltutor').value = d.teltutor || '';
-            if (document.getElementById('ocupaciontutor')) document.getElementById('ocupaciontutor').value = d.ocupaciontutor || '';
+            if (document.getElementById('nombretutor')) document.getElementById('nombretutor').value = limpiarTextoSinAcentos(d.nombretutor);
+            if (document.getElementById('teltutor')) document.getElementById('teltutor').value = String(d.teltutor || '').replace(/[^0-9]/g, '');
+            if (document.getElementById('ocupaciontutor')) document.getElementById('ocupaciontutor').value = limpiarTextoSinAcentos(d.ocupaciontutor);
             
             if (d.descriptor_facial) descriptorFacialGlobal = d.descriptor_facial;
             
@@ -301,31 +316,26 @@ if (formAlumno) {
             return Swal.fire("Aviso", "Completa los campos obligatorios correctamente.", "warning");
         }
 
-        const matricula = document.getElementById('matricula').value.trim();
-        const curp = document.getElementById('curp').value.toUpperCase().trim();
+        const matricula = limpiarTextoSinAcentos(document.getElementById('matricula').value).replace(/[^A-Z0-9]/g, '');
+        const curp = limpiarTextoSinAcentos(document.getElementById('curp').value).replace(/[^A-Z0-9]/g, '');
 
         Swal.fire({ title: 'Guardando estudiante...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         try {
-            const nombre = document.getElementById('nombre').value.trim().toUpperCase();
-            const apepat = document.getElementById('apepat').value.trim().toUpperCase();
-            const apemat = document.getElementById('apemat').value.trim().toUpperCase();
+            const nombre = limpiarTextoSinAcentos(document.getElementById('nombre').value);
+            const apepat = limpiarTextoSinAcentos(document.getElementById('apepat').value);
+            const apemat = limpiarTextoSinAcentos(document.getElementById('apemat').value);
             
-            const nombreCompleto = `${nombre} ${apepat} ${apemat}`.trim();
-            const textoUnicoQR = `${matricula}|${nombreCompleto}`
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^\x20-\x7E]/g, "")
-                .trim()
-                .substring(0, 48);
+            const nombreCompleto = `${nombre} ${apepat} ${apemat}`.replace(/\s+/g, " ").trim();
+            const textoUnicoQR = `${matricula}|${nombreCompleto}`.substring(0, 48).trim();
 
-            const teltutor = document.getElementById('teltutor').value.trim();
+            const teltutor = String(document.getElementById('teltutor').value || '').replace(/[^0-9]/g, '');
             const alumnoObj = {
                 id: alumnoEdicionId || null,
                 ncontrol: matricula,
                 matricula: matricula,
                 curp: curp,
-                genero: document.getElementById('genero').value,
+                genero: limpiarTextoSinAcentos(document.getElementById('genero').value),
                 nombre: nombre,
                 apepat: apepat,
                 apemat: apemat,
@@ -335,20 +345,20 @@ if (formAlumno) {
                 fotoUrl: fotoPerfilGlobal || null,
                 foto_url: fotoPerfilGlobal || null,
                 foto: fotoPerfilGlobal || null,
-                email: document.getElementById('email').value.trim(),
-                celular: document.getElementById('celular').value.trim(),
-                direccion: document.getElementById('direccion').value.trim().toUpperCase(),
-                especialidad: document.getElementById('especialidad').value.toUpperCase(),
-                grado: document.getElementById('grado').value,
-                grupo: document.getElementById('grupo').value.toUpperCase(),
+                email: String(document.getElementById('email').value || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase(),
+                celular: String(document.getElementById('celular').value || '').replace(/[^0-9]/g, ''),
+                direccion: limpiarTextoSinAcentos(document.getElementById('direccion').value),
+                especialidad: limpiarTextoSinAcentos(document.getElementById('especialidad').value),
+                grado: String(document.getElementById('grado').value || '').trim(),
+                grupo: limpiarTextoSinAcentos(document.getElementById('grupo').value).replace(/[^A-Z0-9]/g, ''),
                 turno: document.getElementById('turno').value,
                 estatus: document.getElementById('estatus_escolar').value,
                 estatus_escolar: document.getElementById('estatus_escolar').value,
                 color_semaforo: document.getElementById('color_semaforo').value,
-                aula_especifica: document.getElementById('aula_especifica') ? (document.getElementById('aula_especifica').value || "N/A").trim().toUpperCase() : "N/A",
-                nombretutor: document.getElementById('nombretutor').value.trim().toUpperCase(),
+                aula_especifica: document.getElementById('aula_especifica') ? (limpiarTextoSinAcentos(document.getElementById('aula_especifica').value) || "N/A") : "N/A",
+                nombretutor: limpiarTextoSinAcentos(document.getElementById('nombretutor').value),
                 teltutor: teltutor,
-                ocupaciontutor: document.getElementById('ocupaciontutor').value.trim().toUpperCase(),
+                ocupaciontutor: limpiarTextoSinAcentos(document.getElementById('ocupaciontutor').value),
                 qrCode: textoUnicoQR,
                 qr_texto: textoUnicoQR, 
                 perfil_completo: !!teltutor,

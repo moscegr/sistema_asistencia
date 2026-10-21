@@ -416,14 +416,24 @@ async function procesarFotoUsuario(input) {
     reader.readAsDataURL(file);
 }
 
+function limpiarSinAcentosPersonal(val) {
+    return String(val || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
 // 4. CREAR / ACTUALIZAR USUARIO
 async function guardarUsuarioFormulario() {
-    const nombre = document.getElementById('regNombre').value.trim().toUpperCase();
-    const rfc = document.getElementById('regRfc').value.trim().toUpperCase();
-    const rol = document.getElementById('regRol').value;
+    const nombre = limpiarSinAcentosPersonal(document.getElementById('regNombre').value);
+    const rfc = limpiarSinAcentosPersonal(document.getElementById('regRfc').value).replace(/[^A-Z0-9]/g, '');
+    const rol = limpiarSinAcentosPersonal(document.getElementById('regRol').value);
     const turno = document.getElementById('regTurno').value;
-    const correo = document.getElementById('regCorreo').value.trim().toLowerCase();
-    const telefono = document.getElementById('regTelefono').value.trim();
+    const correo = String(document.getElementById('regCorreo').value || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
+    const telefono = String(document.getElementById('regTelefono').value || '').replace(/[^0-9]/g, '');
     const password = document.getElementById('regPassword').value;
 
     if (!nombre || !rfc || !rol || !turno) {
@@ -588,14 +598,14 @@ function descargarPlantillaLayoutExcel() {
 
     const headers = [
         ["NOMBRE_COMPLETO", "RFC", "ROL", "TURNO", "CORREO_INSTITUCIONAL", "TELEFONO"],
-        ["JUAN CARLOS PÉREZ LÓPEZ", "PELJ850101XYZ", "DOCENTE", "Matutino", "juan.perez@ejemplo.edu.mx", "7471234567"],
-        ["MARÍA ELENA GÓMEZ RÍOS", "GORM900215ABC", "DOCENTE", "Vespertino", "elena.gomez@ejemplo.edu.mx", "7479876543"],
-        ["ROBERTO SÁNCHEZ DÍAZ", "SADR781120H12", "ADMINISTRATIVO", "Tiempo Completo", "roberto.sanchez@ejemplo.edu.mx", "7475551234"],
+        ["JUAN CARLOS PEREZ LOPEZ", "PELJ850101XYZ", "DOCENTE", "Matutino", "juan.perez@ejemplo.edu.mx", "7471234567"],
+        ["MARIA ELENA GOMEZ RIOS", "GORM900215ABC", "DOCENTE", "Vespertino", "elena.gomez@ejemplo.edu.mx", "7479876543"],
+        ["ROBERTO SANCHEZ DIAZ", "SADR781120H12", "ADMINISTRATIVO", "Tiempo Completo", "roberto.sanchez@ejemplo.edu.mx", "7475551234"],
         ["ANA LAURA TORRES VEGA", "TOVA820410M34", "PREFECTO", "Matutino", "prefectura.mat@ejemplo.edu.mx", "7474448899"],
-        ["RICARDO HERNÁNDEZ CASTRO", "HECR870614P89", "DOCENTE", "Matutino", "ricardo.hernandez@ejemplo.edu.mx", "7473332211"],
-        ["PATRICIA MORALES JIMÉNEZ", "MOJP911205K56", "ORIENTACION", "Matutino", "orientacion@ejemplo.edu.mx", "7478889900"],
-        ["GUSTAVO RAMÍREZ FLORES", "RAFG800425R78", "GUARDIA", "Mixto", "vigilancia@ejemplo.edu.mx", "7471112233"],
-        ["SANDRA LUZ DOMÍNGUEZ NAVA", "DONS840918L45", "ADMINISTRATIVO", "Vespertino", "sandra.dominguez@ejemplo.edu.mx", "7476667788"]
+        ["RICARDO HERNANDEZ CASTRO", "HECR870614P89", "DOCENTE", "Matutino", "ricardo.hernandez@ejemplo.edu.mx", "7473332211"],
+        ["PATRICIA MORALES JIMENEZ", "MOJP911205K56", "ORIENTACION", "Matutino", "orientacion@ejemplo.edu.mx", "7478889900"],
+        ["GUSTAVO RAMIREZ FLORES", "RAFG800425R78", "GUARDIA", "Mixto", "vigilancia@ejemplo.edu.mx", "7471112233"],
+        ["SANDRA LUZ DOMINGUEZ NAVA", "DONS840918L45", "ADMINISTRATIVO", "Vespertino", "sandra.dominguez@ejemplo.edu.mx", "7476667788"]
     ];
 
     const wb = XLSX.utils.book_new();
@@ -835,20 +845,20 @@ function analizarArchivoExcelMasivo(input) {
                 const keys = Object.keys(row);
                 const r = {};
                 keys.forEach(k => {
-                    const cleanKey = k.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                    const cleanKey = limpiarSinAcentosPersonal(k).replace(/[^A-Z0-9]/g, '_');
                     r[cleanKey] = String(row[k] || '').trim();
                 });
 
-                const nombre = r.NOMBRE_COMPLETO || r.NOMBRE || r.NOMBRES || '';
-                const rfc = (r.RFC || r.CLAVE || '').toUpperCase();
-                const rol = (r.ROL || r.CARGO || r.PUESTO || 'DOCENTE').toUpperCase();
+                const nombre = limpiarSinAcentosPersonal(r.NOMBRE_COMPLETO || r.NOMBRE || r.NOMBRES || '');
+                const rfc = limpiarSinAcentosPersonal(r.RFC || r.CLAVE || '').replace(/[^A-Z0-9]/g, '');
+                const rol = limpiarSinAcentosPersonal(r.ROL || r.CARGO || r.PUESTO || 'DOCENTE');
                 const turno = r.TURNO || 'Matutino';
-                const correo = (r.CORREO_INSTITUCIONAL || r.CORREO || r.EMAIL || '').toLowerCase();
-                const telefono = r.TELEFONO || r.CELULAR || r.TEL || '';
+                const correo = String(r.CORREO_INSTITUCIONAL || r.CORREO || r.EMAIL || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
+                const telefono = String(r.TELEFONO || r.CELULAR || r.TEL || '').replace(/[^0-9]/g, '');
 
                 if (nombre && (rfc || correo)) {
                     datosExcelMasivoPendientes.push({
-                        nombre: nombre.toUpperCase(),
+                        nombre: nombre,
                         rfc: rfc || null,
                         rol: rol,
                         turno: turno,

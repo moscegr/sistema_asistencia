@@ -214,8 +214,8 @@ const formEsp = document.getElementById('formEspecialidad');
 if (formEsp) {
     formEsp.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nombre = document.getElementById('confNombre').value.trim().toUpperCase();
-        const alias = document.getElementById('confAlias').value.trim().toUpperCase();
+        const nombre = document.getElementById('confNombre').value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+        const alias = document.getElementById('confAlias').value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
         const color = document.getElementById('confColor').value;
         const turno = document.getElementById('confTurno').value;
 
@@ -261,8 +261,8 @@ if (formEditarEsp) {
     formEditarEsp.addEventListener('submit', async (e) => {
         e.preventDefault();
         const idx = parseInt(document.getElementById('editIndex').value, 10);
-        const nombre = document.getElementById('editNombre').value.trim().toUpperCase();
-        const alias = document.getElementById('editAlias').value.trim().toUpperCase();
+        const nombre = document.getElementById('editNombre').value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+        const alias = document.getElementById('editAlias').value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
         const color = document.getElementById('editColor').value;
         const turno = document.getElementById('editTurno').value;
 

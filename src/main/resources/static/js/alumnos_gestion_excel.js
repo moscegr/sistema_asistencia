@@ -33,11 +33,21 @@ async function cargarConfiguracionInicial() {
     } catch (e) { console.error("Error al cargar config:", e); }
 }
 
+function limpiarSinAcentos(val) {
+    return String(val || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+}
+
 function normalizarDatosCBTis(valorExcel) {
     if (!valorExcel) return { grado: "", grupo: "", especialidad: "POR ASIGNAR", color: "#6c757d", turno: "Matutino" };
     
     const regex = /^(\d)([A-Z])\s*(.*)$/i;
-    const match = String(valorExcel).trim().match(regex);
+    const match = limpiarSinAcentos(valorExcel).match(regex);
 
     if (match) {
         const grado = match[1];
@@ -45,32 +55,32 @@ function normalizarDatosCBTis(valorExcel) {
         const aliasExcel = match[3].trim().toUpperCase();
 
         const mapaAliasUniversal = {
-            "PRO": "PROGRAMACIÓN", "PROG": "PROGRAMACIÓN", "PROGR": "PROGRAMACIÓN",
-            "ARH": "ADMINISTRACIÓN DE RECURSOS HUMANOS", "ADM": "ADMINISTRACIÓN DE RECURSOS HUMANOS",
+            "PRO": "PROGRAMACION", "PROG": "PROGRAMACION", "PROGR": "PROGRAMACION",
+            "ARH": "ADMINISTRACION DE RECURSOS HUMANOS", "ADM": "ADMINISTRACION DE RECURSOS HUMANOS",
             "CON": "CONTABILIDAD", "CONT": "CONTABILIDAD", "CONTA": "CONTABILIDAD",
-            "CST": "CONSTRUCCIÓN", "CONS": "CONSTRUCCIÓN", "TCS": "CONSTRUCCIÓN",
+            "CST": "CONSTRUCCION", "CONS": "CONSTRUCCION", "TCS": "CONSTRUCCION",
             "ELE": "ELECTRICIDAD", "ELEC": "ELECTRICIDAD",
-            "OFI": "OFIMÁTICA", "OFIM": "OFIMÁTICA",
-            "LAB": "LABORATORISTA CLÍNICO", "LABC": "LABORATORISTA CLÍNICO", "LABO": "LABORATORISTA CLÍNICO",
-            "MEC": "MECATRÓNICA", "MECA": "MECATRÓNICA",
+            "OFI": "OFIMATICA", "OFIM": "OFIMATICA",
+            "LAB": "LABORATORISTA CLINICO", "LABC": "LABORATORISTA CLINICO", "LABO": "LABORATORISTA CLINICO",
+            "MEC": "MECATRONICA", "MECA": "MECATRONICA",
             "IA": "INTELIGENCIA ARTIFICIAL",
             "ECO": "E.COMMERCE", "ECOM": "E.COMMERCE", "COMER": "E.COMMERCE"
         };
         const nombreMapeado = mapaAliasUniversal[aliasExcel];
         const config = especialidadesCache.find(e => 
-            (e.alias || '').toUpperCase() === aliasExcel || 
-            (nombreMapeado && (e.nombre || '').toUpperCase() === nombreMapeado)
+            limpiarSinAcentos(e.alias) === aliasExcel || 
+            (nombreMapeado && limpiarSinAcentos(e.nombre) === nombreMapeado)
         );
         
         return {
             grado: grado,
             grupo: grupo,
-            especialidad: config ? config.nombre : (nombreMapeado || aliasExcel || "POR ASIGNAR"),
+            especialidad: config ? limpiarSinAcentos(config.nombre) : (nombreMapeado || aliasExcel || "POR ASIGNAR"),
             color: config ? config.color : "#6c757d",
             turno: config ? config.turno : "Matutino"
         };
     }
-    return { grado: "", grupo: "", especialidad: valorExcel, color: "#6c757d", turno: "Matutino" }; 
+    return { grado: "", grupo: "", especialidad: limpiarSinAcentos(valorExcel), color: "#6c757d", turno: "Matutino" }; 
 }
 
 async function procesarCargaMasiva() {
@@ -161,12 +171,12 @@ async function ejecutarCargaReal() {
                 return acc; 
             }, {});
             
-            const matricula = String(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").trim();
-            const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").trim();
+            const matricula = limpiarSinAcentos(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").replace(/[^A-Z0-9]/g, "");
+            const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").replace(/[^0-9]/g, "");
 
-            let nombre = String(r.nombre || "").trim();
-            let apepat = String(r.apepat || r.apellido_paterno || "").trim();
-            let apemat = String(r.apemat || r.apellido_materno || "").trim();
+            let nombre = limpiarSinAcentos(r.nombre || "");
+            let apepat = limpiarSinAcentos(r.apepat || r.apellido_paterno || "");
+            let apemat = limpiarSinAcentos(r.apemat || r.apellido_materno || "");
 
             if (nombre && !apepat) {
                 const partes = nombre.split(" ");
@@ -190,41 +200,36 @@ async function ejecutarCargaReal() {
                 continue; 
             }
 
-            const nombreCompletoQR = `${nombre} ${apepat} ${apemat}`.trim().toUpperCase();
-            const textoUnicoQR = `${matricula}|${nombreCompletoQR}`
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^\x20-\x7E]/g, "")
-                .trim()
-                .substring(0, 48);
+            const nombreCompletoQR = `${nombre} ${apepat} ${apemat}`.replace(/\s+/g, " ").trim();
+            const textoUnicoQR = `${matricula}|${nombreCompletoQR}`.substring(0, 48).trim();
 
             let especialidadFinal = "POR ASIGNAR";
-            let gradoFinal = String(r.grado || "").trim();
-            let grupoFinal = String(r.grupo || "").trim().toUpperCase();
+            let gradoFinal = limpiarSinAcentos(r.grado || "").replace(/[^0-9]/g, "");
+            let grupoFinal = limpiarSinAcentos(r.grupo || "").replace(/[^A-Z0-9]/g, "");
             let turnoFinal = "Matutino";
 
             const gpoCod = r.gpo || r.grupo_oficial || r.grupo_redis;
             if (gpoCod) {
                 const infoEscolar = normalizarDatosCBTis(gpoCod);
-                especialidadFinal = infoEscolar.especialidad;
+                especialidadFinal = limpiarSinAcentos(infoEscolar.especialidad);
                 gradoFinal = infoEscolar.grado || gradoFinal;
                 grupoFinal = infoEscolar.grupo || grupoFinal;
                 turnoFinal = infoEscolar.turno;
             } else {
-                const excelEsp = String(r.especialidad || r.carrera || "").trim().toUpperCase();
+                const excelEsp = limpiarSinAcentos(r.especialidad || r.carrera || "");
                 const configEsp = especialidadesCache.find(e => 
-                    e.nombre.toUpperCase() === excelEsp || e.alias === excelEsp
+                    limpiarSinAcentos(e.nombre) === excelEsp || limpiarSinAcentos(e.alias) === excelEsp
                 );
 
                 if (configEsp) {
-                    especialidadFinal = configEsp.nombre;
+                    especialidadFinal = limpiarSinAcentos(configEsp.nombre);
                     turnoFinal = configEsp.turno || "Matutino";
                 } else if (excelEsp !== "") {
                     especialidadFinal = excelEsp;
                 }
             }
 
-            const rawTurnoExcel = String(r.turno || r.Turno || r.TURNO || "").trim();
+            const rawTurnoExcel = limpiarSinAcentos(r.turno || r.Turno || r.TURNO || "");
             if (rawTurnoExcel) {
                 const tLower = rawTurnoExcel.toLowerCase();
                 if (tLower.startsWith('mat')) turnoFinal = "Matutino";
@@ -236,14 +241,16 @@ async function ejecutarCargaReal() {
             const alumno = {
                 ncontrol: matricula,
                 matricula: matricula,
-                curp: String(r.curp || "").toUpperCase(),
-                nombre: nombre.toUpperCase(),
-                apepat: apepat.toUpperCase(),
-                apemat: apemat.toUpperCase(),
-                genero: String(r.genero || r.sexo || "N/A").toUpperCase().substring(0,1), 
-                email: String(r.email || r.correo_electronico || "").trim(),
-                celular: String(r.celular || r.telefono_celular_alumno || r.numero_celular || "").trim(),
-                direccion: String(r.direccion || "N/A"),
+                curp: limpiarSinAcentos(r.curp || "").replace(/[^A-Z0-9]/g, ""),
+                nombre: nombre,
+                apepat: apepat,
+                apemat: apemat,
+                primerApellido: apepat,
+                segundoApellido: apemat,
+                genero: limpiarSinAcentos(r.genero || r.sexo || "N/A").substring(0,1), 
+                email: String(r.email || r.correo_electronico || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase(),
+                celular: String(r.celular || r.telefono_celular_alumno || r.numero_celular || "").replace(/[^0-9]/g, ""),
+                direccion: limpiarSinAcentos(r.direccion || "N/A"),
                 
                 especialidad: especialidadFinal,
                 grado: gradoFinal,
@@ -254,10 +261,11 @@ async function ejecutarCargaReal() {
                 estatus: "Activo",
                 color_semaforo: "Verde",
                 
-                nombretutor: String(r.tutor || r.nombre_tutor || r.nombre_del_tutor || r.nombre_tutor_ || "PENDIENTE").trim(),
+                nombretutor: limpiarSinAcentos(r.tutor || r.nombre_tutor || r.nombre_del_tutor || r.nombre_tutor_ || "PENDIENTE"),
                 teltutor: teltutor,
-                ocupaciontutor: String(r.ocupacion || r.ocupacion_del_tutor || "N/A").trim(),
+                ocupaciontutor: limpiarSinAcentos(r.ocupacion || r.ocupacion_del_tutor || "N/A"),
                 
+                qrCode: textoUnicoQR,
                 qr_texto: textoUnicoQR,
                 fecharegistro: new Date().toISOString()
             };
@@ -324,15 +332,15 @@ function descargarPlantillaManual() {
     if (typeof XLSX === 'undefined') {
         return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
     }
-    const getEsp = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? (especialidadesCache[idx % especialidadesCache.length].nombre || fallback) : fallback;
+    const getEsp = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? limpiarSinAcentos(especialidadesCache[idx % especialidadesCache.length].nombre || fallback) : fallback;
     const headers = [
         ["Matricula", "CURP", "Nombre", "ApePat", "ApeMat", "Genero", "Email", "Celular", "Direccion", "Especialidad", "Grado", "Grupo", "Tutor", "TelTutor", "Ocupacion"],
-        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUÑEZ", "M", "karime.ayala@ejemplo.edu.mx", "7471234567", "Col. Centro Calle Galeana #12", getEsp(0, "PROGRAMACIÓN"), "4", "A", "KARIME NUÑEZ HIDALGO", "7479876543", "COMERCIANTE"],
-        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCÍA", "RIVERA", "H", "carlos.garcia@ejemplo.edu.mx", "7472345678", "Av. Insurgentes #45", getEsp(1, "ADMINISTRACIÓN DE RECURSOS HUMANOS"), "4", "B", "EDUARDO GARCÍA LÓPEZ", "7478765432", "EMPLEADO"],
-        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNÁNDEZ", "MORALES", "M", "lizbeth.hernandez@ejemplo.edu.mx", "7473456789", "Col. Viguri Andador 3", getEsp(2, "CONTABILIDAD"), "2", "A", "GUADALUPE MORALES RÍOS", "7477654321", "DOCENTE"],
-        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTÍNEZ", "SÁNCHEZ", "H", "emiliano.martinez@ejemplo.edu.mx", "7474567890", "Calle 5 de Mayo #88", getEsp(3, "CONSTRUCCIÓN"), "6", "A", "ROSA SÁNCHEZ VEGA", "7476543210", "HOGAR"],
-        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRÍGUEZ", "TORRES", "M", "ana.rodriguez@ejemplo.edu.mx", "7475678901", "Barrio de San Mateo #14", getEsp(4, "ELECTRICIDAD"), "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
-        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@ejemplo.edu.mx", "7476789012", "Col. del PRI Manzana 4", getEsp(5, "OFIMÁTICA"), "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
+        ["25312051340001", "AANK100908MGRYXRA6", "KARIME ALEJANDRA", "AYALA", "NUNEZ", "M", "karime.ayala@ejemplo.edu.mx", "7471234567", "COL. CENTRO CALLE GALEANA #12", getEsp(0, "PROGRAMACION"), "4", "A", "KARIME NUNEZ HIDALGO", "7479876543", "COMERCIANTE"],
+        ["25312051340002", "GARM090315HGRZLR01", "CARLOS EDUARDO", "GARCIA", "RIVERA", "H", "carlos.garcia@ejemplo.edu.mx", "7472345678", "AV. INSURGENTES #45", getEsp(1, "ADMINISTRACION DE RECURSOS HUMANOS"), "4", "B", "EDUARDO GARCIA LOPEZ", "7478765432", "EMPLEADO"],
+        ["25312051340003", "HEML100122MGRNNS03", "LIZBETH GUADALUPE", "HERNANDEZ", "MORALES", "M", "lizbeth.hernandez@ejemplo.edu.mx", "7473456789", "COL. VIGURI ANDADOR 3", getEsp(2, "CONTABILIDAD"), "2", "A", "GUADALUPE MORALES RIOS", "7477654321", "DOCENTE"],
+        ["25312051340004", "MASE091105HGRRLA08", "EMILIANO", "MARTINEZ", "SANCHEZ", "H", "emiliano.martinez@ejemplo.edu.mx", "7474567890", "CALLE 5 DE MAYO #88", getEsp(3, "CONSTRUCCION"), "6", "A", "ROSA SANCHEZ VEGA", "7476543210", "HOGAR"],
+        ["25312051340005", "ROTA100618MGRDCN02", "ANA VALERIA", "RODRIGUEZ", "TORRES", "M", "ana.rodriguez@ejemplo.edu.mx", "7475678901", "BARRIO DE SAN MATEO #14", getEsp(4, "ELECTRICIDAD"), "2", "B", "VALERIA TORRES CASTRO", "7475432109", "ABOGADA"],
+        ["25312051340006", "TOFA090829HGRMNB05", "ALEXIS DANIEL", "TORRES", "FLORES", "H", "alexis.torres@ejemplo.edu.mx", "7476789012", "COL. DEL PRI MANZANA 4", getEsp(5, "OFIMATICA"), "4", "C", "DANIEL TORRES MENDOZA", "7474321098", "INGENIERO"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(headers);
     ws['!cols'] = [
@@ -356,14 +364,14 @@ function descargarPlantillaInstitucional() {
     if (typeof XLSX === 'undefined') {
         return Swal.fire("Error", "La librería SheetJS no está disponible en este momento. Intenta recargar la página.", "error");
     }
-    const getAlias = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? (especialidadesCache[idx % especialidadesCache.length].alias || fallback) : fallback;
+    const getAlias = (idx, fallback) => (especialidadesCache && especialidadesCache.length > 0) ? limpiarSinAcentos(especialidadesCache[idx % especialidadesCache.length].alias || fallback) : fallback;
     const headers = [
         ["GPO", "NO. CONTROL", "NOMBRE", "CURP", "GENERO", "TELEFONO CELULAR ALUMNO", "TELEFONO TUTOR", "NOMBRE TUTOR"],
-        [`2A ${getAlias(0, "PRO")}`, "25312051340001", "AYALA NUÑEZ KARIME ALEJANDRA", "AANK100908MGRYXRA6", "M", "7471234567", "7479876543", "KARIME NUÑEZ HIDALGO"],
-        [`2B ${getAlias(1, "ARH")}`, "25312051340002", "GARCÍA RIVERA CARLOS EDUARDO", "GARM090315HGRZLR01", "H", "7472345678", "7478765432", "EDUARDO GARCÍA LÓPEZ"],
-        [`4A ${getAlias(2, "CON")}`, "25312051340003", "HERNÁNDEZ MORALES LIZBETH GUADALUPE", "HEML100122MGRNNS03", "M", "7473456789", "7477654321", "GUADALUPE MORALES RÍOS"],
-        [`6A ${getAlias(3, "CST")}`, "25312051340004", "MARTÍNEZ SÁNCHEZ EMILIANO", "MASE091105HGRRLA08", "H", "7474567890", "7476543210", "ROSA SÁNCHEZ VEGA"],
-        [`2B ${getAlias(4, "ELE")}`, "25312051340005", "RODRÍGUEZ TORRES ANA VALERIA", "ROTA100618MGRDCN02", "M", "7475678901", "7475432109", "VALERIA TORRES CASTRO"],
+        [`2A ${getAlias(0, "PRO")}`, "25312051340001", "AYALA NUNEZ KARIME ALEJANDRA", "AANK100908MGRYXRA6", "M", "7471234567", "7479876543", "KARIME NUNEZ HIDALGO"],
+        [`2B ${getAlias(1, "ARH")}`, "25312051340002", "GARCIA RIVERA CARLOS EDUARDO", "GARM090315HGRZLR01", "H", "7472345678", "7478765432", "EDUARDO GARCIA LOPEZ"],
+        [`4A ${getAlias(2, "CON")}`, "25312051340003", "HERNANDEZ MORALES LIZBETH GUADALUPE", "HEML100122MGRNNS03", "M", "7473456789", "7477654321", "GUADALUPE MORALES RIOS"],
+        [`6A ${getAlias(3, "CST")}`, "25312051340004", "MARTINEZ SANCHEZ EMILIANO", "MASE091105HGRRLA08", "H", "7474567890", "7476543210", "ROSA SANCHEZ VEGA"],
+        [`2B ${getAlias(4, "ELE")}`, "25312051340005", "RODRIGUEZ TORRES ANA VALERIA", "ROTA100618MGRDCN02", "M", "7475678901", "7475432109", "VALERIA TORRES CASTRO"],
         [`4C ${getAlias(5, "OFI")}`, "25312051340006", "TORRES FLORES ALEXIS DANIEL", "TOFA090829HGRMNB05", "H", "7476789012", "7474321098", "DANIEL TORRES MENDOZA"]
     ];
     

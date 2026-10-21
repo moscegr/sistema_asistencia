@@ -51,12 +51,12 @@ public class ConfiguracionController {
                 mongoTemplate.save(doc, "configuracion");
             } else if ("escolar".equals(id)) {
                 doc.put("especialidades", new ArrayList<>(List.of(
-                    new Document("nombre", "PROGRAMACIÓN").append("alias", "PRO").append("color", "#0088cc").append("turno", "Matutino"),
-                    new Document("nombre", "ADMINISTRACIÓN DE RECURSOS HUMANOS").append("alias", "ARH").append("color", "#6f42c1").append("turno", "Matutino"),
+                    new Document("nombre", "PROGRAMACION").append("alias", "PRO").append("color", "#0088cc").append("turno", "Matutino"),
+                    new Document("nombre", "ADMINISTRACION DE RECURSOS HUMANOS").append("alias", "ARH").append("color", "#6f42c1").append("turno", "Matutino"),
                     new Document("nombre", "CONTABILIDAD").append("alias", "CON").append("color", "#198754").append("turno", "Matutino"),
-                    new Document("nombre", "CONSTRUCCIÓN").append("alias", "CST").append("color", "#dc3545").append("turno", "Matutino"),
+                    new Document("nombre", "CONSTRUCCION").append("alias", "CST").append("color", "#dc3545").append("turno", "Matutino"),
                     new Document("nombre", "ELECTRICIDAD").append("alias", "ELE").append("color", "#fd7e14").append("turno", "Matutino"),
-                    new Document("nombre", "OFIMÁTICA").append("alias", "OFI").append("color", "#0dcaf0").append("turno", "Matutino")
+                    new Document("nombre", "OFIMATICA").append("alias", "OFI").append("color", "#0dcaf0").append("turno", "Matutino")
                 )));
                 doc.put("migrado_especialidades_v2", true);
                 mongoTemplate.save(doc, "configuracion");
@@ -69,30 +69,40 @@ public class ConfiguracionController {
         if ("escolar".equals(id) && doc != null) {
             try {
                 @SuppressWarnings("unchecked")
-                List<Map<String, Object>> listaEsp = (List<Map<String, Object>>) doc.get("especialidades");
-                if (listaEsp == null) {
-                    listaEsp = new ArrayList<>();
-                } else {
-                    listaEsp = new ArrayList<>(listaEsp);
-                }
-
+                List<Map<String, Object>> listaOriginal = (List<Map<String, Object>>) doc.get("especialidades");
+                List<Map<String, Object>> listaEsp = new ArrayList<>();
                 Set<String> nombresRegistrados = new HashSet<>();
-                for (Map<String, Object> esp : listaEsp) {
-                    Object nomObj = esp.get("nombre");
-                    if (nomObj != null) {
-                        nombresRegistrados.add(nomObj.toString().trim().toUpperCase());
+                boolean actualizado = false;
+
+                if (listaOriginal != null) {
+                    for (Map<String, Object> esp : listaOriginal) {
+                        Object nomObj = esp.get("nombre");
+                        if (nomObj == null) continue;
+                        String nomLimpio = sanitizarSinAcentos(nomObj.toString());
+                        if (!nomLimpio.equals(nomObj.toString())) {
+                            actualizado = true;
+                        }
+                        if (nombresRegistrados.add(nomLimpio)) {
+                            Map<String, Object> copia = new LinkedHashMap<>(esp);
+                            copia.put("nombre", nomLimpio);
+                            if (copia.get("alias") != null) {
+                                copia.put("alias", sanitizarSinAcentos(copia.get("alias").toString()));
+                            }
+                            listaEsp.add(copia);
+                        } else {
+                            actualizado = true;
+                        }
                     }
                 }
 
                 List<Document> alumnos = mongoTemplate.findAll(Document.class, "alumnos");
                 String[] paleta = {"#7b1b37", "#0088cc", "#198754", "#fd7e14", "#6f42c1", "#dc3545", "#0dcaf0"};
                 int colorIdx = listaEsp.size();
-                boolean actualizado = false;
 
                 for (Document al : alumnos) {
                     String espAl = al.getString("especialidad");
                     if (espAl != null && !espAl.trim().isEmpty()) {
-                        String espUpper = espAl.trim().toUpperCase();
+                        String espUpper = sanitizarSinAcentos(espAl);
                         if (!"POR ASIGNAR".equals(espUpper) && !nombresRegistrados.contains(espUpper)) {
                             String alias = generarAliasEspecialidad(espUpper);
                             String turnoAl = al.getString("turno");
@@ -118,6 +128,13 @@ public class ConfiguracionController {
         return ResponseEntity.ok(doc);
     }
 
+    private String sanitizarSinAcentos(String s) {
+        if (s == null) return "";
+        String sinAcentos = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+        return sinAcentos.replaceAll("[^\\x20-\\x7E]", "").replaceAll("\\s+", " ").trim().toUpperCase();
+    }
+
     private String generarAliasEspecialidad(String nombre) {
         if (nombre.contains("RECURSOS HUMANOS")) return "ARH";
         if (nombre.contains("PROGRAMAC")) return "PRO";
@@ -138,6 +155,26 @@ public class ConfiguracionController {
         if (doc == null) {
             doc = new Document();
             doc.put("_id", id);
+        }
+        if ("escolar".equals(id) && body.get("especialidades") instanceof List<?> rawList) {
+            List<Map<String, Object>> limpias = new ArrayList<>();
+            Set<String> vistos = new HashSet<>();
+            for (Object item : rawList) {
+                if (item instanceof Map<?, ?> m) {
+                    Map<String, Object> espMap = new LinkedHashMap<>();
+                    for (Map.Entry<?, ?> e : m.entrySet()) {
+                        espMap.put(String.valueOf(e.getKey()), e.getValue());
+                    }
+                    String nom = sanitizarSinAcentos(String.valueOf(espMap.getOrDefault("nombre", "")));
+                    String alias = sanitizarSinAcentos(String.valueOf(espMap.getOrDefault("alias", "")));
+                    if (!nom.isEmpty() && vistos.add(nom)) {
+                        espMap.put("nombre", nom);
+                        espMap.put("alias", alias);
+                        limpias.add(espMap);
+                    }
+                }
+            }
+            body.put("especialidades", limpias);
         }
         doc.putAll(body);
         mongoTemplate.save(doc, "configuracion");

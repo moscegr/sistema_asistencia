@@ -191,8 +191,8 @@ async function abrirModalMiPerfil() {
 }
 
 async function guardarDatosMiPerfil() {
-    const nombre = document.getElementById('miPerfilNombre').value.trim().toUpperCase();
-    const correo = document.getElementById('miPerfilCorreo').value.trim().toLowerCase();
+    const nombre = sanitizarTextoSinAcentos(document.getElementById('miPerfilNombre').value).replace(/\s+/g, " ").trim().toUpperCase();
+    const correo = sanitizarTextoSinAcentos(document.getElementById('miPerfilCorreo').value).replace(/\s+/g, "").toLowerCase();
     const password = document.getElementById('miPerfilPassword').value;
 
     if (!nombre || !correo) {
@@ -245,3 +245,52 @@ async function guardarDatosMiPerfil() {
 }
 window.abrirModalMiPerfil = abrirModalMiPerfil;
 window.guardarDatosMiPerfil = guardarDatosMiPerfil;
+
+// 6. SANITIZACIÓN GLOBAL EN TIEMPO REAL (SIN ACENTOS NI CARACTERES ESPECIALES)
+function sanitizarTextoSinAcentos(val) {
+    return String(val || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "");
+}
+window.sanitizarTextoSinAcentos = sanitizarTextoSinAcentos;
+
+document.addEventListener("input", function(e) {
+    const el = e.target;
+    if (!el || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")) return;
+
+    const type = (el.getAttribute("type") || "text").toLowerCase();
+    if (["password", "file", "color", "date", "time", "datetime-local", "month", "week", "number", "range", "checkbox", "radio", "hidden"].includes(type)) {
+        return;
+    }
+
+    // No alterar campos de configuración técnica como URLs, tokens de API o plantillas de WhatsApp
+    if (el.classList.contains("no-sanitize") || el.classList.contains("no-uppercase") || (el.id && /^(ws|swalWs|api|url|token|instance)/i.test(el.id))) {
+        if (type === "email") {
+            const limpioMail = sanitizarTextoSinAcentos(el.value).replace(/\s+/g, "").toLowerCase();
+            if (el.value !== limpioMail) el.value = limpioMail;
+        }
+        return;
+    }
+
+    if (type === "email") {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const limpioMail = sanitizarTextoSinAcentos(el.value).replace(/\s+/g, "").toLowerCase();
+        if (el.value !== limpioMail) {
+            el.value = limpioMail;
+            try { el.setSelectionRange(start, end); } catch (_) {}
+        }
+        return;
+    }
+
+    if (type === "text" || type === "search" || type === "tel" || el.tagName === "TEXTAREA") {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const limpio = sanitizarTextoSinAcentos(el.value).toUpperCase();
+        if (el.value !== limpio) {
+            el.value = limpio;
+            try { el.setSelectionRange(start, end); } catch (_) {}
+        }
+    }
+});
