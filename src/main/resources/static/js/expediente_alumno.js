@@ -38,16 +38,32 @@ async function cargarEspecialidades() {
 async function obtenerDataURLQR(texto, size = 400) {
     return new Promise((resolve) => {
         const divTemp = document.createElement('div');
-        let textoLimpio = (texto || '').trim();
-        if (textoLimpio.length > 60 || textoLimpio.startsWith('data:')) {
-            textoLimpio = textoLimpio.substring(0, 60);
+        const idFallback = String(texto || '').split('|')[0].trim() || '00000000000000';
+        let textoLimpio = String(texto || '')
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\x20-\x7E]/g, "")
+            .trim()
+            .substring(0, 48);
+        if (!textoLimpio || textoLimpio.startsWith('data:')) {
+            textoLimpio = idFallback;
         }
-        new QRCode(divTemp, {
-            text: textoLimpio,
-            width: size,
-            height: size,
-            correctLevel: QRCode.CorrectLevel.L
-        });
+        try {
+            new QRCode(divTemp, {
+                text: textoLimpio,
+                width: size,
+                height: size,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } catch (errQr) {
+            divTemp.innerHTML = "";
+            new QRCode(divTemp, {
+                text: idFallback.substring(0, 30),
+                width: size,
+                height: size,
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
 
         setTimeout(() => {
             const canvas = document.createElement('canvas');
@@ -55,16 +71,22 @@ async function obtenerDataURLQR(texto, size = 400) {
             canvas.width = size;
             canvas.height = size;
 
+            const qrCanvas = divTemp.querySelector('canvas');
+            if (qrCanvas && qrCanvas.width > 0) {
+                ctx.drawImage(qrCanvas, 0, 0, size, size);
+                resolve(canvas.toDataURL("image/png"));
+                return;
+            }
+
             const imgQR = divTemp.querySelector('img');
             const finalQR = new Image();
-            finalQR.src = imgQR ? imgQR.src : (divTemp.querySelector('canvas') ? divTemp.querySelector('canvas').toDataURL() : '');
-
             finalQR.onload = () => {
                 ctx.drawImage(finalQR, 0, 0, size, size);
                 resolve(canvas.toDataURL("image/png"));
             };
-            finalQR.onerror = () => resolve(divTemp.querySelector('canvas') ? divTemp.querySelector('canvas').toDataURL() : '');
-        }, 150);
+            finalQR.onerror = () => resolve(qrCanvas ? qrCanvas.toDataURL() : '');
+            finalQR.src = (imgQR && imgQR.src) ? imgQR.src : (qrCanvas ? qrCanvas.toDataURL() : '');
+        }, 100);
     });
 }
 

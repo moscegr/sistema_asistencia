@@ -1043,29 +1043,47 @@ async function generarQRConTigrePersonal(texto) {
     return new Promise((resolve) => {
         const size = 250;
         const divTemporal = document.createElement('div');
-        const textoLimpio = (texto || '').substring(0, 60);
+        const idFallback = String(texto || 'PERSONAL').split('|')[0].trim();
+        const textoLimpio = String(texto || idFallback)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\x20-\x7E]/g, "")
+            .trim()
+            .substring(0, 48) || 'PERSONAL';
         
         if (typeof QRCode !== 'undefined') {
-            new QRCode(divTemporal, { 
-                text: textoLimpio, 
-                width: size, 
-                height: size, 
-                colorDark : "#000000", 
-                colorLight : "#ffffff", 
-                correctLevel: QRCode.CorrectLevel.H 
-            });
+            try {
+                new QRCode(divTemporal, { 
+                    text: textoLimpio, 
+                    width: size, 
+                    height: size, 
+                    colorDark : "#000000", 
+                    colorLight : "#ffffff", 
+                    correctLevel: QRCode.CorrectLevel.M 
+                });
+            } catch (errQr) {
+                divTemporal.innerHTML = "";
+                new QRCode(divTemporal, { 
+                    text: idFallback.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").substring(0, 30) || 'PERSONAL', 
+                    width: size, 
+                    height: size, 
+                    colorDark : "#000000", 
+                    colorLight : "#ffffff", 
+                    correctLevel: QRCode.CorrectLevel.L 
+                });
+            }
 
             setTimeout(() => {
-                const imgQrGenerado = divTemporal.querySelector('img');
                 const canvas = divTemporal.querySelector('canvas');
-                if (imgQrGenerado && imgQrGenerado.src) {
-                    resolve(imgQrGenerado.src);
-                } else if (canvas) {
+                const imgQrGenerado = divTemporal.querySelector('img');
+                if (canvas && canvas.width > 0) {
                     resolve(canvas.toDataURL("image/png"));
+                } else if (imgQrGenerado && imgQrGenerado.src) {
+                    resolve(imgQrGenerado.src);
                 } else {
                     resolve('/img/default_avatar.png');
                 }
-            }, 150);
+            }, 100);
         } else {
             resolve('/img/default_avatar.png');
         }
@@ -1108,16 +1126,14 @@ async function generarImagenGafetePersonal(user) {
         const imgEscuela = new Image();
         const imgTigre = new Image();
         const imgFoto = new Image();
-        
-        imgEscuela.src = logoEscuelaSrc;
-        imgTigre.src = logoInicioSrc;
-        imgFoto.src = user.fotoUrl || '/img/default_avatar.png';
 
         let cargas = 0;
+        let renderizado = false;
         const totalImagenes = 3;
         const alCargarImg = () => {
             cargas++;
-            if (cargas < totalImagenes) return;
+            if (cargas < totalImagenes || renderizado) return;
+            renderizado = true;
 
             const dibujarMedallonCircular = (imgObj, cx, cy, r) => {
                 ctx.save();
@@ -1127,13 +1143,17 @@ async function generarImagenGafetePersonal(user) {
                 ctx.fillStyle = "#FFFFFF";
                 ctx.fill();
                 ctx.clip();
-                const maxDim = (r - 3) * 2;
-                const iw = imgObj.naturalWidth || imgObj.width || maxDim;
-                const ih = imgObj.naturalHeight || imgObj.height || maxDim;
-                const ratio = Math.min(maxDim / iw, maxDim / ih);
-                const dw = iw * ratio;
-                const dh = ih * ratio;
-                ctx.drawImage(imgObj, cx - dw / 2, cy - dh / 2, dw, dh);
+                try {
+                    if (imgObj && imgObj.complete && imgObj.naturalWidth > 0) {
+                        const maxDim = (r - 3) * 2;
+                        const iw = imgObj.naturalWidth || imgObj.width || maxDim;
+                        const ih = imgObj.naturalHeight || imgObj.height || maxDim;
+                        const ratio = Math.min(maxDim / iw, maxDim / ih);
+                        const dw = iw * ratio;
+                        const dh = ih * ratio;
+                        ctx.drawImage(imgObj, cx - dw / 2, cy - dh / 2, dw, dh);
+                    }
+                } catch (eImg) {}
                 ctx.restore();
 
                 ctx.save();
@@ -1174,7 +1194,11 @@ async function generarImagenGafetePersonal(user) {
             }
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(imgFoto, fotoX, fotoY, fotoW, fotoH);
+            try {
+                if (imgFoto && imgFoto.complete && imgFoto.naturalWidth > 0) {
+                    ctx.drawImage(imgFoto, fotoX, fotoY, fotoW, fotoH);
+                }
+            } catch (eFoto) {}
             ctx.restore();
 
             // Marco cuadrado institucional
@@ -1194,9 +1218,10 @@ async function generarImagenGafetePersonal(user) {
             const qrTexto = (user.qrCode || user.rfc || user.uid || user.nombre || '').trim();
             generarQRConTigrePersonal(qrTexto).then(qrDataUrl => {
                 const imgQR = new Image();
-                imgQR.src = qrDataUrl;
                 imgQR.onload = () => {
-                    ctx.drawImage(imgQR, 220, 173, 130, 130);
+                    try {
+                        ctx.drawImage(imgQR, 220, 173, 130, 130);
+                    } catch (eQr) {}
                     ctx.fillStyle = "#7b1b37";
                     ctx.font = "bold 9.5px Arial";
                     ctx.textAlign = "center";
@@ -1233,6 +1258,7 @@ async function generarImagenGafetePersonal(user) {
                     resolve(canvas.toDataURL("image/png"));
                 };
                 imgQR.onerror = () => resolve(canvas.toDataURL("image/png"));
+                imgQR.src = qrDataUrl;
             });
         };
 
@@ -1243,6 +1269,10 @@ async function generarImagenGafetePersonal(user) {
         imgEscuela.onerror = alCargarImg;
         imgTigre.onerror = alCargarImg;
         imgFoto.onerror = alCargarImg;
+
+        imgEscuela.src = logoEscuelaSrc;
+        imgTigre.src = logoInicioSrc;
+        imgFoto.src = user.fotoUrl || '/img/default_avatar.png';
     });
 }
 

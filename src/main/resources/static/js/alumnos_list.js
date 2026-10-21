@@ -163,19 +163,35 @@ async function verExpedienteQuick(matricula) {
         }
 
         const contenedorQR = document.getElementById('imgQR');
-        // Usar formato ultra seguro y recortado para evitar cualquier overflow de la librería QRCode
-        const qrText = `${matricula}|${alumnoSeleccionado.nombre || ''}`.substring(0, 60);
+        // Usar formato ASCII sin acentos para evitar el bug de overflow de QRCode.js con UTF-8
+        const qrText = `${matricula}|${alumnoSeleccionado.nombre || ''}`
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^\x20-\x7E]/g, "")
+            .trim()
+            .substring(0, 48);
         if (contenedorQR) {
             contenedorQR.innerHTML = "";
-            
-            new QRCode(contenedorQR, {
-                text: qrText,
-                width: 170,
-                height: 170,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.L 
-            });
+            try {
+                new QRCode(contenedorQR, {
+                    text: qrText || String(matricula),
+                    width: 170,
+                    height: 170,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M 
+                });
+            } catch (errQr) {
+                contenedorQR.innerHTML = "";
+                new QRCode(contenedorQR, {
+                    text: String(matricula),
+                    width: 170,
+                    height: 170,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.L 
+                });
+            }
         }
 
         const modalEl = document.getElementById('modalQR');

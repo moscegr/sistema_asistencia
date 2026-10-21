@@ -353,20 +353,45 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
     });
 }
 
+function sanitizarTextoQR(texto, fallbackId = '') {
+    let limpio = String(texto || fallbackId || '')
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\x20-\x7E]/g, "")
+        .trim();
+    if (!limpio || limpio.startsWith('data:')) {
+        limpio = String(fallbackId || 'ALUMNO').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7E]/g, "").trim();
+    }
+    return limpio.substring(0, 48);
+}
+
 async function generarQRConTigre(texto) {
     return new Promise((resolve) => {
         const size = 250;
         const divTemporal = document.createElement('div');
-        const textoLimpio = (texto || '').substring(0, 60);
+        const idFallback = String(texto || '').split('|')[0].trim();
+        const textoLimpio = sanitizarTextoQR(texto, idFallback);
         
-        new QRCode(divTemporal, { 
-            text: textoLimpio, 
-            width: size, 
-            height: size, 
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H 
-        });
+        try {
+            new QRCode(divTemporal, { 
+                text: textoLimpio, 
+                width: size, 
+                height: size, 
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M 
+            });
+        } catch (errQr) {
+            divTemporal.innerHTML = "";
+            new QRCode(divTemporal, { 
+                text: sanitizarTextoQR(idFallback, '00000000000000'), 
+                width: size, 
+                height: size, 
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel: QRCode.CorrectLevel.L 
+            });
+        }
 
         setTimeout(() => {
             const canvas = document.createElement('canvas');
@@ -479,21 +504,33 @@ async function generarImagenGafete(alumno) {
 
             const divTemporal = document.createElement('div');
             let textoQR = `${mat}|${alumno.nombre || ''}`.trim();
-            if (alumno.qrCode && !alumno.qrCode.startsWith('data:') && alumno.qrCode.length <= 60) {
+            if (alumno.qrCode && !alumno.qrCode.startsWith('data:')) {
                 textoQR = alumno.qrCode.trim();
-            } else if (alumno.qr_texto && !alumno.qr_texto.startsWith('data:') && alumno.qr_texto.length <= 60) {
+            } else if (alumno.qr_texto && !alumno.qr_texto.startsWith('data:')) {
                 textoQR = alumno.qr_texto.trim();
             }
-            textoQR = textoQR.substring(0, 60);
+            textoQR = sanitizarTextoQR(textoQR, mat);
 
-            new QRCode(divTemporal, {
-                text: textoQR,
-                width: 240,
-                height: 240,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            try {
+                new QRCode(divTemporal, {
+                    text: textoQR,
+                    width: 240,
+                    height: 240,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (errQr) {
+                divTemporal.innerHTML = "";
+                new QRCode(divTemporal, {
+                    text: sanitizarTextoQR(mat, '00000000000000'),
+                    width: 240,
+                    height: 240,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            }
 
             const finalizarGafeteConQR = (qrSource) => {
                 try {

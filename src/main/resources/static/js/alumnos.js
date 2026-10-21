@@ -312,7 +312,12 @@ if (formAlumno) {
             const apemat = document.getElementById('apemat').value.trim().toUpperCase();
             
             const nombreCompleto = `${nombre} ${apepat} ${apemat}`.trim();
-            const textoUnicoQR = `${matricula}|${nombreCompleto}`;
+            const textoUnicoQR = `${matricula}|${nombreCompleto}`
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^\x20-\x7E]/g, "")
+                .trim()
+                .substring(0, 48);
 
             const teltutor = document.getElementById('teltutor').value.trim();
             const alumnoObj = {

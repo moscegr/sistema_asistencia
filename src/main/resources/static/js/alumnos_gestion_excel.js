@@ -191,7 +191,12 @@ async function ejecutarCargaReal() {
             }
 
             const nombreCompletoQR = `${nombre} ${apepat} ${apemat}`.trim().toUpperCase();
-            const textoUnicoQR = `${matricula}|${nombreCompletoQR}`;
+            const textoUnicoQR = `${matricula}|${nombreCompletoQR}`
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^\x20-\x7E]/g, "")
+                .trim()
+                .substring(0, 48);
 
             let especialidadFinal = "POR ASIGNAR";
             let gradoFinal = String(r.grado || "").trim();
