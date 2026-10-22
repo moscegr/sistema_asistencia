@@ -770,31 +770,27 @@
                     </ul>
                 </div>
 
-                <!-- Columna 4: Logos de Dependencias Oficiales -->
+                <!-- Columna 4: Logos Institucionales Oficiales (SEP, DGETI, SEMS) -->
                 <div class="col-lg-3 col-md-6 text-lg-end">
-                    <h5 class="footer-title text-lg-end">Dependencias Oficiales</h5>
-                    <div class="d-flex flex-column gap-2 align-items-lg-end">
-                        <div class="d-flex align-items-center gap-2 p-2 px-3 rounded-3 border border-secondary" style="background: rgba(255,255,255,0.06); width: fit-content;">
-                            <i class="bi bi-mortarboard-fill text-warning fs-5"></i>
-                            <div class="text-start">
-                                <div class="text-white fw-bold small" style="line-height:1.1;">SEP</div>
-                                <div class="text-white-50" style="font-size: 0.7rem;">Secretaría de Educación Pública</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 p-2 px-3 rounded-3 border border-secondary" style="background: rgba(255,255,255,0.06); width: fit-content;">
-                            <i class="bi bi-gear-fill text-warning fs-5"></i>
-                            <div class="text-start">
-                                <div class="text-white fw-bold small" style="line-height:1.1;">DGETI</div>
-                                <div class="text-white-50" style="font-size: 0.7rem;">Dir. Gral. de Educ. Tecnológica Ind.</div>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2 p-2 px-3 rounded-3 border border-secondary" style="background: rgba(255,255,255,0.06); width: fit-content;">
-                            <i class="bi bi-shield-shaded text-warning fs-5"></i>
-                            <div class="text-start">
-                                <div class="text-white fw-bold small" style="line-height:1.1;">SEMS</div>
-                                <div class="text-white-50" style="font-size: 0.7rem;">Subsecretaría de Educ. Media Superior</div>
-                            </div>
-                        </div>
+                    <div class="d-flex flex-column gap-2 align-items-lg-end align-items-center mt-2">
+                        <a href="https://www.gob.mx/sep" target="_blank" rel="noopener noreferrer" 
+                           class="d-flex align-items-center justify-content-center p-2 px-3 rounded-3 bg-white shadow-sm text-decoration-none footer-logo-card" 
+                           style="width: 250px; height: 52px; transition: all 0.25s ease;"
+                           title="Secretaría de Educación Pública">
+                            <img th:src="@{/img/logo_sep_educacion.png}" src="/img/logo_sep_educacion.png" alt="SEP - Secretaría de Educación Pública" style="max-height: 38px; max-width: 100%; object-fit: contain;">
+                        </a>
+                        <a href="https://www.dgeti.sep.gob.mx" target="_blank" rel="noopener noreferrer" 
+                           class="d-flex align-items-center justify-content-center p-2 px-3 rounded-3 bg-white shadow-sm text-decoration-none footer-logo-card" 
+                           style="width: 250px; height: 52px; transition: all 0.25s ease;"
+                           title="Dirección General de Educación Tecnológica Industrial">
+                            <img th:src="@{/img/logo_dgeti_oficial.png}" src="/img/logo_dgeti_oficial.png" alt="DGETI" style="max-height: 38px; max-width: 100%; object-fit: contain;">
+                        </a>
+                        <a href="https://educacionmediasuperior.sep.gob.mx" target="_blank" rel="noopener noreferrer" 
+                           class="d-flex align-items-center justify-content-center p-2 px-3 rounded-3 bg-white shadow-sm text-decoration-none footer-logo-card" 
+                           style="width: 250px; height: 52px; transition: all 0.25s ease;"
+                           title="Subsecretaría de Educación Media Superior">
+                            <img th:src="@{/img/logo_sems.png}" src="/img/logo_sems.png" alt="SEMS - Subsecretaría de Educación Media Superior" style="max-height: 38px; max-width: 100%; object-fit: contain;">
+                        </a>
                     </div>
                 </div>
             </div>
