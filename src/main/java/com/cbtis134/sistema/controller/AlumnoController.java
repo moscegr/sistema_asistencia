@@ -24,28 +24,55 @@ public class AlumnoController {
 
     @GetMapping
     public List<Alumno> obtenerTodos() {
-        return alumnoRepository.findAll();
+        List<Alumno> lista = alumnoRepository.findAll();
+        for (Alumno a : lista) {
+            migrarFotoAlumnoSiBase64(a);
+        }
+        return lista;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Alumno> obtenerPorId(@PathVariable String id) {
         return alumnoRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(a -> {
+                    migrarFotoAlumnoSiBase64(a);
+                    return ResponseEntity.ok(a);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/ncontrol/{ncontrol}")
     public ResponseEntity<Alumno> obtenerPorNControl(@PathVariable String ncontrol) {
         return alumnoRepository.findFirstByNcontrolOrMatricula(ncontrol, ncontrol)
-                .map(ResponseEntity::ok)
+                .map(a -> {
+                    migrarFotoAlumnoSiBase64(a);
+                    return ResponseEntity.ok(a);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/qr/{qrCode}")
     public ResponseEntity<Alumno> obtenerPorQr(@PathVariable String qrCode) {
         return alumnoRepository.findFirstByQrCode(qrCode)
-                .map(ResponseEntity::ok)
+                .map(a -> {
+                    migrarFotoAlumnoSiBase64(a);
+                    return ResponseEntity.ok(a);
+                })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    private void migrarFotoAlumnoSiBase64(Alumno a) {
+        if (a != null && ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
+            String idArchivo = a.getNcontrol() != null && !a.getNcontrol().isBlank() ? a.getNcontrol()
+                    : (a.getMatricula() != null && !a.getMatricula().isBlank() ? a.getMatricula() : a.getId());
+            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(a.getFotoUrl(), "alumnos", idArchivo);
+            if (!nuevaUrl.equals(a.getFotoUrl())) {
+                a.setFotoUrl(nuevaUrl);
+                try {
+                    alumnoRepository.save(a);
+                } catch (Exception ignored) {}
+            }
+        }
     }
 
     private static String sanitizarTexto(String s) {
@@ -101,8 +128,10 @@ public class AlumnoController {
         if (a.getEscuela_procedencia() != null) a.setEscuela_procedencia(sanitizarTexto(a.getEscuela_procedencia()));
         if (a.getMotivo_baja() != null) a.setMotivo_baja(sanitizarTexto(a.getMotivo_baja()));
 
-        if (a.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(a.getFotoUrl())) {
-            a.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(a.getFotoUrl()));
+        if (a.getFotoUrl() != null && ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
+            String idArchivo = mat != null && !mat.isEmpty() ? mat
+                    : (a.getCurp() != null && !a.getCurp().isEmpty() ? a.getCurp() : a.getId());
+            a.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(a.getFotoUrl(), "alumnos", idArchivo));
         }
 
         String nomCompleto = ((a.getNombre() != null ? a.getNombre() : "") + " " +
@@ -187,6 +216,9 @@ public class AlumnoController {
                     "pases_salida");
         }
 
+        for (Alumno a : aEliminar) {
+            ImageOptimizer.eliminarArchivoDisco(a.getFotoUrl());
+        }
         alumnoRepository.deleteAll(aEliminar);
         return ResponseEntity.ok(java.util.Map.of(
                 "eliminados", aEliminar.size(),
@@ -243,7 +275,8 @@ public class AlumnoController {
                                     Criteria.where("es_grupal").ne(true))),
                             "pases_salida");
 
-                    // ── Borrar el alumno ────────────────────────────────────────────────
+                    // ── Borrar archivo de foto y registro del alumno ────────────────────
+                    ImageOptimizer.eliminarArchivoDisco(alumno.getFotoUrl());
                     alumnoRepository.delete(alumno);
                     return ResponseEntity.ok().<Void>build();
                 })

@@ -72,6 +72,11 @@ public class AdminSeeder implements ApplicationRunner {
                     if (u.getRfc() != null) u.setRfc(sanitizarSinAcentos(u.getRfc()).replaceAll("[^A-Z0-9]", ""));
                     if (u.getRol() != null) u.setRol(sanitizarSinAcentos(u.getRol()));
                     if (u.getQrCode() != null) u.setQrCode(sanitizarSinAcentos(u.getQrCode()));
+                    if (ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
+                        String idArch = u.getRfc() != null && !u.getRfc().isBlank() ? u.getRfc()
+                                : (u.getUid() != null && !u.getUid().isBlank() ? u.getUid() : u.getId());
+                        u.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", idArch));
+                    }
                 }
                 usuarioRepository.saveAll(usuarios);
             }
@@ -359,6 +364,14 @@ public class AdminSeeder implements ApplicationRunner {
             }
             if (!docSistema.containsKey("ciudad_plantel") || docSistema.getString("ciudad_plantel") == null || docSistema.getString("ciudad_plantel").isBlank()) {
                 docSistema.put("ciudad_plantel", ciudadEnv != null && !ciudadEnv.isBlank() ? ciudadEnv : "");
+                mod = true;
+            }
+            if (ImageOptimizer.esBase64Imagen(docSistema.getString("logo_plantel_url"))) {
+                docSistema.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(docSistema.getString("logo_plantel_url"), "logo_plantel"));
+                mod = true;
+            }
+            if (ImageOptimizer.esBase64Imagen(docSistema.getString("logo_inicio_url"))) {
+                docSistema.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(docSistema.getString("logo_inicio_url"), "logo_inicio"));
                 mod = true;
             }
             if (mod) {

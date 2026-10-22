@@ -71,13 +71,13 @@ public class ConfiguracionController {
         if ("sistema".equals(id) && doc != null) {
             boolean modificado = false;
             String logoP = doc.getString("logo_plantel_url");
-            if (ImageOptimizer.requiereOptimizacion(logoP)) {
-                doc.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+            if (ImageOptimizer.esBase64Imagen(logoP)) {
+                doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                 modificado = true;
             }
             String logoI = doc.getString("logo_inicio_url");
-            if (ImageOptimizer.requiereOptimizacion(logoI)) {
-                doc.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+            if (ImageOptimizer.esBase64Imagen(logoI)) {
+                doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                 modificado = true;
             }
             if (modificado) {
@@ -179,14 +179,14 @@ public class ConfiguracionController {
         if ("sistema".equals(id)) {
             if (body.containsKey("logo_plantel_url") && body.get("logo_plantel_url") != null) {
                 String logoP = body.get("logo_plantel_url").toString();
-                if (ImageOptimizer.requiereOptimizacion(logoP)) {
-                    body.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+                if (ImageOptimizer.esBase64Imagen(logoP)) {
+                    body.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                 }
             }
             if (body.containsKey("logo_inicio_url") && body.get("logo_inicio_url") != null) {
                 String logoI = body.get("logo_inicio_url").toString();
-                if (ImageOptimizer.requiereOptimizacion(logoI)) {
-                    body.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+                if (ImageOptimizer.esBase64Imagen(logoI)) {
+                    body.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                 }
             }
             VistaController.invalidarCacheConfig();
@@ -422,6 +422,7 @@ public class ConfiguracionController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Formato no válido. Debe ser un archivo .zip o .json."));
             }
 
+            VistaController.invalidarCacheConfig();
             resultado.put("success", true);
             resultado.put("mensaje", "Respaldo restaurado exitosamente.");
             resultado.put("total_documentos", totalDocumentos);

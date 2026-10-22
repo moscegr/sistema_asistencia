@@ -38,6 +38,7 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByCorreo(correo))
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    migrarFotoUsuarioSiBase64(u);
                     return ResponseEntity.ok((Object) u);
                 })
                 .orElseGet(() -> {
@@ -66,14 +67,29 @@ public class UsuarioController {
             if (u.getNombre() != null) {
                 u.setNombre(u.getNombre().toUpperCase());
             }
-            if (ImageOptimizer.requiereOptimizacion(u.getFotoUrl())) {
-                u.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl()));
+            migrarFotoUsuarioSiBase64(u);
+        }
+        return lista;
+    }
+
+    private static String obtenerIdentificadorArchivoUsuario(Usuario u) {
+        if (u.getRfc() != null && !u.getRfc().isBlank()) return u.getRfc();
+        if (u.getUid() != null && !u.getUid().isBlank()) return u.getUid();
+        if (u.getId() != null && !u.getId().isBlank()) return u.getId();
+        return UUID.randomUUID().toString();
+    }
+
+    private void migrarFotoUsuarioSiBase64(Usuario u) {
+        if (u != null && ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
+            String idArchivo = obtenerIdentificadorArchivoUsuario(u);
+            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", idArchivo);
+            if (!nuevaUrl.equals(u.getFotoUrl())) {
+                u.setFotoUrl(nuevaUrl);
                 try {
                     usuarioRepository.save(u);
                 } catch (Exception ignored) {}
             }
         }
-        return lista;
     }
 
     @GetMapping("/{id:.+}")
@@ -84,6 +100,7 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    migrarFotoUsuarioSiBase64(u);
                     return u;
                 })
                 .map(ResponseEntity::ok)
@@ -96,6 +113,7 @@ public class UsuarioController {
         return usuarioRepository.findByRfc(rfcLimpio)
                 .map(u -> {
                     if (u.getNombre() != null) u.setNombre(u.getNombre().toUpperCase());
+                    migrarFotoUsuarioSiBase64(u);
                     return ResponseEntity.ok(u);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -164,8 +182,9 @@ public class UsuarioController {
         if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         }
-        if (usuario.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(usuario.getFotoUrl())) {
-            usuario.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(usuario.getFotoUrl()));
+        if (usuario.getFotoUrl() != null && ImageOptimizer.esBase64Imagen(usuario.getFotoUrl())) {
+            String idArchivo = obtenerIdentificadorArchivoUsuario(usuario);
+            usuario.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(usuario.getFotoUrl(), "usuarios", idArchivo));
         }
         if (usuario.getEstatus() == null) {
             usuario.setEstatus("Activo");
@@ -203,8 +222,8 @@ public class UsuarioController {
                 if (u.getTelefono() != null) existente.setTelefono(sanitizarTelefono(u.getTelefono()));
                 if (u.getFotoUrl() != null) {
                     String foto = u.getFotoUrl();
-                    if (ImageOptimizer.requiereOptimizacion(foto)) {
-                        foto = ImageOptimizer.optimizarFotoPerfil(foto);
+                    if (ImageOptimizer.esBase64Imagen(foto)) {
+                        foto = ImageOptimizer.guardarFotoPerfilEnDisco(foto, "usuarios", obtenerIdentificadorArchivoUsuario(existente));
                     }
                     existente.setFotoUrl(foto);
                 }
@@ -231,8 +250,8 @@ public class UsuarioController {
                 if (u.getPassword() != null && !u.getPassword().isEmpty()) {
                     u.setPassword(passwordEncoder.encode(u.getPassword()));
                 }
-                if (u.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(u.getFotoUrl())) {
-                    u.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl()));
+                if (u.getFotoUrl() != null && ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
+                    u.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", obtenerIdentificadorArchivoUsuario(u)));
                 }
                 if (u.getEstatus() == null) u.setEstatus("Activo");
                 usuarioRepository.save(u);
@@ -281,12 +300,13 @@ public class UsuarioController {
                     if (usuarioActualizado.getTelefono() != null) usuario.setTelefono(sanitizarTelefono(usuarioActualizado.getTelefono()));
                     if (usuarioActualizado.getFotoUrl() != null) {
                         if (usuarioActualizado.getFotoUrl().trim().isEmpty()) {
+                            ImageOptimizer.eliminarArchivoDisco(usuario.getFotoUrl());
                             usuario.setFotoUrl(null);
                             usuario.setDescriptor_facial(null);
                         } else {
                             String foto = usuarioActualizado.getFotoUrl();
-                            if (ImageOptimizer.requiereOptimizacion(foto)) {
-                                foto = ImageOptimizer.optimizarFotoPerfil(foto);
+                            if (ImageOptimizer.esBase64Imagen(foto)) {
+                                foto = ImageOptimizer.guardarFotoPerfilEnDisco(foto, "usuarios", obtenerIdentificadorArchivoUsuario(usuario));
                             }
                             usuario.setFotoUrl(foto);
                         }
@@ -319,6 +339,7 @@ public class UsuarioController {
                 .or(() -> usuarioRepository.findByRfc(idLimpio.toUpperCase()))
                 .or(() -> usuarioRepository.findByCorreoIgnoreCase(idLimpio))
                 .map(usuario -> {
+                    ImageOptimizer.eliminarArchivoDisco(usuario.getFotoUrl());
                     usuario.setFotoUrl(null);
                     usuario.setDescriptor_facial(null);
                     Usuario guardado = usuarioRepository.save(usuario);
@@ -377,7 +398,8 @@ public class UsuarioController {
                                 "incidencias_personal");
                     }
 
-                    // ── Borrar el usuario ───────────────────────────────────────────────
+                    // ── Borrar foto y el usuario ────────────────────────────────────────
+                    ImageOptimizer.eliminarArchivoDisco(usuario.getFotoUrl());
                     usuarioRepository.delete(usuario);
                     return ResponseEntity.ok().<Void>build();
                 })

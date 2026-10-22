@@ -53,13 +53,13 @@ public class VistaController {
                 if (doc != null) {
                     boolean modificado = false;
                     String logoP = doc.getString("logo_plantel_url");
-                    if (ImageOptimizer.requiereOptimizacion(logoP)) {
-                        doc.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+                    if (ImageOptimizer.esBase64Imagen(logoP)) {
+                        doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                         modificado = true;
                     }
                     String logoI = doc.getString("logo_inicio_url");
-                    if (ImageOptimizer.requiereOptimizacion(logoI)) {
-                        doc.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+                    if (ImageOptimizer.esBase64Imagen(logoI)) {
+                        doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                         modificado = true;
                     }
                     if (modificado) {

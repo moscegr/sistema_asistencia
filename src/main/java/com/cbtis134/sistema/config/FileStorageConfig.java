@@ -16,6 +16,7 @@ public class FileStorageConfig implements WebMvcConfigurer {
 
     @PostConstruct
     public void init() {
+        ImageOptimizer.setUploadDir(uploadDir);
         File dir = new File(uploadDir);
         if (!dir.exists()) {
             boolean created = dir.mkdirs();
@@ -25,6 +26,9 @@ public class FileStorageConfig implements WebMvcConfigurer {
         } else {
             System.out.println("=== [FILE STORAGE] Directorio de almacenamiento detectado en: " + dir.getAbsolutePath() + " ===");
         }
+        new File(dir, "alumnos").mkdirs();
+        new File(dir, "usuarios").mkdirs();
+        new File(dir, "logos").mkdirs();
     }
 
     @Override
@@ -36,7 +40,8 @@ public class FileStorageConfig implements WebMvcConfigurer {
         }
         
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(location);
+                .addResourceLocations(location)
+                .setCachePeriod(3600);
 
         registry.addResourceHandler("/img/**")
                 .addResourceLocations("classpath:/static/img/");
