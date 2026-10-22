@@ -419,29 +419,60 @@ function verJustificante(folio) {
     const j = justificantesCache.find(item => item.folio_justificante === folio || item.id === folio);
     if (!j) return Swal.fire("Error", "No se encontraron los datos del justificante.", "error");
 
-    document.getElementById('valNombre').innerText = (j.nombreFull || '').toUpperCase();
-    document.getElementById('valGrado').innerText = j.grado || '';
-    document.getElementById('valGpo').innerText = j.grupo || '';
-    document.getElementById('valEsp').innerText = (j.especialidad || '').toUpperCase();
-    document.getElementById('prevFolio').innerText = "FOLIO: " + (j.folio_justificante || j.id);
+    const original = document.getElementById('disenoJustificante');
+    const contenedor = document.getElementById('contenedorModalJustificante');
+    if (!original || !contenedor) return;
+
+    // Clonar el diseño base para NO modificar la plantilla principal de captura
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
+
+    // Llenar los datos directamente en el clon aislado
+    const elNom = clon.querySelector('#valNombre');
+    if (elNom) elNom.innerText = (j.nombreFull || '').toUpperCase();
+
+    const elGra = clon.querySelector('#valGrado');
+    if (elGra) elGra.innerText = j.grado || '';
+
+    const elGpo = clon.querySelector('#valGpo');
+    if (elGpo) elGpo.innerText = j.grupo || '';
+
+    const elEsp = clon.querySelector('#valEsp');
+    if (elEsp) elEsp.innerText = (j.especialidad || '').toUpperCase();
+
+    const elFol = clon.querySelector('#prevFolio');
+    if (elFol) elFol.innerText = "FOLIO: " + (j.folio_justificante || j.id);
 
     const fechaFaltaStr = typeof formatearFechaFalta === 'function' ? 
         formatearFechaFalta(j.inasistencia_dia).toUpperCase() : 
         j.inasistencia_dia;
 
-    document.getElementById('valFechaFalta').innerText = fechaFaltaStr;
-    document.getElementById('valMotivo').innerText = (j.motivo_detalle || '').toUpperCase();
+    const elFec = clon.querySelector('#valFechaFalta');
+    if (elFec) elFec.innerText = fechaFaltaStr;
 
-    const original = document.getElementById('disenoJustificante');
-    const contenedor = document.getElementById('contenedorModalJustificante');
-    if (!original || !contenedor) return;
+    const elMot = clon.querySelector('#valMotivo');
+    if (elMot) elMot.innerText = (j.motivo_detalle || '').toUpperCase();
 
+    // Construir la hoja doble con línea de corte a partir del clon aislado
     contenedor.innerHTML = '';
-    const tempContainer = construirHojaDobleConLineaDeCorte(original);
-    tempContainer.style.transform = "scale(0.85)";
+    const tempContainer = construirHojaDobleConLineaDeCorte(clon);
+
+    // Envolver en un contenedor escalable para que entre completo y perfectamente en pantalla
+    const wrapperEscala = document.createElement('div');
+    wrapperEscala.style.width = "100%";
+    wrapperEscala.style.display = "flex";
+    wrapperEscala.style.justifyContent = "center";
+    wrapperEscala.style.overflow = "hidden";
+
+    // 216mm ~ 816px a escala 1. Con escala 0.52 entra completo verticalmente en cualquier pantalla
+    tempContainer.style.transform = "scale(0.55)";
     tempContainer.style.transformOrigin = "top center";
-    tempContainer.style.margin = "0 auto";
-    contenedor.appendChild(tempContainer);
+    tempContainer.style.margin = "0 auto -370px auto"; // compensar espacio inferior del scale
+    tempContainer.style.boxShadow = "0 8px 30px rgba(0,0,0,0.15)";
+    tempContainer.style.borderRadius = "4px";
+
+    wrapperEscala.appendChild(tempContainer);
+    contenedor.appendChild(wrapperEscala);
 
     const modalEl = document.getElementById('modalVisualizarJustificante');
     if (modalEl && typeof bootstrap !== 'undefined') {
@@ -457,12 +488,24 @@ function visualizarJustificanteModal() {
     if (!original || !contenedor) return;
 
     contenedor.innerHTML = '';
-    const tempContainer = construirHojaDobleConLineaDeCorte(original);
-    // Ajustar escala para vista previa en pantalla dentro del modal
-    tempContainer.style.transform = "scale(0.85)";
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
+    const tempContainer = construirHojaDobleConLineaDeCorte(clon);
+
+    const wrapperEscala = document.createElement('div');
+    wrapperEscala.style.width = "100%";
+    wrapperEscala.style.display = "flex";
+    wrapperEscala.style.justifyContent = "center";
+    wrapperEscala.style.overflow = "hidden";
+
+    tempContainer.style.transform = "scale(0.55)";
     tempContainer.style.transformOrigin = "top center";
-    tempContainer.style.margin = "0 auto";
-    contenedor.appendChild(tempContainer);
+    tempContainer.style.margin = "0 auto -370px auto";
+    tempContainer.style.boxShadow = "0 8px 30px rgba(0,0,0,0.15)";
+    tempContainer.style.borderRadius = "4px";
+
+    wrapperEscala.appendChild(tempContainer);
+    contenedor.appendChild(wrapperEscala);
 
     const modalEl = document.getElementById('modalVisualizarJustificante');
     if (modalEl && typeof bootstrap !== 'undefined') {

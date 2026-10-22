@@ -211,16 +211,16 @@
 
     <!-- Modal de Visualización Previa de Justificante -->
     <div class="modal fade" id="modalVisualizarJustificante" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-                <div class="modal-header border-0 pb-0">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="max-width: 900px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; max-height: 92vh;">
+                <div class="modal-header border-0 pb-1">
                     <h6 class="modal-title fw-bold text-guinda"><i class="bi bi-file-earmark-pdf me-2"></i>Vista Previa del Justificante</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body p-3 overflow-auto text-center bg-light">
-                    <div id="contenedorModalJustificante" class="d-inline-block shadow-sm bg-white p-2 text-start"></div>
+                <div class="modal-body p-2 text-center bg-light" style="overflow-y: auto; overflow-x: hidden;">
+                    <div id="contenedorModalJustificante" style="width: 100%; display: flex; justify-content: center; align-items: flex-start;"></div>
                 </div>
-                <div class="modal-footer border-0 pt-0 justify-content-center">
+                <div class="modal-footer border-0 pt-1 pb-2 justify-content-center">
                     <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
