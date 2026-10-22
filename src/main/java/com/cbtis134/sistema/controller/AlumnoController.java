@@ -24,11 +24,7 @@ public class AlumnoController {
 
     @GetMapping
     public List<Alumno> obtenerTodos() {
-        List<Alumno> lista = alumnoRepository.findAll();
-        for (Alumno a : lista) {
-            migrarFotoAlumnoSiBase64(a);
-        }
-        return lista;
+        return alumnoRepository.findAll();
     }
 
     @GetMapping("/{id}")

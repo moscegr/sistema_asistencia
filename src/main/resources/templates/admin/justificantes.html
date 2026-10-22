@@ -79,9 +79,14 @@
                                 <input type="text" id="motivoJust" class="form-control shadow-sm" placeholder="Ej: SALUD / CITA MÉDICA">
                             </div>
 
-                            <button class="btn btn-success w-100 mt-3 rounded-pill shadow" onclick="guardarJustificante()">
-                                <i class="bi bi-printer-fill me-2"></i>Imprimir y Guardar
-                            </button>
+                            <div class="d-grid gap-2 mt-3">
+                                <button class="btn btn-outline-primary rounded-pill shadow-sm" type="button" onclick="visualizarJustificanteModal()">
+                                    <i class="bi bi-eye-fill me-2"></i>Visualizar Justificante
+                                </button>
+                                <button class="btn btn-success rounded-pill shadow" type="button" onclick="guardarJustificante()">
+                                    <i class="bi bi-printer-fill me-2"></i>Imprimir y Guardar
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -98,13 +103,12 @@
                                         </div>
 
                                         <div class="text-end flex-grow-1 px-1" style="line-height: 1.18;">
-                                            <div style="font-size: 10.5pt; font-weight: 700; color: #1f1f1f;">Subsecretaría de Educación Media Superior</div>
-                                            <div style="font-size: 7.6pt; font-weight: 600; color: #333;">Dirección General de Educación Tecnológica Industrial y de Servicios</div>
-                                            <div id="justNombreOficialPlantel" class="nombre-oficial-plantel" style="font-size: 7.6pt; font-weight: 700; color: #111;"
-                                                 th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null and !configSistema['nombre_oficial_plantel'].isEmpty() ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134'}">
-                                                Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134
+                                            <div style="font-size: 10.5pt; font-weight: 700; color: #1f1f1f;">SEMS</div>
+                                            <div id="justNombrePlantel" class="nombre-corto-plantel" style="font-size: 8.5pt; font-weight: 700; color: #111; text-transform: uppercase;"
+                                                 th:text="${configSistema != null and configSistema['nombre_plantel'] != null and !configSistema['nombre_plantel'].isEmpty() ? configSistema['nombre_plantel'] : 'CBTIS 134'}">
+                                                CBTIS 134
                                             </div>
-                                            <div id="justCctEscuela" style="font-size: 7.5pt; font-weight: 700; color: #111; margin-top: 1px;"
+                                            <div id="justCctEscuela" style="font-size: 7.8pt; font-weight: 700; color: #111; margin-top: 1px;"
                                                  th:text="${configSistema != null and configSistema['cct_escuela'] != null ? configSistema['cct_escuela'] : '12DCT0001L'}">
                                                 12DCT0001L
                                             </div>
@@ -158,7 +162,7 @@
                                             MATILDE ABIGAIL GARCIA NAJERA
                                         </div>
                                         <div class="fw-bold" style="font-size: 9.5pt; color: #2b2b2b;">
-                                            Orientación Educativa <span id="valTurnoJust">T.M.</span>
+                                            Orientación Educativa
                                         </div>
                                     </div>
                                 </div>
@@ -205,6 +209,27 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Visualización Previa de Justificante -->
+    <div class="modal fade" id="modalVisualizarJustificante" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold text-guinda"><i class="bi bi-file-earmark-pdf me-2"></i>Vista Previa del Justificante</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-3 overflow-auto text-center bg-light">
+                    <div id="contenedorModalJustificante" class="d-inline-block shadow-sm bg-white p-2 text-start"></div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4" onclick="guardarJustificante()">
+                        <i class="bi bi-printer-fill me-1"></i> Imprimir y Guardar
+                    </button>
                 </div>
             </div>
         </div>

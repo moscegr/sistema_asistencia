@@ -56,33 +56,7 @@ public class AdminSeeder implements ApplicationRunner {
     }
 
     private void sanitizarRegistrosExistentes() {
-        try {
-            List<Alumno> alumnos = alumnoRepository.findAll();
-            if (!alumnos.isEmpty()) {
-                for (Alumno a : alumnos) {
-                    AlumnoController.sanitizarAlumno(a);
-                }
-                alumnoRepository.saveAll(alumnos);
-            }
-
-            List<Usuario> usuarios = usuarioRepository.findAll();
-            if (!usuarios.isEmpty()) {
-                for (Usuario u : usuarios) {
-                    if (u.getNombre() != null) u.setNombre(sanitizarSinAcentos(u.getNombre()));
-                    if (u.getRfc() != null) u.setRfc(sanitizarSinAcentos(u.getRfc()).replaceAll("[^A-Z0-9]", ""));
-                    if (u.getRol() != null) u.setRol(sanitizarSinAcentos(u.getRol()));
-                    if (u.getQrCode() != null) u.setQrCode(sanitizarSinAcentos(u.getQrCode()));
-                    if (ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
-                        String idArch = u.getRfc() != null && !u.getRfc().isBlank() ? u.getRfc()
-                                : (u.getUid() != null && !u.getUid().isBlank() ? u.getUid() : u.getId());
-                        u.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", idArch));
-                    }
-                }
-                usuarioRepository.saveAll(usuarios);
-            }
-        } catch (Exception e) {
-            System.err.println("-> [SEEDER] Aviso al sanitizar registros existentes: " + e.getMessage());
-        }
+        // No se sobreescribe ni se ejecuta barrido en masa de la base de datos al inicio
     }
 
     private String obtenerVarEnv(String... nombres) {

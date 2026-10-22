@@ -43,9 +43,9 @@ async function inicializarDatosJustificantes() {
             const firmaJust = document.getElementById('nombreResponsableJust');
             if (firmaJust) firmaJust.innerText = responsable.toUpperCase();
 
-            const elNomOficial = document.getElementById('justNombreOficialPlantel');
-            if (elNomOficial && data.nombre_oficial_plantel) {
-                elNomOficial.innerText = data.nombre_oficial_plantel;
+            const elNomPlantel = document.getElementById('justNombrePlantel');
+            if (elNomPlantel && data.nombre_plantel) {
+                elNomPlantel.innerText = data.nombre_plantel.toUpperCase();
             }
 
             const elCct = document.getElementById('justCctEscuela');
@@ -156,10 +156,7 @@ async function seleccionarParaJust(matricula) {
         document.getElementById('valEsp').innerText = (data.especialidad || '').toUpperCase();
 
         const elTurno = document.getElementById('valTurnoJust');
-        if (elTurno) {
-            const esVesp = (data.turno || '').toUpperCase().startsWith('V');
-            elTurno.innerText = esVesp ? 'T.V.' : 'T.M.';
-        }
+        if (elTurno) elTurno.innerText = '';
         
         inicializarDatosJustificantes();
 
@@ -386,6 +383,27 @@ async function confirmarEliminarJustificante(id) {
 function filtrarJustificantes() {
     renderizarTablaJustificantes();
 }
+
+function visualizarJustificanteModal() {
+    const original = document.getElementById('disenoJustificante');
+    const contenedor = document.getElementById('contenedorModalJustificante');
+    if (!original || !contenedor) return;
+
+    contenedor.innerHTML = '';
+    const tempContainer = construirHojaDobleConLineaDeCorte(original);
+    // Ajustar escala para vista previa en pantalla dentro del modal
+    tempContainer.style.transform = "scale(0.85)";
+    tempContainer.style.transformOrigin = "top center";
+    tempContainer.style.margin = "0 auto";
+    contenedor.appendChild(tempContainer);
+
+    const modalEl = document.getElementById('modalVisualizarJustificante');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+window.visualizarJustificanteModal = visualizarJustificanteModal;
 
 async function reimprimirJust(folio) {
     const j = justificantesCache.find(item => item.folio_justificante === folio || item.id === folio);

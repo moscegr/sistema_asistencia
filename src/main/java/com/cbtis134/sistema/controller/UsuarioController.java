@@ -67,7 +67,6 @@ public class UsuarioController {
             if (u.getNombre() != null) {
                 u.setNombre(u.getNombre().toUpperCase());
             }
-            migrarFotoUsuarioSiBase64(u);
         }
         return lista;
     }
