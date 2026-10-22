@@ -338,7 +338,10 @@ function renderizarTablaJustificantes() {
 		        <td><small class="text-truncate d-inline-block" style="max-width: 150px;">${j.motivo_detalle || ''}</small></td>
 		        <td class="text-center">
 		            <div class="btn-group">
-		                <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirJust('${folio}')" title="Reimprimir">
+		                <button class="btn btn-sm btn-outline-primary border-0" onclick="verJustificante('${folio}')" title="Ver Justificante">
+		                    <i class="bi bi-eye-fill fs-5"></i>
+		                </button>
+		                <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirJust('${folio}')" title="Descargar / Imprimir PDF">
 		                    <i class="bi bi-file-pdf-fill fs-5"></i>
 		                </button>
 		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarJustificante('${j._id || j.folio_justificante || j.id}')" title="Eliminar Justificante">
@@ -383,6 +386,42 @@ async function confirmarEliminarJustificante(id) {
 function filtrarJustificantes() {
     renderizarTablaJustificantes();
 }
+
+function verJustificante(folio) {
+    const j = justificantesCache.find(item => item.folio_justificante === folio || item.id === folio);
+    if (!j) return Swal.fire("Error", "No se encontraron los datos del justificante.", "error");
+
+    document.getElementById('valNombre').innerText = (j.nombreFull || '').toUpperCase();
+    document.getElementById('valGrado').innerText = j.grado || '';
+    document.getElementById('valGpo').innerText = j.grupo || '';
+    document.getElementById('valEsp').innerText = (j.especialidad || '').toUpperCase();
+    document.getElementById('prevFolio').innerText = "FOLIO: " + (j.folio_justificante || j.id);
+
+    const fechaFaltaStr = typeof formatearFechaFalta === 'function' ? 
+        formatearFechaFalta(j.inasistencia_dia).toUpperCase() : 
+        j.inasistencia_dia;
+
+    document.getElementById('valFechaFalta').innerText = fechaFaltaStr;
+    document.getElementById('valMotivo').innerText = (j.motivo_detalle || '').toUpperCase();
+
+    const original = document.getElementById('disenoJustificante');
+    const contenedor = document.getElementById('contenedorModalJustificante');
+    if (!original || !contenedor) return;
+
+    contenedor.innerHTML = '';
+    const tempContainer = construirHojaDobleConLineaDeCorte(original);
+    tempContainer.style.transform = "scale(0.85)";
+    tempContainer.style.transformOrigin = "top center";
+    tempContainer.style.margin = "0 auto";
+    contenedor.appendChild(tempContainer);
+
+    const modalEl = document.getElementById('modalVisualizarJustificante');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+window.verJustificante = verJustificante;
 
 function visualizarJustificanteModal() {
     const original = document.getElementById('disenoJustificante');
