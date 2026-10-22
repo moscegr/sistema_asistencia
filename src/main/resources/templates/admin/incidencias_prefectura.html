@@ -18,7 +18,7 @@
         #formatoPdfPrefectura {
             width: 216mm;
             min-height: 279mm;
-            padding: 10mm 16mm 8mm 16mm;
+            padding: 12mm 24mm 10mm 24mm; /* Margen formal amplio de 24mm lateral */
             font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
             color: #000000;
             background: #ffffff;
@@ -81,10 +81,10 @@
                 box-shadow: none !important;
                 margin: 0 !important;
                 width: 100% !important;
-                padding: 8mm 14mm !important;
+                padding: 12mm 24mm 10mm 24mm !important;
                 page-break-inside: avoid;
             }
-            @page { size: letter portrait; margin: 8mm 12mm; }
+            @page { size: letter portrait; margin: 0; }
         }
     </style>
 </head>
@@ -238,15 +238,14 @@
                         <div style="height: 12mm; border-left: 1.5px solid #a0a0a0; margin: 0 4px;"></div>
                         <img th:src="@{/img/logo_dgeti_oficial.png}" alt="DGETI" style="height: 13.5mm; width: auto; object-fit: contain;">
                     </div>
-                    <div class="text-end" style="line-height: 1.15; flex-grow: 1; padding: 0 8px;">
-                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Subsecretaría de Educación Media Superior</div>
-                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Dirección General de Educación Tecnológica Industrial y de Servicios</div>
-                        <div class="fw-bold text-uppercase" style="font-size: 8.5pt; color: #7b1b37;"
-                             th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null and !configSistema['nombre_oficial_plantel'].isEmpty() ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134'}">
-                            Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134
+                    <div class="text-end" style="line-height: 1.18; flex-grow: 1; padding: 0 8px;">
+                        <div style="font-size: 10pt; font-weight: 700; color: #1f1f1f;">SEMS</div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8.8pt; color: #7b1b37;"
+                             th:text="${configSistema != null and configSistema['nombre_plantel'] != null and !configSistema['nombre_plantel'].isEmpty() ? configSistema['nombre_plantel'] : (configSistema != null and configSistema['nombre_oficial_plantel'] != null ? configSistema['nombre_oficial_plantel'] : 'CBTIS 134')}">
+                            CBTIS 134
                         </div>
-                        <div class="fw-bold" style="font-size: 7.5pt; color: #444;"
-                             th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : '12DCT0001L'}">
+                        <div class="fw-bold" style="font-size: 7.8pt; color: #444; margin-top: 1px;"
+                             th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : (configSistema != null and configSistema['cct_escuela'] != null ? configSistema['cct_escuela'] : '12DCT0001L')}">
                             12DCT0001L
                         </div>
                     </div>

@@ -169,7 +169,7 @@ function configurarBusquedaInteligente() {
         }
 
         try {
-            if (!alumnosActivosCache) {
+            if (!alumnosActivosCache || alumnosActivosCache.length === 0) {
                 const res = await fetch('/api/alumnos');
                 if (!res.ok) return;
                 alumnosActivosCache = await res.json();
@@ -181,19 +181,22 @@ function configurarBusquedaInteligente() {
                 const mat = al.ncontrol || al.matricula || '';
                 const pat = al.apepat || al.primerApellido || '';
                 const matApe = al.apemat || al.segundoApellido || '';
-                const nom = normalizar(`${al.nombre} ${pat} ${matApe}`);
+                const nom = normalizar(`${al.nombre || ''} ${pat} ${matApe}`);
                 return normalizar(mat).includes(query) || nom.includes(query);
-            }).slice(0, 5);
+            }).slice(0, 6);
 
             if (filtrados.length > 0) {
                 sugerencias.innerHTML = filtrados.map(al => {
-                    const mat = al.ncontrol || al.matricula;
+                    const mat = al.ncontrol || al.matricula || al.id || '';
                     const pat = al.apepat || al.primerApellido || '';
                     const matApe = al.apemat || al.segundoApellido || '';
+                    const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
                     return `
-                        <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaIncidencia('${mat}')">
-                            <div class="fw-bold small">${al.nombre} ${pat} ${matApe}</div>
-                            <small class="text-muted">${mat} | ${al.especialidad || ''} | ${al.grado || ''}° "${al.grupo || ''}"</small>
+                        <button type="button" class="list-group-item list-group-item-action py-2" 
+                                onmousedown="event.preventDefault(); seleccionarParaIncidencia('${mat}')" 
+                                onclick="seleccionarParaIncidencia('${mat}')">
+                            <div class="fw-bold small text-dark">${nombreCompleto}</div>
+                            <small class="text-muted">${mat} | ${al.especialidad || 'Sin especialidad'} | ${al.grado || ''}° "${al.grupo || ''}"</small>
                         </button>
                     `;
                 }).join('');
@@ -205,30 +208,68 @@ function configurarBusquedaInteligente() {
             console.error("Error en búsqueda:", e);
         }
     });
+
+    // Cerrar lista si se hace clic fuera
+    document.addEventListener('click', (e) => {
+        if (!input.contains(e.target) && !sugerencias.contains(e.target)) {
+            sugerencias.style.display = 'none';
+        }
+    });
 }
 
 async function seleccionarParaIncidencia(matricula) {
     try {
-        const res = await fetch(`/api/alumnos/${matricula}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        let data = null;
+        if (alumnosActivosCache && alumnosActivosCache.length > 0) {
+            data = alumnosActivosCache.find(al => 
+                (al.ncontrol && al.ncontrol.toString() === matricula.toString()) || 
+                (al.matricula && al.matricula.toString() === matricula.toString()) ||
+                (al.id && al.id.toString() === matricula.toString()) ||
+                (al._id && al._id.toString() === matricula.toString())
+            );
+        }
+
+        if (!data) {
+            const res = await fetch(`/api/alumnos/ncontrol/${encodeURIComponent(matricula)}`);
+            if (res.ok) {
+                data = await res.json();
+            } else {
+                const resId = await fetch(`/api/alumnos/${encodeURIComponent(matricula)}`);
+                if (resId.ok) {
+                    data = await resId.json();
+                }
+            }
+        }
+
+        if (!data) {
+            console.warn("No se pudo obtener el alumno:", matricula);
+            return;
+        }
         
         alumnoSeleccionado = data;
         const pat = data.apepat || data.primerApellido || '';
         const matApe = data.apemat || data.segundoApellido || '';
         const nombreCompleto = `${data.nombre || ''} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
 
-        document.getElementById('pdfNombreAl').innerText = nombreCompleto.toUpperCase();
-        document.getElementById('pdfSemestre').innerText = data.grado || '';
-        document.getElementById('pdfGrupo').innerText = data.grupo || '';
-        document.getElementById('pdfEsp').innerText = (data.especialidad || '').toUpperCase();
+        const elNom = document.getElementById('pdfNombreAl');
+        if (elNom) elNom.innerText = nombreCompleto.toUpperCase();
+
+        const elSem = document.getElementById('pdfSemestre');
+        if (elSem) elSem.innerText = data.grado || '';
+
+        const elGpo = document.getElementById('pdfGrupo');
+        if (elGpo) elGpo.innerText = data.grupo || '';
+
+        const elEsp = document.getElementById('pdfEsp');
+        if (elEsp) elEsp.innerText = (data.especialidad || '').toUpperCase();
         
         inicializarFechaHoy();
 
-        if (document.getElementById('sugerenciasInc')) {
-            document.getElementById('sugerenciasInc').style.display = 'none';
-        }
-        document.getElementById('busquedaAlInc').value = `${data.nombre || ''} ${pat}`.trim();
+        const sug = document.getElementById('sugerenciasInc');
+        if (sug) sug.style.display = 'none';
+
+        const inp = document.getElementById('busquedaAlInc');
+        if (inp) inp.value = nombreCompleto;
 
     } catch(e) {
         console.error("Error seleccionando alumno:", e);
@@ -285,6 +326,7 @@ async function guardarIncidencia() {
         clonPDF.style.margin = '0';
         clonPDF.style.width = '216mm';
         clonPDF.style.minHeight = '279mm';
+        clonPDF.style.padding = '12mm 24mm 10mm 24mm';
 
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'fixed';
@@ -547,6 +589,7 @@ async function reimprimirIncidencia(folio) {
         clon.style.margin = '0';
         clon.style.width = '216mm';
         clon.style.minHeight = '279mm';
+        clon.style.padding = '12mm 24mm 10mm 24mm';
 
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'fixed';

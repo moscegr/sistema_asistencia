@@ -276,6 +276,7 @@ async function generarPDFPrefectura(folio, nombre, fechaStr, turno, jefe, datos)
     clon.style.margin = '0';
     clon.style.width = '216mm';
     clon.style.minHeight = '279mm';
+    clon.style.padding = '12mm 24mm 10mm 24mm';
 
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'fixed';

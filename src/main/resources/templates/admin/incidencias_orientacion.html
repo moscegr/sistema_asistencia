@@ -15,13 +15,25 @@
         
         #page-content-wrapper { width: 100%; min-width: 0; }
         
-        /* Contenedor del Formato Vectorial Oficial (Tamaño Carta) */
+        /* Área de visualización previa con fondo oscuro tipo visor PDF */
+        #areaVistaPreviaIncidencia {
+            background-color: #525659;
+            padding: 24px 12px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: auto;
+            border-radius: 12px;
+            max-height: 860px;
+        }
+
+        /* Contenedor del Formato Vectorial Oficial (Tamaño Carta con 24mm de margen lateral) */
         #contenedorReporteReal {
             width: 216mm;
             min-height: 279mm;
             box-sizing: border-box;
             background: #ffffff;
-            padding: 8mm 16mm 7mm 16mm;
+            padding: 12mm 24mm 10mm 24mm; /* Margen formal amplio de 24mm a los lados */
             font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
             color: #000000;
             position: relative;
@@ -29,7 +41,23 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 1400px) {
+            #contenedorReporteReal {
+                transform: scale(0.88);
+                transform-origin: top center;
+                margin-bottom: -32mm;
+            }
+        }
+        @media (max-width: 1200px) {
+            #contenedorReporteReal {
+                transform: scale(0.78);
+                transform-origin: top center;
+                margin-bottom: -60mm;
+            }
         }
 
         .border-bottom-dark {
@@ -97,11 +125,16 @@
             #sidebar-wrapper, .navbar, .no-print, .card:not(#areaVistaPreviaIncidencia), .btn {
                 display: none !important;
             }
+            #areaVistaPreviaIncidencia {
+                background: none !important;
+                padding: 0 !important;
+            }
             #contenedorReporteReal {
                 box-shadow: none !important;
                 margin: 0 !important;
                 width: 100% !important;
-                padding: 6mm 12mm !important;
+                padding: 10mm 20mm !important;
+                transform: none !important;
                 page-break-inside: avoid;
             }
             @page { size: letter portrait; margin: 6mm 10mm; }
@@ -123,8 +156,8 @@
                             <h6 class="fw-bold mb-3 text-guinda"><i class="bi bi-pencil-square me-2"></i>Captura de Incidencia</h6>
                             <div class="mb-3 position-relative">
                                 <label class="form-label small fw-bold">Buscar Alumno (Nombre o Matrícula)</label>
-                                <input type="text" id="busquedaAlInc" class="form-control shadow-sm" placeholder="Escriba para buscar...">
-                                <div id="sugerenciasInc" class="list-group position-absolute w-100 shadow-lg z-3 mt-1" style="display: none;"></div>
+                                <input type="text" id="busquedaAlInc" class="form-control shadow-sm" placeholder="Escriba para buscar..." autocomplete="off">
+                                <div id="sugerenciasInc" class="list-group position-absolute w-100 shadow-lg z-3 mt-1" style="display: none; max-height: 280px; overflow-y: auto;"></div>
                             </div>
                             
                             <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
@@ -146,7 +179,7 @@
                     </div>
 
                     <div class="col-lg-8">
-					    <div id="areaVistaPreviaIncidencia" class="shadow-lg rounded-3 overflow-auto p-2 bg-white" style="max-height: 820px;">
+					    <div id="areaVistaPreviaIncidencia" class="shadow">
 					        <div id="contenedorReporteReal"> 
 					            
                                 <!-- 1. ENCABEZADO OFICIAL VECTORIAL CON LOGOS -->
@@ -157,15 +190,14 @@
                                             <div style="height: 12mm; border-left: 1.5px solid #a0a0a0; margin: 0 4px;"></div>
                                             <img th:src="@{/img/logo_dgeti_oficial.png}" alt="DGETI" style="height: 13.5mm; width: auto; object-fit: contain;">
                                         </div>
-                                        <div class="text-end" style="line-height: 1.15; flex-grow: 1; padding: 0 8px;">
-                                            <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Subsecretaría de Educación Media Superior</div>
-                                            <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Dirección General de Educación Tecnológica Industrial y de Servicios</div>
-                                            <div class="fw-bold text-uppercase" style="font-size: 8.5pt; color: #7b1b37;"
-                                                 th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null and !configSistema['nombre_oficial_plantel'].isEmpty() ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134'}">
-                                                Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134
+                                        <div class="text-end" style="line-height: 1.18; flex-grow: 1; padding: 0 8px;">
+                                            <div style="font-size: 10pt; font-weight: 700; color: #1f1f1f;">SEMS</div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 8.8pt; color: #7b1b37;"
+                                                 th:text="${configSistema != null and configSistema['nombre_plantel'] != null and !configSistema['nombre_plantel'].isEmpty() ? configSistema['nombre_plantel'] : (configSistema != null and configSistema['nombre_oficial_plantel'] != null ? configSistema['nombre_oficial_plantel'] : 'CBTIS 134')}">
+                                                CBTIS 134
                                             </div>
-                                            <div class="fw-bold" style="font-size: 7.5pt; color: #444;"
-                                                 th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : '12DCT0001L'}">
+                                            <div class="fw-bold" style="font-size: 7.8pt; color: #444; margin-top: 1px;"
+                                                 th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : (configSistema != null and configSistema['cct_escuela'] != null ? configSistema['cct_escuela'] : '12DCT0001L')}">
                                                 12DCT0001L
                                             </div>
                                         </div>
