@@ -1,5 +1,6 @@
 package com.cbtis134.sistema.controller;
 
+import com.cbtis134.sistema.config.ImageOptimizer;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,13 +32,45 @@ public class VistaController {
     @Value("${app.landing.enabled:${ENABLE_LANDING_PAGE:${HABILITAR_LANDING_PAGE:false}}}")
     private boolean habilitarLanding;
 
+    private static volatile Map<String, Object> cachedConfigSistema = null;
+    private static volatile long cachedConfigSistemaTime = 0;
+    private static final long CACHE_TTL_MS = 300_000L; // 5 minutos de caché para evitar consultas redundantes
+
+    public static void invalidarCacheConfig() {
+        cachedConfigSistema = null;
+        cachedConfigSistemaTime = 0;
+    }
+
     @ModelAttribute("configSistema")
     public Map<String, Object> cargarConfiguracionGlobal() {
+        if (cachedConfigSistema != null && (System.currentTimeMillis() - cachedConfigSistemaTime) < CACHE_TTL_MS) {
+            return new HashMap<>(cachedConfigSistema);
+        }
+
         if (mongoTemplate != null) {
             try {
                 Document doc = mongoTemplate.findById("sistema", Document.class, "configuracion");
                 if (doc != null) {
-                    return doc;
+                    boolean modificado = false;
+                    String logoP = doc.getString("logo_plantel_url");
+                    if (ImageOptimizer.requiereOptimizacion(logoP)) {
+                        doc.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+                        modificado = true;
+                    }
+                    String logoI = doc.getString("logo_inicio_url");
+                    if (ImageOptimizer.requiereOptimizacion(logoI)) {
+                        doc.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+                        modificado = true;
+                    }
+                    if (modificado) {
+                        try {
+                            mongoTemplate.save(doc, "configuracion");
+                        } catch (Exception ignored) {}
+                    }
+                    Map<String, Object> resultado = new HashMap<>(doc);
+                    cachedConfigSistema = resultado;
+                    cachedConfigSistemaTime = System.currentTimeMillis();
+                    return resultado;
                 }
             } catch (Exception ignored) {}
         }

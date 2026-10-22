@@ -50,29 +50,54 @@ async function guardarCicloEscolarConfig() {
 }
 window.guardarCicloEscolarConfig = guardarCicloEscolarConfig;
 
-function previewLogoPlantel(event) {
+function comprimirLogoClientSide(file, maxDim = 280, calidad = 0.85) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const w = img.width;
+                const h = img.height;
+                const scale = Math.min(1.0, maxDim / Math.max(w, h));
+                const nw = Math.max(1, Math.round(w * scale));
+                const nh = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = nw;
+                canvas.height = nh;
+                const ctx = canvas.getContext('2d');
+                const esPng = file.type === 'image/png' || file.type === 'image/webp';
+                if (!esPng) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, nw, nh);
+                }
+                ctx.drawImage(img, 0, 0, nw, nh);
+                resolve(canvas.toDataURL(esPng ? 'image/png' : 'image/jpeg', calidad));
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
+async function previewLogoPlantel(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const imgPrev = document.getElementById('imgPreviewLogoPlantel');
-        if (imgPrev) imgPrev.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    const base64Opt = await comprimirLogoClientSide(file, 280, 0.85);
+    const imgPrev = document.getElementById('imgPreviewLogoPlantel');
+    if (imgPrev && base64Opt) imgPrev.src = base64Opt;
 }
 window.previewLogoPlantel = previewLogoPlantel;
 
-function previewLogoInicio(event) {
+async function previewLogoInicio(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const imgPrev = document.getElementById('imgPreviewLogoInicio');
-        if (imgPrev) imgPrev.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    const base64Opt = await comprimirLogoClientSide(file, 280, 0.85);
+    const imgPrev = document.getElementById('imgPreviewLogoInicio');
+    if (imgPrev && base64Opt) imgPrev.src = base64Opt;
 }
 window.previewLogoInicio = previewLogoInicio;
 
@@ -140,6 +165,7 @@ if (formInst) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualizaciones)
             });
+            try { sessionStorage.removeItem('cfg_sistema'); } catch(e) {}
             Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");
             
             // Refrescar en caliente componentes visuales

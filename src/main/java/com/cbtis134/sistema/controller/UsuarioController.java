@@ -1,5 +1,6 @@
 package com.cbtis134.sistema.controller;
 
+import com.cbtis134.sistema.config.ImageOptimizer;
 import com.cbtis134.sistema.model.Usuario;
 import com.cbtis134.sistema.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,12 @@ public class UsuarioController {
         for (Usuario u : lista) {
             if (u.getNombre() != null) {
                 u.setNombre(u.getNombre().toUpperCase());
+            }
+            if (ImageOptimizer.requiereOptimizacion(u.getFotoUrl())) {
+                u.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl()));
+                try {
+                    usuarioRepository.save(u);
+                } catch (Exception ignored) {}
             }
         }
         return lista;
@@ -157,6 +164,9 @@ public class UsuarioController {
         if (usuario.getPassword() != null && !usuario.getPassword().isEmpty()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         }
+        if (usuario.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(usuario.getFotoUrl())) {
+            usuario.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(usuario.getFotoUrl()));
+        }
         if (usuario.getEstatus() == null) {
             usuario.setEstatus("Activo");
         }
@@ -191,7 +201,13 @@ public class UsuarioController {
                 if (u.getRol() != null) existente.setRol(sanitizarTexto(u.getRol()));
                 if (u.getTurno() != null) existente.setTurno(u.getTurno());
                 if (u.getTelefono() != null) existente.setTelefono(sanitizarTelefono(u.getTelefono()));
-                if (u.getFotoUrl() != null) existente.setFotoUrl(u.getFotoUrl());
+                if (u.getFotoUrl() != null) {
+                    String foto = u.getFotoUrl();
+                    if (ImageOptimizer.requiereOptimizacion(foto)) {
+                        foto = ImageOptimizer.optimizarFotoPerfil(foto);
+                    }
+                    existente.setFotoUrl(foto);
+                }
                 if (u.getDescriptor_facial() != null) existente.setDescriptor_facial(u.getDescriptor_facial());
                 if (u.getEstatus() != null) existente.setEstatus(u.getEstatus());
                 usuarioRepository.save(existente);
@@ -214,6 +230,9 @@ public class UsuarioController {
                 }
                 if (u.getPassword() != null && !u.getPassword().isEmpty()) {
                     u.setPassword(passwordEncoder.encode(u.getPassword()));
+                }
+                if (u.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(u.getFotoUrl())) {
+                    u.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl()));
                 }
                 if (u.getEstatus() == null) u.setEstatus("Activo");
                 usuarioRepository.save(u);
@@ -265,7 +284,11 @@ public class UsuarioController {
                             usuario.setFotoUrl(null);
                             usuario.setDescriptor_facial(null);
                         } else {
-                            usuario.setFotoUrl(usuarioActualizado.getFotoUrl());
+                            String foto = usuarioActualizado.getFotoUrl();
+                            if (ImageOptimizer.requiereOptimizacion(foto)) {
+                                foto = ImageOptimizer.optimizarFotoPerfil(foto);
+                            }
+                            usuario.setFotoUrl(foto);
                         }
                     }
                     if (usuarioActualizado.getDescriptor_facial() != null) {

@@ -2,6 +2,11 @@
  * Gestión de Docentes y Personal Administrativo - CBTis 134 (MongoDB REST API)
  */
 
+// Pre-fetch inmediato de la lista de usuarios al interpretar el script para 0 latencia
+const prefetchUsuariosPromise = fetch('/api/usuarios')
+    .then(r => r.ok ? r.json() : [])
+    .catch(() => []);
+
 let usuariosCache = [];
 let editUserUID = null;
 let fotoBase64Temporal = null;
@@ -12,10 +17,21 @@ let cfgSistemaPersonal = {};
 
 async function cargarConfiguracionSistemaPersonal() {
     try {
+        if (window.cfgSistemaGlobal && window.cfgSistemaGlobal.nombre_plantel) {
+            cfgSistemaPersonal = window.cfgSistemaGlobal;
+            return;
+        }
+        const cached = sessionStorage.getItem('cfg_sistema');
+        if (cached) {
+            cfgSistemaPersonal = JSON.parse(cached);
+            window.cfgSistemaGlobal = cfgSistemaPersonal;
+            return;
+        }
         const res = await fetch('/api/configuracion/sistema');
         if (res.ok) {
             cfgSistemaPersonal = await res.json();
             window.cfgSistemaGlobal = cfgSistemaPersonal;
+            try { sessionStorage.setItem('cfg_sistema', JSON.stringify(cfgSistemaPersonal)); } catch(e) {}
         }
     } catch (e) {
         console.warn("No se pudo cargar la configuración del sistema:", e);
@@ -86,9 +102,13 @@ async function inicializarModelosFacialesSilencioso() {
 // 1. LEER (READ): Cargar lista desde /api/usuarios
 async function listarUsuarios() {
     try {
-        const response = await fetch('/api/usuarios');
-        if (!response.ok) return;
-        const raw = await response.json();
+        let raw = [];
+        if (prefetchUsuariosPromise) {
+            raw = await prefetchUsuariosPromise;
+        } else {
+            const response = await fetch('/api/usuarios');
+            if (response.ok) raw = await response.json();
+        }
         usuariosCache = (Array.isArray(raw) ? raw : []).map(u => {
             u._rolUpper = (u.rol || "").toUpperCase();
             u._searchStr = `${u.nombre || ''} ${u.rfc || ''} ${u.correo || ''} ${u.telefono || ''}`.toLowerCase();
@@ -403,31 +423,57 @@ async function eliminarFotoPersonal(confirmarBD = true) {
 }
 window.eliminarFotoPersonal = eliminarFotoPersonal;
 
+function comprimirFotoClientSide(file, maxDim = 320, calidad = 0.84) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const w = img.width;
+                const h = img.height;
+                const scale = Math.min(1.0, maxDim / Math.max(w, h));
+                const nw = Math.max(1, Math.round(w * scale));
+                const nh = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = nw;
+                canvas.height = nh;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, nw, nh);
+                ctx.drawImage(img, 0, 0, nw, nh);
+                resolve(canvas.toDataURL('image/jpeg', calidad));
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
 async function procesarFotoUsuario(input) {
     const file = input.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        fotoBase64Temporal = e.target.result;
+    try {
+        fotoBase64Temporal = await comprimirFotoClientSide(file, 320, 0.84);
+        if (!fotoBase64Temporal) return;
+
         document.getElementById('prevFotoUsuario').src = fotoBase64Temporal;
         
         const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
         if (btnQuitar) btnQuitar.style.display = 'inline-block';
 
-        try {
-            if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
-                const img = await faceapi.fetchImage(fotoBase64Temporal);
-                const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                if (deteccion) {
-                    descriptorFacialTemporal = Array.from(deteccion.descriptor);
-                }
+        if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
+            const img = await faceapi.fetchImage(fotoBase64Temporal);
+            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+            if (deteccion) {
+                descriptorFacialTemporal = Array.from(deteccion.descriptor);
             }
-        } catch(err) {
-            console.warn("No se pudo extraer vector facial inmediatamente:", err);
         }
-    };
-    reader.readAsDataURL(file);
+    } catch(err) {
+        console.warn("No se pudo procesar la foto de perfil:", err);
+    }
 }
 
 function limpiarSinAcentosPersonal(val) {

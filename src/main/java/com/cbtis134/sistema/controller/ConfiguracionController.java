@@ -1,9 +1,11 @@
 package com.cbtis134.sistema.controller;
 
+import com.cbtis134.sistema.config.ImageOptimizer;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -66,6 +68,26 @@ public class ConfiguracionController {
             }
         }
 
+        if ("sistema".equals(id) && doc != null) {
+            boolean modificado = false;
+            String logoP = doc.getString("logo_plantel_url");
+            if (ImageOptimizer.requiereOptimizacion(logoP)) {
+                doc.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+                modificado = true;
+            }
+            String logoI = doc.getString("logo_inicio_url");
+            if (ImageOptimizer.requiereOptimizacion(logoI)) {
+                doc.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+                modificado = true;
+            }
+            if (modificado) {
+                try {
+                    mongoTemplate.save(doc, "configuracion");
+                    VistaController.invalidarCacheConfig();
+                } catch (Exception ignored) {}
+            }
+        }
+
         if ("escolar".equals(id) && doc != null) {
             try {
                 @SuppressWarnings("unchecked")
@@ -95,21 +117,19 @@ public class ConfiguracionController {
                     }
                 }
 
-                List<Document> alumnos = mongoTemplate.findAll(Document.class, "alumnos");
+                List<String> especialidadesAlumnos = mongoTemplate.findDistinct(new Query(), "especialidad", "alumnos", String.class);
                 String[] paleta = {"#7b1b37", "#0088cc", "#198754", "#fd7e14", "#6f42c1", "#dc3545", "#0dcaf0"};
                 int colorIdx = listaEsp.size();
 
-                for (Document al : alumnos) {
-                    String espAl = al.getString("especialidad");
+                for (String espAl : especialidadesAlumnos) {
                     if (espAl != null && !espAl.trim().isEmpty()) {
                         String espUpper = sanitizarSinAcentos(espAl);
                         if (!"POR ASIGNAR".equals(espUpper) && !nombresRegistrados.contains(espUpper)) {
                             String alias = generarAliasEspecialidad(espUpper);
-                            String turnoAl = al.getString("turno");
                             Document nuevaEsp = new Document("nombre", espUpper)
                                     .append("alias", alias)
                                     .append("color", paleta[colorIdx % paleta.length])
-                                    .append("turno", (turnoAl != null && !turnoAl.isBlank()) ? turnoAl : "Matutino");
+                                    .append("turno", "Matutino");
                             listaEsp.add(nuevaEsp);
                             nombresRegistrados.add(espUpper);
                             colorIdx++;
@@ -155,6 +175,21 @@ public class ConfiguracionController {
         if (doc == null) {
             doc = new Document();
             doc.put("_id", id);
+        }
+        if ("sistema".equals(id)) {
+            if (body.containsKey("logo_plantel_url") && body.get("logo_plantel_url") != null) {
+                String logoP = body.get("logo_plantel_url").toString();
+                if (ImageOptimizer.requiereOptimizacion(logoP)) {
+                    body.put("logo_plantel_url", ImageOptimizer.optimizarLogo(logoP));
+                }
+            }
+            if (body.containsKey("logo_inicio_url") && body.get("logo_inicio_url") != null) {
+                String logoI = body.get("logo_inicio_url").toString();
+                if (ImageOptimizer.requiereOptimizacion(logoI)) {
+                    body.put("logo_inicio_url", ImageOptimizer.optimizarLogo(logoI));
+                }
+            }
+            VistaController.invalidarCacheConfig();
         }
         if ("escolar".equals(id) && body.get("especialidades") instanceof List<?> rawList) {
             List<Map<String, Object>> limpias = new ArrayList<>();

@@ -1,5 +1,6 @@
 package com.cbtis134.sistema.controller;
 
+import com.cbtis134.sistema.config.ImageOptimizer;
 import com.cbtis134.sistema.model.Alumno;
 import com.cbtis134.sistema.repository.AlumnoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +100,10 @@ public class AlumnoController {
         if (a.getAula_especifica() != null) a.setAula_especifica(sanitizarTexto(a.getAula_especifica()));
         if (a.getEscuela_procedencia() != null) a.setEscuela_procedencia(sanitizarTexto(a.getEscuela_procedencia()));
         if (a.getMotivo_baja() != null) a.setMotivo_baja(sanitizarTexto(a.getMotivo_baja()));
+
+        if (a.getFotoUrl() != null && ImageOptimizer.requiereOptimizacion(a.getFotoUrl())) {
+            a.setFotoUrl(ImageOptimizer.optimizarFotoPerfil(a.getFotoUrl()));
+        }
 
         String nomCompleto = ((a.getNombre() != null ? a.getNombre() : "") + " " +
                 (a.getApepat() != null ? a.getApepat() : "") + " " +

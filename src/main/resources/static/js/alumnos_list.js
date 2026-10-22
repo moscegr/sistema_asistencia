@@ -1,3 +1,8 @@
+// Pre-fetch inmediato al interpretar el script para evitar retardos
+const prefetchAlumnosPromise = fetch('/api/alumnos')
+    .then(r => r.ok ? r.json() : [])
+    .catch(() => []);
+
 let alumnosCache = [];
 let especialidadesConfig = [];
 let alumnoSeleccionado = null;
@@ -59,9 +64,14 @@ async function cargarConfiguracionEscolar() {
 
 async function cargarAlumnos() {
     try {
-        const res = await fetch('/api/alumnos');
-        if (res.ok) {
-            const raw = await res.json();
+        let raw = [];
+        if (prefetchAlumnosPromise) {
+            raw = await prefetchAlumnosPromise;
+        } else {
+            const res = await fetch('/api/alumnos');
+            if (res.ok) raw = await res.json();
+        }
+        if (raw) {
             alumnosCache = (Array.isArray(raw) ? raw : []).map(al => {
                 const mat = al.ncontrol || al.matricula || '';
                 const pat = al.apepat || al.primerApellido || '';
