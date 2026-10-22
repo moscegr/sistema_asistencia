@@ -23,6 +23,29 @@ public class JustificanteController {
         return mongoTemplate.findAll(Document.class, "justificantes");
     }
 
+    @GetMapping("/siguiente-folio")
+    public ResponseEntity<Map<String, Object>> obtenerSiguienteFolio() {
+        List<Document> docs = mongoTemplate.findAll(Document.class, "justificantes");
+        int maxFolio = 0;
+        for (Document d : docs) {
+            Object folObj = d.get("folio_justificante");
+            if (folObj == null) folObj = d.get("_id");
+            if (folObj != null) {
+                try {
+                    String numStr = folObj.toString().replaceAll("[^0-9]", "");
+                    if (!numStr.isEmpty()) {
+                        int num = Integer.parseInt(numStr);
+                        if (num > maxFolio) {
+                            maxFolio = num;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        int siguiente = maxFolio + 1;
+        String folioStr = String.format("%04d", siguiente);
+        return ResponseEntity.ok(Map.of("siguiente_numero", siguiente, "siguiente_folio", folioStr));
+    }
     @GetMapping("/{id}")
     public ResponseEntity<Document> obtenerPorId(@PathVariable String id) {
         Document doc = mongoTemplate.findById(id, Document.class, "justificantes");

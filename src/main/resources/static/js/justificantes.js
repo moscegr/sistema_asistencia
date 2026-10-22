@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     inicializarDatosJustificantes();
+    actualizarFolioSiguiente();
     configurarBusquedaJust();
     escucharJustificantesGlobales();
     
@@ -77,6 +78,34 @@ async function inicializarDatosJustificantes() {
         }
     } catch (e) {
         console.error("Error al cargar datos institucionales:", e);
+    }
+}
+
+async function actualizarFolioSiguiente() {
+    try {
+        const res = await fetch('/api/justificantes/siguiente-folio');
+        if (res.ok) {
+            const data = await res.json();
+            const elFolio = document.getElementById('prevFolio');
+            if (elFolio && data.siguiente_folio) {
+                elFolio.innerText = "FOLIO: " + data.siguiente_folio;
+            }
+        }
+    } catch (e) {
+        // Fallback calculando a partir de la lista en memoria
+        let max = 0;
+        if (justificantesCache && justificantesCache.length > 0) {
+            justificantesCache.forEach(j => {
+                const f = (j.folio_justificante || j.id || '').toString().replace(/\D/g, '');
+                if (f) {
+                    const n = parseInt(f, 10);
+                    if (n > max) max = n;
+                }
+            });
+        }
+        const sig = (max + 1).toString().padStart(4, '0');
+        const elFolio = document.getElementById('prevFolio');
+        if (elFolio) elFolio.innerText = "FOLIO: " + sig;
     }
 }
 
@@ -159,9 +188,7 @@ async function seleccionarParaJust(matricula) {
         if (elTurno) elTurno.innerText = '';
         
         inicializarDatosJustificantes();
-
-        const nuevoFolio = ((justificantesCache ? justificantesCache.length : 0) + 1).toString().padStart(4, '0');
-        document.getElementById('prevFolio').innerText = "FOLIO: " + nuevoFolio;
+        await actualizarFolioSiguiente();
         if (document.getElementById('sugerenciasJust')) document.getElementById('sugerenciasJust').style.display = 'none';
         document.getElementById('buscarAlumnoJust').value = `${data.nombre || ''} ${pat}`.trim();
 
@@ -376,7 +403,8 @@ async function confirmarEliminarJustificante(id) {
         try {
             await fetch(`/api/justificantes/${id}`, { method: 'DELETE' });
             Swal.fire("Éxito", "Justificante eliminado correctamente.", "success");
-            escucharJustificantesGlobales();
+            await escucharJustificantesGlobales();
+            await actualizarFolioSiguiente();
         } catch (e) {
             Swal.fire("Error", "Error al borrar: " + e.message, "error");
         }
