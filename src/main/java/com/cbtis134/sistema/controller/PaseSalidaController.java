@@ -24,6 +24,35 @@ public class PaseSalidaController {
         return mongoTemplate.findAll(Document.class, "pases_salida");
     }
 
+    @GetMapping("/siguiente-folio")
+    public ResponseEntity<Map<String, Object>> obtenerSiguienteFolio() {
+        List<Document> docs = mongoTemplate.findAll(Document.class, "pases_salida");
+        int maxFolio = 0;
+        for (Document d : docs) {
+            Boolean esGrupal = d.getBoolean("es_grupal");
+            if (Boolean.TRUE.equals(esGrupal)) continue;
+
+            Object folObj = d.get("folio_pase");
+            if (folObj == null) folObj = d.get("_id");
+            if (folObj != null) {
+                String str = folObj.toString();
+                if (str.startsWith("GRP-")) continue;
+                String numStr = str.replaceAll("[^0-9]", "");
+                if (!numStr.isEmpty()) {
+                    try {
+                        int num = Integer.parseInt(numStr);
+                        if (num > maxFolio) {
+                            maxFolio = num;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        int siguiente = maxFolio + 1;
+        String folioStr = String.format("%04d", siguiente);
+        return ResponseEntity.ok(Map.of("siguiente_numero", siguiente, "siguiente_folio", folioStr));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Document> obtenerPorId(@PathVariable String id) {
         Document doc = mongoTemplate.findById(id, Document.class, "pases_salida");

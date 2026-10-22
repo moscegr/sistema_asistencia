@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     inicializarPaseIndividual();
     configurarBusquedaInteligente();
+    actualizarSiguienteFolioPase();
     
     escucharCambiosGrupos();
     escucharPasesGlobales(); 
@@ -24,6 +25,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(fFolio) fFolio.addEventListener('input', filtrarTablaGlobal);
     if(fNombre) fNombre.addEventListener('input', filtrarTablaGlobal);
 });
+
+async function actualizarSiguienteFolioPase() {
+    try {
+        const res = await fetch('/api/pases/siguiente-folio');
+        if (res.ok) {
+            const data = await res.json();
+            const elFolio = document.getElementById('prevFolio');
+            if (elFolio && data.siguiente_folio) {
+                elFolio.innerText = data.siguiente_folio;
+            }
+        }
+    } catch(e) {
+        let maxFolio = 0;
+        if (pasesGlobales && pasesGlobales.length > 0) {
+            pasesGlobales.forEach(p => {
+                if (!p.es_grupal && p.folio_pase) {
+                    const numStr = String(p.folio_pase).replace(/\D/g, '');
+                    const num = parseInt(numStr, 10);
+                    if (!isNaN(num) && num > maxFolio) maxFolio = num;
+                }
+            });
+        }
+        const sig = (maxFolio + 1).toString().padStart(4, '0');
+        const elFolio = document.getElementById('prevFolio');
+        if (elFolio) elFolio.innerText = sig;
+    }
+}
+window.actualizarSiguienteFolioPase = actualizarSiguienteFolioPase;
 
 async function cargarConfiguracionPases() {
     try {
@@ -397,22 +426,7 @@ async function seleccionarParaPase(matricula) {
             document.getElementById('prevEsp').innerText = data.especialidad;
             
             document.getElementById('prevFecha').innerText = obtenerFechaFormateada();
-            
-            const rPases = await fetch('/api/pases');
-            let maxFolio = 0;
-            if (rPases.ok) {
-                const listPases = await rPases.json();
-                listPases.forEach(p => {
-                    if (!p.es_grupal && p.folio_pase) {
-                        const num = parseInt(p.folio_pase, 10);
-                        if (!isNaN(num) && num > maxFolio) maxFolio = num;
-                    }
-                });
-            }
-
-            const siguienteFolio = (maxFolio + 1).toString().padStart(4, '0');
-            document.getElementById('prevFolio').innerText = siguienteFolio;
-
+            await actualizarSiguienteFolioPase();
             document.getElementById('busquedaGlobalAl').value = mat;
         }
     } catch(err){}
@@ -485,7 +499,10 @@ function filtrarTablaGlobal() {
 		        <td class="text-center">
 		            <div class="btn-group">
 		                ${!esG ? `
-		                <button class="btn btn-sm btn-outline-primary border-0 text-primary" onclick="reimprimirPaseIndividual('${p._id || p.id || p.folio_pase}')" title="Ver / Reimprimir Pase">
+		                <button class="btn btn-sm btn-outline-primary border-0 text-primary" onclick="verPaseIndividual('${p._id || p.id || p.folio_pase}')" title="Ver Pase">
+		                    <i class="bi bi-eye-fill fs-5"></i>
+		                </button>
+		                <button class="btn btn-sm btn-outline-success border-0 text-success" onclick="reimprimirPaseIndividual('${p._id || p.id || p.folio_pase}')" title="Imprimir / Descargar Pase">
 		                    <i class="bi bi-printer-fill fs-5"></i>
 		                </button>` : ''}
 		                <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarPase('${p._id || p.id || p.folio_pase}')" title="Eliminar Pase">
@@ -522,7 +539,8 @@ async function confirmarEliminarPase(idPase) {
         try {
             await fetch(`/api/pases/${idPase}`, { method: 'DELETE' });
             Swal.fire('Eliminado', 'El pase de salida ha sido removido.', 'success');
-            escucharPasesGlobales();
+            await escucharPasesGlobales();
+            await actualizarSiguienteFolioPase();
         } catch (e) {
             Swal.fire('Error', 'No se pudo eliminar el pase.', 'error');
         }
@@ -564,6 +582,68 @@ async function limpiarTodosLosPases() {
     }
 }
 window.limpiarTodosLosPases = limpiarTodosLosPases;
+
+async function verPaseIndividual(idPase) {
+    const pase = pasesGlobales.find(p => (p._id === idPase || p.id === idPase || p.folio_pase === idPase));
+    if (!pase) return Swal.fire("Error", "No se encontró la información del pase.", "error");
+
+    const original = document.getElementById('contenedorPaseReal');
+    const contenedor = document.getElementById('contenedorModalPase');
+    if (!original || !contenedor) return;
+
+    // Clonar el nodo para NO tocar la plantilla de captura en pantalla
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
+
+    const folClean = pase.folio_pase ? (String(pase.folio_pase).includes('-') ? String(pase.folio_pase).split('-').pop() : String(pase.folio_pase)) : '0001';
+    
+    const elFolio = clon.querySelector('#prevFolio');
+    if (elFolio) elFolio.innerText = folClean;
+
+    const elFecha = clon.querySelector('#prevFecha');
+    if (elFecha) elFecha.innerText = pase.fecha || obtenerFechaFormateada();
+
+    const elNombre = clon.querySelector('#prevNombre');
+    if (elNombre) elNombre.innerText = (pase.nombreFull || pase.nombre || pase.matricula || '').toUpperCase();
+
+    const elGrado = clon.querySelector('#prevGrado');
+    if (elGrado) elGrado.innerText = pase.grado || '';
+
+    const elGpo = clon.querySelector('#prevGpo');
+    if (elGpo) elGpo.innerText = pase.grupo || '';
+
+    const elEsp = clon.querySelector('#prevEsp');
+    if (elEsp) elEsp.innerText = (pase.especialidad || '').toUpperCase();
+
+    const elHora = clon.querySelector('#prevHora');
+    if (elHora) elHora.innerText = pase.hora_salida || '';
+
+    const elMot = clon.querySelector('#prevMot');
+    if (elMot) elMot.innerText = (pase.motivo || '').toUpperCase();
+
+    contenedor.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.width = "100%";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.overflow = "hidden";
+
+    clon.style.margin = "0 auto";
+    clon.style.maxWidth = "100%";
+    clon.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)";
+    clon.style.borderRadius = "4px";
+
+    wrapper.appendChild(clon);
+    contenedor.appendChild(wrapper);
+
+    const modalEl = document.getElementById('modalVisualizarPase');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+window.verPaseIndividual = verPaseIndividual;
 
 async function reimprimirPaseIndividual(idPase) {
     const pase = pasesGlobales.find(p => (p._id === idPase || p.id === idPase || p.folio_pase === idPase));
