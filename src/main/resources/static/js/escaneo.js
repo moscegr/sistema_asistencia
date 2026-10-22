@@ -124,11 +124,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Sincronización en vivo de pases cada 6 segundos (refleja inmediatamente activaciones y cancelaciones)
+    setInterval(async () => {
+        try {
+            const hoy = obtenerFechaLocal();
+            const resPases = await fetch('/api/pases').then(r => r.ok ? r.json() : []);
+            sincronizarPasesMemoria(resPases, hoy);
+            generarTableroDinamico();
+        } catch(e) {}
+    }, 6000);
+
     // Ping Keep-Alive cada 4 minutos para mantener la sesión del vigilante siempre activa
     setInterval(async () => {
         try { await fetch('/api/usuarios/me'); } catch (e) {}
     }, 240000);
 });
+
+function sincronizarPasesMemoria(resPases, hoy) {
+    pasesIndividualesHoy = (resPases || [])
+        .filter(p => {
+            const esGrupal = (p.es_grupal === true || p.es_grupal === 'true');
+            const esHoy = (p.fecha === hoy);
+            const esVigente = (p.estatus_vigencia === true || p.estatus_vigencia === 'true' || p.estatus === 'AUTORIZADO');
+            const tieneIdAlumno = Boolean(p.matricula || p.id_alumno);
+            return !esGrupal && esHoy && esVigente && tieneIdAlumno;
+        })
+        .map(p => String(p.matricula || p.id_alumno).trim().toUpperCase());
+
+    gruposAutorizadosHoy = (resPases || [])
+        .filter(p => {
+            const esGrupal = (p.es_grupal === true || p.es_grupal === 'true');
+            const esHoy = (p.fecha === hoy);
+            const esVigente = (p.estatus_vigencia === true || p.estatus_vigencia === 'true' || p.estatus === 'AUTORIZADO');
+            const esPaseGrupoPuro = !p.matricula && !p.id_alumno;
+            return esGrupal && esHoy && esVigente && esPaseGrupoPuro;
+        })
+        .map(p => {
+            let grado = String(p.grado || '').trim();
+            let grupo = String(p.grupo || '').trim().toUpperCase();
+            let esp = String(p.especialidad || '').trim();
+            if ((!grado || !grupo) && p.grupo_especialidad) {
+                const parts = p.grupo_especialidad.split('-');
+                if (parts.length >= 2) {
+                    const gpoStr = parts[0];
+                    grado = gpoStr.slice(0, -1);
+                    grupo = gpoStr.slice(-1).toUpperCase();
+                    if (!esp) esp = parts.slice(1).join('-');
+                }
+            }
+            return `${grado}${grupo}-${esp}`;
+        });
+}
 
 async function cargarConfiguracionInicial() {
     try {
@@ -153,13 +199,7 @@ async function cargarConfiguracionInicial() {
             bannerCont.style.display = modoContingenciaActivo ? 'block' : 'none';
         }
 
-        pasesIndividualesHoy = resPases
-            .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.matricula || p.id_alumno))
-            .map(p => String(p.matricula || p.id_alumno).trim());
-
-        gruposAutorizadosHoy = resPases
-            .filter(p => p.fecha === hoy && (p.estatus_vigencia === true || p.estatus === 'AUTORIZADO') && (p.grupo_especialidad || (p.grado && p.grupo && p.especialidad)))
-            .map(p => p.grupo_especialidad || `${p.grado}${p.grupo}-${p.especialidad}`);
+        sincronizarPasesMemoria(resPases, hoy);
 
         generarTableroDinamico();
         renderizarListaFiltrada("");
@@ -541,16 +581,25 @@ async function onScanSuccess(decodedText, parametroExtra = false) {
 }
 
 async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
-    const mat = String(al.ncontrol || al.matricula || '').trim();
-    const gpoKey = `${al.grado}${al.grupo}-${al.especialidad}`;
-    const tienePase = pasesIndividualesHoy.includes(mat) || gruposAutorizadosHoy.includes(gpoKey);
+    const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
+    const gpo = `${al.grado}${al.grupo}`.trim().toUpperCase();
+    const espNorm = normalizarTexto(al.especialidad);
+
+    const tienePaseIndividual = pasesIndividualesHoy.some(m => igualMatricula(m, mat));
+    const tienePaseGrupal = gruposAutorizadosHoy.some(gKey => {
+        const [gPart, ...espParts] = gKey.split('-');
+        const gEspNorm = normalizarTexto(espParts.join('-'));
+        return gPart.trim().toUpperCase() === gpo && 
+               (gEspNorm === espNorm || gEspNorm.includes(espNorm) || espNorm.includes(gEspNorm));
+    });
+    const tienePase = tienePaseIndividual || tienePaseGrupal;
 
     if (tienePase || salidaGeneralActiva) {
         const horaSalida = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         let motivo = "AUTORIZADO";
         if (salidaGeneralActiva) motivo = "CONTINGENCIA";
-        else if (pasesIndividualesHoy.includes(mat)) motivo = "PASE_INDIVIDUAL";
-        else if (gruposAutorizadosHoy.includes(gpoKey)) motivo = "PASE_GRUPAL";
+        else if (tienePaseIndividual) motivo = "PASE_INDIVIDUAL";
+        else if (tienePaseGrupal) motivo = "PASE_GRUPAL";
 
         const pat = al.apepat || al.primerApellido || '';
         const matApe = al.apemat || al.segundoApellido || '';
@@ -945,8 +994,13 @@ function generarTableroDinamico() {
 
         let badgesHTML = "";
         gruposUnicos.forEach(gpo => {
-            const gpoKey = `${gpo}-${esp.nombre}`;
-            const estaAutorizado = gruposAutorizadosHoy.includes(gpoKey);
+            const espNorm = normalizarTexto(esp.nombre);
+            const estaAutorizado = gruposAutorizadosHoy.some(gKey => {
+                const [gPart, ...espParts] = gKey.split('-');
+                const gEspNorm = normalizarTexto(espParts.join('-'));
+                return gPart.trim().toUpperCase() === gpo.trim().toUpperCase() && 
+                       (gEspNorm === espNorm || gEspNorm.includes(espNorm) || espNorm.includes(gEspNorm));
+            });
             const badgeClass = estaAutorizado ? 'bg-success text-white' : 'bg-light text-dark border';
             
             badgesHTML += `<span class="badge ${badgeClass} me-1 mb-1 px-2 py-1 font-monospace" style="font-size: 0.75rem;">${gpo}</span>`;

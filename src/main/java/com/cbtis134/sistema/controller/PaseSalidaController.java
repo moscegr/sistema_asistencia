@@ -1,10 +1,12 @@
 package com.cbtis134.sistema.controller;
 
 import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +23,39 @@ public class PaseSalidaController {
 
     @GetMapping
     public List<Document> obtenerTodos() {
+        try {
+            String hoy = LocalDate.now().toString();
+
+            // 1. REINICIO DIARIO DE SALIDAS GRUPALES:
+            // Los pases grupales de fechas anteriores se eliminan automáticamente para que cada nuevo día escolar inicie en ceros (limpio).
+            Query qGrupalesAnteriores = new Query(new Criteria().andOperator(
+                Criteria.where("es_grupal").is(true),
+                Criteria.where("fecha").ne(hoy)
+            ));
+            mongoTemplate.remove(qGrupalesAnteriores, "pases_salida");
+
+            // 2. REINICIO DIARIO DE PASES INDIVIDUALES:
+            // Los pases individuales de fechas anteriores se marcan automáticamente como vencidos/expirados.
+            Query qIndividualesAnteriores = new Query(new Criteria().andOperator(
+                Criteria.where("es_grupal").ne(true),
+                Criteria.where("fecha").lt(hoy),
+                Criteria.where("estatus_vigencia").is(true)
+            ));
+            Update updateVencido = new Update().set("estatus_vigencia", false).set("estatus", "VENCIDO");
+            mongoTemplate.updateMulti(qIndividualesAnteriores, updateVencido, "pases_salida");
+        } catch (Exception e) {
+            // Continuar sin interrumpir la consulta
+        }
+
         return mongoTemplate.findAll(Document.class, "pases_salida");
+    }
+
+    @GetMapping("/hoy")
+    public List<Document> obtenerPasesHoy() {
+        obtenerTodos(); // Dispara limpieza/reinicio diario preventivo
+        String hoy = LocalDate.now().toString();
+        Query q = new Query(Criteria.where("fecha").is(hoy));
+        return mongoTemplate.find(q, Document.class, "pases_salida");
     }
 
     @GetMapping("/siguiente-folio")
@@ -99,11 +133,44 @@ public class PaseSalidaController {
         return ResponseEntity.ok(Map.of("mensaje", "Todos los pases de salida han sido eliminados correctamente."));
     }
 
+    @DeleteMapping("/grupal/{grado}/{grupo}")
+    public ResponseEntity<Map<String, Object>> eliminarGrupal(
+            @PathVariable String grado,
+            @PathVariable String grupo,
+            @RequestParam(required = false) String especialidad) {
+
+        Query q = new Query();
+        q.addCriteria(Criteria.where("es_grupal").is(true));
+
+        try {
+            int gradoNum = Integer.parseInt(grado.replaceAll("[^0-9]", ""));
+            q.addCriteria(new Criteria().orOperator(
+                Criteria.where("grado").is(grado),
+                Criteria.where("grado").is(gradoNum)
+            ));
+        } catch (Exception e) {
+            q.addCriteria(Criteria.where("grado").is(grado));
+        }
+
+        q.addCriteria(Criteria.where("grupo").regex("^" + grupo + "$", "i"));
+
+        if (especialidad != null && !especialidad.trim().isEmpty()) {
+            q.addCriteria(Criteria.where("especialidad").regex("^" + java.util.regex.Pattern.quote(especialidad.trim()) + "$", "i"));
+        }
+
+        long count = mongoTemplate.remove(q, "pases_salida").getDeletedCount();
+        return ResponseEntity.ok(Map.of("status", "ok", "eliminados", count));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         mongoTemplate.remove(new Query(Criteria.where("_id").is(id)), "pases_salida");
         mongoTemplate.remove(new Query(Criteria.where("folio_pase").is(id)), "pases_salida");
         mongoTemplate.remove(new Query(Criteria.where("grupo_especialidad").is(id)), "pases_salida");
+
+        if (ObjectId.isValid(id)) {
+            mongoTemplate.remove(new Query(Criteria.where("_id").is(new ObjectId(id))), "pases_salida");
+        }
         return ResponseEntity.noContent().build();
     }
 }

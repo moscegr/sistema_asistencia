@@ -153,9 +153,10 @@ async function escucharCambiosGrupos() {
             pases.forEach(p => {
                 const esGrupal = (p.es_grupal === true || p.es_grupal === 'true');
                 const esVigente = (p.estatus_vigencia === true || p.estatus_vigencia === 'true' || p.estatus === 'AUTORIZADO');
-                const esHoy = (!p.fecha || p.fecha === hoy);
+                const esHoy = (p.fecha === hoy);
+                const esPaseGrupoPuro = !p.matricula && !p.id_alumno;
 
-                if (esGrupal && esVigente && esHoy) {
+                if (esGrupal && esVigente && esHoy && esPaseGrupoPuro) {
                     let grado = p.grado || '';
                     let grupo = p.grupo || '';
                     let especialidad = p.especialidad || '';
@@ -231,6 +232,7 @@ async function alternarPaseGrupal(grado, grupo, especialidad, estado) {
             });
             Swal.fire({ icon: 'success', title: 'Salida Grupal Autorizada', text: `Grupo ${grado}° "${grupo}" de ${especialidad}`, toast: true, position: 'bottom-end', timer: 3000, showConfirmButton: false });
         } else {
+            await fetch(`/api/pases/grupal/${encodeURIComponent(grado)}/${encodeURIComponent(grupo)}?especialidad=${encodeURIComponent(especialidad)}`, { method: 'DELETE' });
             await fetch(`/api/pases/${encodeURIComponent(folio)}`, { method: 'DELETE' });
             await fetch(`/api/pases/${encodeURIComponent(grupoEspecialidad)}`, { method: 'DELETE' });
             
