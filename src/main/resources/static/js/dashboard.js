@@ -452,17 +452,39 @@ function renderizarGraficoPersonal(docMat, docVesp, admMat, admVesp) {
 // -------------------------------------------------------------
 // SISTEMA DE ALERTA TEMPRANA DE DESERCIÓN ESCOLAR (EWS)
 // -------------------------------------------------------------
+
+/**
+ * Determina si una fecha (YYYY-MM-DD) corresponde a día hábil escolar (Lunes a Viernes).
+ * Los fines de semana (Sábado y Domingo) no se pasa lista.
+ */
+function esDiaHabil(fechaStr) {
+    if (!fechaStr || typeof fechaStr !== 'string') return false;
+    const partes = fechaStr.split('-');
+    if (partes.length < 3) return false;
+    const anio = parseInt(partes[0], 10);
+    const mes = parseInt(partes[1], 10) - 1;
+    const dia = parseInt(partes[2], 10);
+    const dt = new Date(anio, mes, dia);
+    const diaSemana = dt.getDay(); // 0 = Domingo, 6 = Sábado
+    return diaSemana >= 1 && diaSemana <= 5; // 1 = Lunes a 5 = Viernes
+}
+
 function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
     listaAlumnosRiesgoGlobal = [];
 
-    const fechasUnicas = [...new Set((registrosHistoricos || []).map(r => r.fecha).filter(Boolean))].sort().reverse();
+    // Filtrar estrictamente días hábiles (Lunes a Viernes). Los fines de semana (Sábado y Domingo) no se pasa lista.
+    const fechasHabiles = [...new Set((registrosHistoricos || []).map(r => r.fecha).filter(Boolean))]
+        .filter(f => esDiaHabil(f))
+        .sort()
+        .reverse();
+
     const mapaAsistenciasPorAlumno = {};
 
     (registrosHistoricos || []).forEach(r => {
         const mat = String(r.matricula || r.ncontrol || '').trim().toUpperCase();
-        if (mat) {
+        if (mat && r.fecha && esDiaHabil(r.fecha)) {
             if (!mapaAsistenciasPorAlumno[mat]) mapaAsistenciasPorAlumno[mat] = new Set();
-            if (r.fecha) mapaAsistenciasPorAlumno[mat].add(r.fecha);
+            mapaAsistenciasPorAlumno[mat].add(r.fecha);
         }
     });
 
@@ -471,21 +493,18 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
         const asistenciasSet = mapaAsistenciasPorAlumno[mat] || new Set();
 
         let diasSinRegistro = 0;
-        if (fechasUnicas.length > 0) {
-            for (let i = 0; i < Math.min(fechasUnicas.length, 10); i++) {
-                const f = fechasUnicas[i];
+        if (fechasHabiles.length > 0) {
+            for (let i = 0; i < Math.min(fechasHabiles.length, 10); i++) {
+                const f = fechasHabiles[i];
                 if (!asistenciasSet.has(f)) {
                     diasSinRegistro++;
                 } else {
-                    break;
+                    break; // Asistió en este día hábil escolar; se rompe la racha de inasistencias consecutivas
                 }
-            }
-        } else {
-            if (al.estado === "FUERA" || !al.estado) {
-                diasSinRegistro = 3;
             }
         }
 
+        // Se considera riesgo de deserción a partir de 3 días hábiles consecutivos sin asistencia
         if (diasSinRegistro >= 3) {
             const nivelRiesgo = diasSinRegistro >= 5 ? 'CRITICO' : 'MODERADO';
             listaAlumnosRiesgoGlobal.push({
@@ -617,9 +636,9 @@ async function enviarWhatsappTutorDesercion(matricula) {
                 <div class="mb-1"><b>Estudiante:</b> ${alumno.nombre} (${alumno.matricula})</div>
                 <div class="mb-1"><b>Tutor:</b> <span class="fw-bold text-dark">${alumno.tutor}</span></div>
                 <div class="mb-1"><b>Teléfono:</b> <code class="text-success fw-bold">${tel}</code></div>
-                <div><b>Inasistencias continuas:</b> <span class="badge bg-danger">${alumno.diasSinRegistro} días</span></div>
+                <div><b>Inasistencias continuas:</b> <span class="badge bg-danger">${alumno.diasSinRegistro} días hábiles (L-V)</span></div>
             </div>
-            <textarea id="swalWsMensajeDesercion" class="form-control form-control-sm border-danger mt-2" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">*[CBTis 134 - AVISO URGENTE DE ORIENTACIÓN EDUCATIVA]*:\nEstimado(a) ${alumno.tutor}, le informamos que el alumno(a) ${alumno.nombre} ha acumulado ${alumno.diasSinRegistro} días consecutivos sin registro de asistencia en el plantel. Favor de comunicarse al departamento de Orientación Educativa.</textarea>
+            <textarea id="swalWsMensajeDesercion" class="form-control form-control-sm border-danger mt-2" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; text-transform: none !important;">*[CBTis 134 - AVISO URGENTE DE ORIENTACIÓN EDUCATIVA]*:\nEstimado(a) ${alumno.tutor}, le informamos que el alumno(a) ${alumno.nombre} ha acumulado ${alumno.diasSinRegistro} días hábiles consecutivos sin registro de asistencia en el plantel (Lunes a Viernes). Favor de comunicarse al departamento de Orientación Educativa.</textarea>
         `,
         showCancelButton: true,
         confirmButtonText: '<i class="bi bi-send me-1"></i>Enviar Alerta WhatsApp',
@@ -1956,7 +1975,7 @@ async function generarExcelRiesgoDesercion() {
             'Semestre': `${a.grado}°`,
             'Grupo': `"${a.grupo}"`,
             'Turno': a.turno,
-            'Días Sin Asistencia': a.diasSinRegistro,
+            'Días Sin Asistencia (Lunes a Viernes)': a.diasSinRegistro,
             'Nivel de Riesgo': a.nivelRiesgo,
             'Nombre del Tutor': a.tutor,
             'Teléfono Tutor': a.telefonoTutor
