@@ -3,6 +3,7 @@
 let alumnoJust = null;
 let limiteJustificantes = 10;
 let justificantesCache = [];
+let alumnosActivosCache = null;
 const obtenerHoyLocal = () => new Date().toLocaleDateString('en-CA');
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,13 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('fechaFalta')) {
         document.getElementById('fechaFalta').addEventListener('input', (e) => {
             const fechaFormateada = formatearFechaFalta(e.target.value);
-            document.getElementById('valFechaFalta').innerText = fechaFormateada.toUpperCase();
+            document.getElementById('valFechaFalta').innerText = fechaFormateada.toUpperCase() || '\u00A0';
         });
     }
 
     if (document.getElementById('motivoJust')) {
         document.getElementById('motivoJust').addEventListener('input', (e) => {
-            document.getElementById('valMotivo').innerText = e.target.value.toUpperCase();
+            document.getElementById('valMotivo').innerText = e.target.value.toUpperCase() || '\u00A0';
         });
     }
 });
@@ -41,6 +42,38 @@ async function inicializarDatosJustificantes() {
             const responsable = data.responsable_orientacion || "MATILDE ABIGAIL GARCIA NAJERA";
             const firmaJust = document.getElementById('nombreResponsableJust');
             if (firmaJust) firmaJust.innerText = responsable.toUpperCase();
+
+            const elNomOficial = document.getElementById('justNombreOficialPlantel');
+            if (elNomOficial && data.nombre_oficial_plantel) {
+                elNomOficial.innerText = data.nombre_oficial_plantel;
+            }
+
+            const elCct = document.getElementById('justCctEscuela');
+            if (elCct && data.cct_escuela) {
+                elCct.innerText = data.cct_escuela.toUpperCase();
+            }
+
+            const elCiudad = document.getElementById('justCiudadPlantel');
+            if (elCiudad && (data.ciudad_plantel || data.direccion_plantel)) {
+                elCiudad.innerText = data.ciudad_plantel || data.direccion_plantel;
+            }
+
+            const elSlogan = document.getElementById('justSloganPlantel');
+            if (elSlogan && data.slogan_plantel) {
+                let sl = data.slogan_plantel.trim();
+                if (!sl.startsWith('"') && !sl.startsWith('“')) sl = `"${sl}"`;
+                elSlogan.innerText = sl.toUpperCase();
+            }
+
+            const elDir = document.getElementById('justDireccionPlantel');
+            if (elDir && data.direccion_plantel) {
+                elDir.innerText = data.direccion_plantel;
+            }
+
+            const elTel = document.getElementById('justTelSpan');
+            if (elTel && data.telefono_escuela) {
+                elTel.innerText = data.telefono_escuela;
+            }
         }
     } catch (e) {
         console.error("Error al cargar datos institucionales:", e);
@@ -48,7 +81,7 @@ async function inicializarDatosJustificantes() {
 }
 
 function formatearFechaFalta(fechaStr) {
-    if(!fechaStr) return "";
+    if (!fechaStr) return "";
     const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
     const partes = fechaStr.split('-');
     if (partes.length < 3) return fechaStr;
@@ -64,19 +97,22 @@ function configurarBusquedaJust() {
 
     input.addEventListener('input', async (e) => {
         const query = normalizar(e.target.value);
-        if (query.length < 3) { sugerencias.style.display = 'none'; return; }
+        if (query.length < 2) { sugerencias.style.display = 'none'; return; }
 
         try {
-            const res = await fetch('/api/alumnos');
-            if (!res.ok) return;
-            const alumnos = await res.json();
+            if (!alumnosActivosCache) {
+                const res = await fetch('/api/alumnos');
+                if (!res.ok) return;
+                alumnosActivosCache = await res.json();
+            }
             
-            const filtrados = alumnos.filter(al => {
+            const filtrados = alumnosActivosCache.filter(al => {
                 const estatus = al.estatus_escolar || al.estatus || 'Activo';
                 if (estatus !== 'Activo') return false;
                 const mat = al.ncontrol || al.matricula || '';
                 const pat = al.apepat || al.primerApellido || '';
-                const nom = normalizar(`${al.nombre} ${pat}`);
+                const matApe = al.apemat || al.segundoApellido || '';
+                const nom = normalizar(`${al.nombre} ${pat} ${matApe}`);
                 return normalizar(mat).includes(query) || nom.includes(query);
             }).slice(0, 5);
 
@@ -84,9 +120,10 @@ function configurarBusquedaJust() {
                 sugerencias.innerHTML = filtrados.map(al => {
                     const mat = al.ncontrol || al.matricula;
                     const pat = al.apepat || al.primerApellido || '';
+                    const matApe = al.apemat || al.segundoApellido || '';
                     return `
                         <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaJust('${mat}')">
-                            <div class="fw-bold small">${al.nombre} ${pat}</div>
+                            <div class="fw-bold small">${al.nombre} ${pat} ${matApe}</div>
                             <small class="text-muted">${mat} | ${al.especialidad || ''}</small>
                         </button>`;
                 }).join('');
@@ -112,24 +149,69 @@ async function seleccionarParaJust(matricula) {
         alumnoJust = data;
         const pat = data.apepat || data.primerApellido || '';
         const matApe = data.apemat || data.segundoApellido || '';
-        const mat = data.ncontrol || data.matricula || '';
 
-        document.getElementById('valNombre').innerText = `${data.nombre} ${pat} ${matApe}`.toUpperCase();
+        document.getElementById('valNombre').innerText = `${data.nombre || ''} ${pat} ${matApe}`.trim().toUpperCase();
         document.getElementById('valGrado').innerText = data.grado || '';
         document.getElementById('valGpo').innerText = data.grupo || '';
         document.getElementById('valEsp').innerText = (data.especialidad || '').toUpperCase();
+
+        const elTurno = document.getElementById('valTurnoJust');
+        if (elTurno) {
+            const esVesp = (data.turno || '').toUpperCase().startsWith('V');
+            elTurno.innerText = esVesp ? 'T.V.' : 'T.M.';
+        }
         
         inicializarDatosJustificantes();
 
-        const resJust = await fetch('/api/justificantes');
-        const listJust = resJust.ok ? await resJust.json() : [];
-        const nuevoFolio = (listJust.length + 1).toString().padStart(4, '0');
-
+        const nuevoFolio = ((justificantesCache ? justificantesCache.length : 0) + 1).toString().padStart(4, '0');
         document.getElementById('prevFolio').innerText = "FOLIO: " + nuevoFolio;
         if (document.getElementById('sugerenciasJust')) document.getElementById('sugerenciasJust').style.display = 'none';
-        document.getElementById('buscarAlumnoJust').value = `${data.nombre} ${pat}`;
+        document.getElementById('buscarAlumnoJust').value = `${data.nombre || ''} ${pat}`.trim();
 
     } catch (e) { console.error(e); }
+}
+
+/**
+ * Construye el contenedor tamaño Carta (216mm x 279mm) con dos tantos idénticos
+ * (superior e inferior) separados exactamente a la mitad por una línea punteada de corte.
+ */
+function construirHojaDobleConLineaDeCorte(originalElement) {
+    const tempContainer = document.createElement('div');
+    tempContainer.style.width = "216mm";
+    tempContainer.style.height = "279mm";
+    tempContainer.style.backgroundColor = "#ffffff";
+    tempContainer.style.display = "flex";
+    tempContainer.style.flexDirection = "column";
+    tempContainer.style.justifyContent = "space-between";
+    tempContainer.style.boxSizing = "border-box";
+    tempContainer.style.overflow = "hidden";
+
+    const copiaSuperior = originalElement.cloneNode(true);
+    const copiaInferior = originalElement.cloneNode(true);
+
+    copiaSuperior.style.margin = "0";
+    copiaInferior.style.margin = "0";
+
+    // Línea divisora central de corte entre las dos partes
+    const lineaCorte = document.createElement('div');
+    lineaCorte.style.width = "216mm";
+    lineaCorte.style.height = "1.4mm";
+    lineaCorte.style.display = "flex";
+    lineaCorte.style.alignItems = "center";
+    lineaCorte.style.justifyContent = "space-between";
+    lineaCorte.style.padding = "0 6mm";
+    lineaCorte.style.boxSizing = "border-box";
+    lineaCorte.innerHTML = `
+        <span style="font-size: 8pt; color: #666; line-height: 1; padding-right: 4px;">&#9986;</span>
+        <div style="flex-grow: 1; border-top: 1.5px dashed #666666; height: 0;"></div>
+        <span style="font-size: 8pt; color: #666; line-height: 1; padding-left: 4px;">&#9986;</span>
+    `;
+
+    tempContainer.appendChild(copiaSuperior);
+    tempContainer.appendChild(lineaCorte);
+    tempContainer.appendChild(copiaInferior);
+
+    return tempContainer;
 }
 
 async function guardarJustificante() {
@@ -157,7 +239,7 @@ async function guardarJustificante() {
     };
 
     try {
-        Swal.fire({ title: 'Guardando...', didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Guardando e imprimiendo...', didOpen: () => Swal.showLoading() });
         
         await fetch('/api/justificantes', {
             method: 'POST',
@@ -166,25 +248,12 @@ async function guardarJustificante() {
         });
 
         const original = document.getElementById('disenoJustificante');
-
-        const tempContainer = document.createElement('div');
-        tempContainer.style.width = "216mm";
-        tempContainer.style.height = "279mm";
-        tempContainer.style.display = "flex";
-        tempContainer.style.flexDirection = "column";
-
-        const copiaSuperior = original.cloneNode(true);
-        const copiaInferior = original.cloneNode(true);
-
-        copiaSuperior.style.margin = "0";
-        copiaInferior.style.margin = "0";
-
-        tempContainer.appendChild(copiaSuperior);
-        tempContainer.appendChild(copiaInferior);
+        const tempContainer = construirHojaDobleConLineaDeCorte(original);
 
         const opciones = {
             margin: 0,
             filename: `Justificante_${datos.folio_justificante}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
                 scale: 2,
                 useCORS: true,
@@ -201,7 +270,7 @@ async function guardarJustificante() {
             await html2pdf().set(opciones).from(tempContainer).save();
         }
 
-        Swal.fire("Éxito", "Justificante generado.", "success")
+        Swal.fire("Éxito", "Justificante generado correctamente.", "success")
             .then(() => location.reload());
 
     } catch (e) {
@@ -216,16 +285,24 @@ async function escucharJustificantesGlobales() {
             fetch('/api/alumnos').then(r => r.ok ? r.json() : [])
         ]);
 
+        alumnosActivosCache = resAl;
+
         const mapAlumnos = {};
+        const mapTurno = {};
         resAl.forEach(a => {
             const mat = a.ncontrol || a.matricula;
             const pat = a.apepat || a.primerApellido || '';
-            if (mat) mapAlumnos[mat] = `${a.nombre} ${pat}`.trim();
+            const matApe = a.apemat || a.segundoApellido || '';
+            if (mat) {
+                mapAlumnos[mat] = `${a.nombre || ''} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
+                mapTurno[mat] = a.turno || 'Matutino';
+            }
         });
 
         justificantesCache = resJust.map(j => ({
             ...j,
-            nombreFull: mapAlumnos[j.id_alumno || j.matricula] || j.nombre || "Estudiante"
+            nombreFull: mapAlumnos[j.id_alumno || j.matricula] || j.nombre || "Estudiante",
+            turnoAlumno: mapTurno[j.id_alumno || j.matricula] || "Matutino"
         }));
 
         renderizarTablaJustificantes();
@@ -321,6 +398,12 @@ async function reimprimirJust(folio) {
     document.getElementById('valEsp').innerText = (j.especialidad || '').toUpperCase();
     document.getElementById('prevFolio').innerText = "FOLIO: " + (j.folio_justificante || j.id);
 
+    const elTurno = document.getElementById('valTurnoJust');
+    if (elTurno) {
+        const esVesp = (j.turnoAlumno || '').toUpperCase().startsWith('V');
+        elTurno.innerText = esVesp ? 'T.V.' : 'T.M.';
+    }
+
     const fechaFaltaStr = typeof formatearFechaFalta === 'function' ? 
         formatearFechaFalta(j.inasistencia_dia).toUpperCase() : 
         j.inasistencia_dia;
@@ -331,25 +414,12 @@ async function reimprimirJust(folio) {
     const original = document.getElementById('disenoJustificante');
     if (!original) return Swal.fire("Error", "No se encontró el diseño base del justificante.", "error");
 
-    const tempContainer = document.createElement('div');
-    tempContainer.style.width = "216mm";
-    tempContainer.style.height = "279mm";
-    tempContainer.style.display = "flex";
-    tempContainer.style.flexDirection = "column";
-
-    const copiaSuperior = original.cloneNode(true);
-    const copiaInferior = original.cloneNode(true);
-
-    copiaSuperior.style.margin = "0";
-    copiaInferior.style.margin = "0";
-
-    tempContainer.appendChild(copiaSuperior);
-    tempContainer.appendChild(copiaInferior);
+    const tempContainer = construirHojaDobleConLineaDeCorte(original);
 
     try {
         Swal.fire({ 
             title: 'Generando PDF...', 
-            text: 'Preparando justificante doble para impresión',
+            text: 'Preparando justificante doble con línea de corte',
             didOpen: () => Swal.showLoading() 
         });
 
