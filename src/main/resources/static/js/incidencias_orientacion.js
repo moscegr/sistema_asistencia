@@ -262,6 +262,24 @@ async function seleccionarParaIncidencia(matricula) {
 
         const elEsp = document.getElementById('pdfEsp');
         if (elEsp) elEsp.innerText = (data.especialidad || '').toUpperCase();
+
+        // Extraer y asignar tutor dinámicamente
+        let tutorNom = "";
+        if (data.nombretutor && typeof data.nombretutor === 'string' && data.nombretutor.trim() !== '') {
+            tutorNom = data.nombretutor.trim();
+        } else if (data.nombre_tutor && typeof data.nombre_tutor === 'string' && data.nombre_tutor.trim() !== '') {
+            tutorNom = data.nombre_tutor.trim();
+        } else if (data.tutor) {
+            if (typeof data.tutor === 'string' && data.tutor.trim() !== '') {
+                tutorNom = data.tutor.trim();
+            } else if (typeof data.tutor === 'object') {
+                tutorNom = (data.tutor.nombre || data.tutor.nombre_completo || data.tutor.nombretutor || "").trim();
+            }
+        }
+        const elTutor = document.getElementById('pdfTutorAl');
+        if (elTutor) {
+            elTutor.innerText = tutorNom ? tutorNom.toUpperCase() : "PADRE DE FAMILIA O TUTOR";
+        }
         
         inicializarFechaHoy();
 
@@ -293,6 +311,7 @@ async function guardarIncidencia() {
     const matApe = alumnoSeleccionado.apemat || alumnoSeleccionado.segundoApellido || '';
     const nombreFull = `${alumnoSeleccionado.nombre} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
     const hoy = new Date().toISOString().split('T')[0];
+    const tutorTexto = document.getElementById('pdfTutorAl') ? document.getElementById('pdfTutorAl').innerText : '';
 
     const datos = {
         _id: folioStr,
@@ -300,23 +319,29 @@ async function guardarIncidencia() {
         id_alumno: mat,
         matricula: mat,
         nombre: nombreFull,
-        grado: Number(alumnoSeleccionado.grado), 
-        grupo: alumnoSeleccionado.grupo, 
-        especialidad: alumnoSeleccionado.especialidad,
+        tutor: tutorTexto,
+        grado: Number(alumnoSeleccionado.grado) || 0, 
+        grupo: alumnoSeleccionado.grupo || '', 
+        especialidad: alumnoSeleccionado.especialidad || '',
         faltas_checklist: faltas, 
-        descripcion_detallada: document.getElementById('inputOtro').value.trim().toUpperCase(), 
+        descripcion_detallada: (document.getElementById('inputOtro')?.value || '').trim().toUpperCase(), 
         fecha_registro: new Date().toISOString(),
         fecha: hoy
     };
 
     try {
-        Swal.fire({ title: 'Guardando reporte y generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        Swal.fire({ title: 'Guardando reporte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-        await fetch('/api/incidencias', {
+        const res = await fetch('/api/incidencias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
+
+        if (!res.ok) {
+            const errTxt = await res.text();
+            throw new Error(`Error en servidor (${res.status}): ${errTxt || res.statusText}`);
+        }
 
         // Generar PDF limpio y seguro
         const original = document.getElementById('contenedorReporteReal');
@@ -327,6 +352,23 @@ async function guardarIncidencia() {
         clonPDF.style.width = '216mm';
         clonPDF.style.minHeight = '279mm';
         clonPDF.style.padding = '12mm 24mm 10mm 24mm';
+
+        // Convertir imágenes a base64 de manera preventiva para blindar contra cualquier fallo de CORS/red
+        const imagenes = clonPDF.querySelectorAll('img');
+        for (const img of imagenes) {
+            try {
+                if (img.src && !img.src.startsWith('data:') && img.complete && img.naturalWidth > 0) {
+                    const c = document.createElement('canvas');
+                    c.width = img.naturalWidth;
+                    c.height = img.naturalHeight;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    img.src = c.toDataURL('image/png');
+                }
+            } catch (eImg) {
+                console.warn("Conversión preventiva omitida:", eImg);
+            }
+        }
 
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'fixed';
@@ -341,19 +383,29 @@ async function guardarIncidencia() {
             margin: 0,
             filename: `Incidencia_${folioStr}_${mat}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+            html2canvas: { scale: 2, useCORS: false, allowTaint: true, scrollY: 0, scrollX: 0 },
             jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
         };
 
-        if (typeof html2pdf !== 'undefined') {
-            await html2pdf().set(opt).from(clonPDF).save();
+        let pdfGenerado = false;
+        try {
+            if (typeof html2pdf !== 'undefined') {
+                await html2pdf().set(opt).from(clonPDF).save();
+                pdfGenerado = true;
+            }
+        } catch (pdfErr) {
+            console.error("Aviso al descargar PDF:", pdfErr);
         }
 
         if (document.body.contains(tempContainer)) {
             document.body.removeChild(tempContainer);
         }
 
-        await Swal.fire("Éxito", "Reporte de incidencia registrado y PDF generado exitosamente.", "success");
+        if (pdfGenerado) {
+            await Swal.fire("Éxito", "Reporte de incidencia registrado y PDF generado exitosamente.", "success");
+        } else {
+            await Swal.fire("Guardado", "El reporte ha sido registrado en la base de datos con éxito.", "success");
+        }
         location.reload();
 
     } catch (e) {
@@ -481,6 +533,9 @@ async function verIncidencia(folio) {
     const espEl = clon.querySelector('#pdfEsp');
     if (espEl) espEl.innerText = (inc.especialidad || '').toUpperCase();
 
+    const tutEl = clon.querySelector('#pdfTutorAl');
+    if (tutEl) tutEl.innerText = (inc.tutor || inc.nombretutor || 'PADRE DE FAMILIA O TUTOR').toUpperCase();
+
     const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
     const fechaObj = inc.fecha ? new Date(inc.fecha + "T12:00:00") : (inc.fecha_registro ? new Date(inc.fecha_registro) : new Date());
     
@@ -560,6 +615,9 @@ async function reimprimirIncidencia(folio) {
         const espEl = clon.querySelector('#pdfEsp');
         if (espEl) espEl.innerText = (inc.especialidad || '').toUpperCase();
 
+        const tutEl = clon.querySelector('#pdfTutorAl');
+        if (tutEl) tutEl.innerText = (inc.tutor || inc.nombretutor || 'PADRE DE FAMILIA O TUTOR').toUpperCase();
+
         const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
         const fechaObj = inc.fecha ? new Date(inc.fecha + "T12:00:00") : (inc.fecha_registro ? new Date(inc.fecha_registro) : new Date());
         
@@ -591,6 +649,23 @@ async function reimprimirIncidencia(folio) {
         clon.style.minHeight = '279mm';
         clon.style.padding = '12mm 24mm 10mm 24mm';
 
+        // Pre-convertir imágenes a base64 de manera preventiva
+        const imagenes = clon.querySelectorAll('img');
+        for (const img of imagenes) {
+            try {
+                if (img.src && !img.src.startsWith('data:') && img.complete && img.naturalWidth > 0) {
+                    const c = document.createElement('canvas');
+                    c.width = img.naturalWidth;
+                    c.height = img.naturalHeight;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    img.src = c.toDataURL('image/png');
+                }
+            } catch (eImg) {
+                console.warn("Conversión preventiva omitida:", eImg);
+            }
+        }
+
         const tempContainer = document.createElement('div');
         tempContainer.style.position = 'fixed';
         tempContainer.style.left = '-9999px';
@@ -605,7 +680,7 @@ async function reimprimirIncidencia(folio) {
             margin: 0,
             filename: `Incidencia_${folClean}_${inc.id_alumno || inc.matricula}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+            html2canvas: { scale: 2, useCORS: false, allowTaint: true, scrollY: 0, scrollX: 0 },
             jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
         };
 

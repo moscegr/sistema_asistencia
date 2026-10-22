@@ -59,4 +59,13 @@ public class FileStorageConfig implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/static/models/")
                 .setCachePeriod(31536000); // 1 year cache
     }
+
+    @Override
+    public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }
 }

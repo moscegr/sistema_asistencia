@@ -278,6 +278,23 @@ async function generarPDFPrefectura(folio, nombre, fechaStr, turno, jefe, datos)
     clon.style.minHeight = '279mm';
     clon.style.padding = '12mm 24mm 10mm 24mm';
 
+    // Pre-convertir imágenes a base64 de manera preventiva
+    const imagenes = clon.querySelectorAll('img');
+    for (const img of imagenes) {
+        try {
+            if (img.src && !img.src.startsWith('data:') && img.complete && img.naturalWidth > 0) {
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth;
+                c.height = img.naturalHeight;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                img.src = c.toDataURL('image/png');
+            }
+        } catch (eImg) {
+            console.warn("Conversión preventiva omitida:", eImg);
+        }
+    }
+
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'fixed';
     tempContainer.style.left = '-9999px';
@@ -288,13 +305,17 @@ async function generarPDFPrefectura(folio, nombre, fechaStr, turno, jefe, datos)
     document.body.appendChild(tempContainer);
 
     if (typeof html2pdf !== 'undefined') {
-        await html2pdf().set({
-            margin: 0,
-            filename: `Reporte_Prefectura_${folio}_${nombre.replace(/\s+/g, '_')}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
-            jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
-        }).from(clon).save();
+        try {
+            await html2pdf().set({
+                margin: 0,
+                filename: `Reporte_Prefectura_${folio}_${nombre.replace(/\s+/g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: false, allowTaint: true, scrollY: 0, scrollX: 0 },
+                jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
+            }).from(clon).save();
+        } catch (pdfErr) {
+            console.error("Error al generar PDF:", pdfErr);
+        }
     }
 
     if (document.body.contains(tempContainer)) {

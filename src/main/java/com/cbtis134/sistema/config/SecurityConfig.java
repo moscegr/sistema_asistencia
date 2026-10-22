@@ -128,6 +128,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+            .cors(org.springframework.security.config.Customizer.withDefaults())
             // ── CSRF: habilitado para rutas HTML (formularios), deshabilitado para /api/** y /logout ──
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers(
@@ -230,16 +231,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/pases/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
                 .requestMatchers(HttpMethod.DELETE, "/api/pases/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
 
-                .requestMatchers(HttpMethod.GET,    "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
-                .requestMatchers(HttpMethod.POST,   "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
-                .requestMatchers(HttpMethod.PUT,    "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
-                .requestMatchers(HttpMethod.DELETE, "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
+                .requestMatchers(HttpMethod.GET,    "/api/justificantes", "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION", "PREFECTO")
+                .requestMatchers(HttpMethod.POST,   "/api/justificantes", "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
+                .requestMatchers(HttpMethod.PUT,    "/api/justificantes", "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
+                .requestMatchers(HttpMethod.DELETE, "/api/justificantes", "/api/justificantes/**").hasAnyRole("ADMIN", "ORIENTACION")
 
-                .requestMatchers(HttpMethod.GET,    "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
-                .requestMatchers(HttpMethod.POST,   "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
-                .requestMatchers(HttpMethod.PUT,    "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
-                .requestMatchers(HttpMethod.DELETE, "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
-                .requestMatchers(                   "/api/incidencias/**").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
+                .requestMatchers(HttpMethod.GET,    "/api/incidencias/personal", "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
+                .requestMatchers(HttpMethod.POST,   "/api/incidencias/personal", "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
+                .requestMatchers(HttpMethod.PUT,    "/api/incidencias/personal", "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
+                .requestMatchers(HttpMethod.DELETE, "/api/incidencias/personal", "/api/incidencias/personal/**").hasAnyRole("ADMIN", "PREFECTO")
+                .requestMatchers(                   "/api/incidencias", "/api/incidencias/**").hasAnyRole("ADMIN", "PREFECTO", "ORIENTACION")
 
                 .requestMatchers(HttpMethod.GET,    "/api/registros-diarios/**").hasAnyRole("ADMIN", "PREFECTO", "GUARDIA", "ORIENTACION")
                 .requestMatchers(HttpMethod.POST,   "/api/registros-diarios/**").hasAnyRole("ADMIN", "GUARDIA")
