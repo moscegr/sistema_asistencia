@@ -3,6 +3,8 @@ let chartFlujo = null;
 let chartGpo = null;
 let chartPersonal = null;
 let listaAlumnosRiesgoGlobal = [];
+let listaOmisionesSalidaGlobal = [];
+let vistaEwsActual = "RIESGO";
 let filtroRiesgoActual = 'TODOS';
 let calendarioInstancia = null;
 let todosEventosCalendario = [];
@@ -471,6 +473,9 @@ function esDiaHabil(fechaStr) {
 
 function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
     listaAlumnosRiesgoGlobal = [];
+    listaOmisionesSalidaGlobal = [];
+
+    const hoy = obtenerFechaLocal();
 
     // Filtrar estrictamente días hábiles (Lunes a Viernes). Los fines de semana (Sábado y Domingo) no se pasa lista.
     const fechasHabiles = [...new Set((registrosHistoricos || []).map(r => r.fecha).filter(Boolean))]
@@ -478,28 +483,87 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
         .sort()
         .reverse();
 
+    // Mapeo de asistencias por alumno: mat -> Set de fechas
+    // 1 checada o múltiples checadas de entrada y salida en el mismo día = exactamente 1 asistencia en esa fecha
     const mapaAsistenciasPorAlumno = {};
+
+    // Mapeo rápido de alumnos
+    const mapaInfoAlumnos = {};
+    (alumnos || []).forEach(al => {
+        const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
+        if (mat) mapaInfoAlumnos[mat] = al;
+    });
 
     (registrosHistoricos || []).forEach(r => {
         const mat = String(r.matricula || r.ncontrol || '').trim().toUpperCase();
         if (mat && r.fecha && esDiaHabil(r.fecha)) {
-            if (!mapaAsistenciasPorAlumno[mat]) mapaAsistenciasPorAlumno[mat] = new Set();
-            mapaAsistenciasPorAlumno[mat].add(r.fecha);
+            const tieneEntrada = Boolean(r.hora_entrada);
+            const tieneSalida = Boolean(r.hora_salida) || (r.estatus_actual === 'FUERA');
+
+            // Detectar alumnos que checaron entrada pero NO checaron salida
+            if (tieneEntrada && !tieneSalida && r.tipo_salida !== 'OMISION_SALIDA_CON_REPORTE') {
+                const infoAl = mapaInfoAlumnos[mat] || {};
+                const pat = infoAl.apepat || infoAl.primerApellido || '';
+                const matApe = infoAl.apemat || infoAl.segundoApellido || '';
+                const nombreCompleto = (r.nombre && r.nombre !== 'Estudiante')
+                    ? r.nombre 
+                    : `${infoAl.nombre || 'Estudiante'} ${pat} ${matApe}`.trim();
+
+                listaOmisionesSalidaGlobal.push({
+                    matricula: mat,
+                    nombre: nombreCompleto,
+                    especialidad: r.especialidad || infoAl.especialidad || 'Tronco Común',
+                    grado: r.grado || infoAl.grado || '1',
+                    grupo: r.grupo || infoAl.grupo || 'A',
+                    turno: r.turno || infoAl.turno || 'Matutino',
+                    fecha: r.fecha,
+                    hora_entrada: r.hora_entrada,
+                    esPasado: (r.fecha < hoy),
+                    idRegistro: r.id || r._id,
+                    foto: infoAl.fotoUrl || infoAl.foto_url || infoAl.foto || '/img/default_avatar.png',
+                    tutor: infoAl.nombretutor || infoAl.nombre_tutor || (infoAl.tutor && infoAl.tutor.nombre) || 'Tutor Registrado',
+                    telefonoTutor: infoAl.teltutor || (infoAl.tutor && infoAl.tutor.telefono) || infoAl.celular || 'S/T'
+                });
+            }
+
+            // REGLA FUNDAMENTAL DE ASISTENCIA:
+            // Checada de entrada y salida en el mismo día cuenta como 1 asistencia en la fecha checada.
+            // No cuenta asistencia por checada. Si un mismo día checa 2 veces o más, sigue teniendo 1 asistencia.
+            // Para fechas pasadas (r.fecha < hoy), OBLIGATORIO tener entrada Y salida.
+            // Para el día de hoy (r.fecha === hoy), tener entrada cuenta como presente en el plantel.
+            const esAsistenciaValida = (r.fecha === hoy)
+                ? tieneEntrada
+                : (tieneEntrada && tieneSalida);
+
+            if (esAsistenciaValida) {
+                if (!mapaAsistenciasPorAlumno[mat]) mapaAsistenciasPorAlumno[mat] = new Set();
+                mapaAsistenciasPorAlumno[mat].add(r.fecha); // Set garantiza estrictamente 1 asistencia por fecha
+            }
         }
     });
 
-    alumnos.forEach(al => {
+    // Evaluar cada alumno en base a días hábiles escolares (Lunes a Viernes)
+    (alumnos || []).forEach(al => {
         const mat = String(al.ncontrol || al.matricula || '').trim().toUpperCase();
         const asistenciasSet = mapaAsistenciasPorAlumno[mat] || new Set();
 
-        let diasSinRegistro = 0;
+        let diasSinRegistro = 0; // Racha consecutiva de inasistencias en días hábiles
+        let totalInasistenciasHabiles = 0; // Total de inasistencias en el período analizado
+        let totalAsistenciasHabiles = 0; // Total de asistencias en el período analizado
+
         if (fechasHabiles.length > 0) {
-            for (let i = 0; i < Math.min(fechasHabiles.length, 10); i++) {
+            let rachaActiva = true;
+            // Recorrer del día escolar más reciente hacia atrás:
+            for (let i = 0; i < fechasHabiles.length; i++) {
                 const f = fechasHabiles[i];
                 if (!asistenciasSet.has(f)) {
-                    diasSinRegistro++;
+                    totalInasistenciasHabiles++;
+                    if (rachaActiva) {
+                        diasSinRegistro++;
+                    }
                 } else {
-                    break; // Asistió en este día hábil escolar; se rompe la racha de inasistencias consecutivas
+                    totalAsistenciasHabiles++;
+                    rachaActiva = false; // Al checar entrada y salida, se rompe la racha de inasistencias consecutivas
                 }
             }
         }
@@ -516,8 +580,10 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
                 turno: al.turno || 'Matutino',
                 foto: al.fotoUrl || al.foto_url || al.foto || '/img/default_avatar.png',
                 diasSinRegistro: diasSinRegistro,
+                totalInasistencias: totalInasistenciasHabiles,
+                totalAsistencias: totalAsistenciasHabiles,
                 nivelRiesgo: nivelRiesgo,
-                tutor: al.nombretutor || al.nombre_tutor || 'Tutor Registrado',
+                tutor: al.nombretutor || al.nombre_tutor || (al.tutor && al.tutor.nombre) || 'Tutor Registrado',
                 telefonoTutor: al.teltutor || (al.tutor && al.tutor.telefono) || al.celular || 'S/T'
             });
         }
@@ -528,19 +594,44 @@ function calcularAlertaTempranaDesercion(alumnos, registrosHistoricos) {
     const criticos = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'CRITICO').length;
     const moderados = listaAlumnosRiesgoGlobal.filter(a => a.nivelRiesgo === 'MODERADO').length;
     const total = listaAlumnosRiesgoGlobal.length;
+    const totalOmisiones = listaOmisionesSalidaGlobal.length;
 
     const elCountTotal = document.getElementById('countRiesgoTotal');
     const elCountCrit = document.getElementById('countRiesgoCritico');
     const elCountMod = document.getElementById('countRiesgoModerado');
+    const elCountOmisiones = document.getElementById('countOmisionesSalida');
     const elKpiRiesgo = document.getElementById('kpiRiesgoDesercion');
 
     if (elCountTotal) elCountTotal.innerText = total;
     if (elCountCrit) elCountCrit.innerText = criticos;
     if (elCountMod) elCountMod.innerText = moderados;
+    if (elCountOmisiones) elCountOmisiones.innerText = totalOmisiones;
     if (elKpiRiesgo) elKpiRiesgo.innerText = total;
 
     renderizarTablaAlertaRiesgo();
+    renderizarTablaOmisionesSalida();
 }
+
+function cambiarVistaEws(tipo) {
+    vistaEwsActual = tipo;
+    const btnRiesgo = document.getElementById('tabRiesgoDesercion');
+    const btnOmisiones = document.getElementById('tabOmisionesSalida');
+    const panelRiesgo = document.getElementById('panelRiesgoDesercion');
+    const panelOmisiones = document.getElementById('panelOmisionesSalida');
+
+    if (tipo === 'RIESGO') {
+        if (btnRiesgo) { btnRiesgo.className = 'btn btn-sm btn-danger active'; }
+        if (btnOmisiones) { btnOmisiones.className = 'btn btn-sm btn-outline-warning text-dark'; }
+        if (panelRiesgo) panelRiesgo.style.display = 'block';
+        if (panelOmisiones) panelOmisiones.style.display = 'none';
+    } else {
+        if (btnRiesgo) { btnRiesgo.className = 'btn btn-sm btn-outline-danger'; }
+        if (btnOmisiones) { btnOmisiones.className = 'btn btn-sm btn-warning text-dark active'; }
+        if (panelRiesgo) panelRiesgo.style.display = 'none';
+        if (panelOmisiones) panelOmisiones.style.display = 'block';
+    }
+}
+window.cambiarVistaEws = cambiarVistaEws;
 
 function filtrarAlertaRiesgo(tipo) {
     filtroRiesgoActual = tipo;
@@ -602,7 +693,8 @@ function renderizarTablaAlertaRiesgo() {
                 <span class="x-small text-muted">${a.grado}° "${a.grupo}" • ${a.turno}</span>
             </td>
             <td class="text-center">
-                <span class="badge bg-light text-danger border border-danger fw-bold px-2 py-1">${a.diasSinRegistro} días</span>
+                <span class="badge bg-light text-danger border border-danger fw-bold px-2 py-1">${a.diasSinRegistro} días consec.</span>
+                <span class="d-block x-small text-muted mt-1">${a.totalInasistencias || a.diasSinRegistro} acumuladas</span>
             </td>
             <td class="text-center">${badgeRiesgo}</td>
             <td class="text-center pe-3">
@@ -619,6 +711,256 @@ function renderizarTablaAlertaRiesgo() {
         tbody.appendChild(tr);
     });
 }
+
+function renderizarTablaOmisionesSalida() {
+    const tbody = document.getElementById('tablaOmisionesSalidaBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (listaOmisionesSalidaGlobal.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-4 text-success fw-bold">
+                    <i class="bi bi-check-circle-fill me-1 fs-5"></i>
+                    Todos los alumnos que checaron entrada tienen su salida registrada.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    listaOmisionesSalidaGlobal.slice(0, 30).forEach(o => {
+        const tr = document.createElement('tr');
+        const badgeFecha = o.esPasado
+            ? `<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-calendar-x me-1"></i>${o.fecha} (Día anterior)</span>`
+            : `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1"><i class="bi bi-clock-history me-1"></i>Hoy</span>`;
+
+        tr.innerHTML = `
+            <td class="ps-3 py-2">
+                <div class="d-flex align-items-center">
+                    <img src="${o.foto}" class="rounded-circle border me-2" style="width: 32px; height: 32px; object-fit: cover;" onerror="this.src='/img/default_avatar.png'">
+                    <div>
+                        <span class="d-block fw-bold text-dark">${o.nombre}</span>
+                        <span class="x-small text-muted">${o.especialidad} ${o.grado}° "${o.grupo}" • ${o.turno}</span>
+                    </div>
+                </div>
+            </td>
+            <td><span class="font-monospace fw-bold text-dark">${o.matricula}</span></td>
+            <td>
+                <span class="d-block fw-semibold text-dark"><i class="bi bi-box-arrow-in-right text-success me-1"></i>${o.hora_entrada || 'S/E'}</span>
+                <span class="x-small text-muted">${badgeFecha}</span>
+            </td>
+            <td class="text-center">
+                <span class="badge bg-danger text-white px-2 py-1">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Sin Checada Salida
+                </span>
+            </td>
+            <td class="text-center pe-3">
+                <button class="btn btn-outline-danger btn-sm py-1 px-2 fw-semibold shadow-sm" onclick="generarReporteOmisionSalida('${o.matricula}', '${o.fecha}', '${o.hora_entrada}', '${o.nombre.replace(/'/g, "\\'")}', '${o.idRegistro || ''}')" title="Generar Reporte Oficial de Incidencia">
+                    <i class="bi bi-file-earmark-plus-fill me-1"></i>Generar Incidencia
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+window.renderizarTablaOmisionesSalida = renderizarTablaOmisionesSalida;
+
+async function generarReporteOmisionSalida(matricula, fecha, horaEntrada, nombreAlumno, idRegistro) {
+    const alumno = listaOmisionesSalidaGlobal.find(o => o.matricula === matricula && o.fecha === fecha);
+    const tutorTexto = alumno ? alumno.tutor : 'Tutor Registrado';
+
+    const confirm = await Swal.fire({
+        icon: 'warning',
+        title: '<span style="color:#dc3545; font-weight:800;">REPORTE POR OMISIÓN DE SALIDA</span>',
+        html: `
+            <div class="text-start small p-2">
+                <p class="mb-1"><strong>Estudiante:</strong> ${nombreAlumno} (${matricula})</p>
+                <p class="mb-1"><strong>Fecha de Entrada:</strong> ${fecha} a las ${horaEntrada || 'S/H'}</p>
+                <p class="mb-2"><strong>Falta:</strong> Omisión de checada de salida en torniquetes/QR al término de la jornada escolar.</p>
+                <div class="alert alert-warning py-2 mb-0">
+                    ¿Deseas generar el <b>Reporte de Incidencia Oficial</b> con folio consecutivo para este estudiante?
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="bi bi-file-earmark-text-fill me-1"></i>Sí, Generar Reporte',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({ title: 'Generando reporte de incidencia...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        // 1. Siguiente folio consecutivo oficial
+        let folioStr = `INC-${Date.now().toString().slice(-4)}`;
+        try {
+            const resFolio = await fetch('/api/incidencias/siguiente-folio');
+            if (resFolio.ok) {
+                const dataF = await resFolio.json();
+                if (dataF.siguiente_folio) folioStr = dataF.siguiente_folio;
+            }
+        } catch(eF) {
+            console.warn("Folio fallback:", eF);
+        }
+
+        // 2. Guardar documento de Incidencia en MongoDB
+        const docIncidencia = {
+            _id: folioStr,
+            folio_incidencia: folioStr,
+            id_alumno: matricula,
+            matricula: matricula,
+            nombre: nombreAlumno,
+            tutor: tutorTexto,
+            grado: alumno ? Number(alumno.grado) || 0 : 0,
+            grupo: alumno ? alumno.grupo : '',
+            especialidad: alumno ? alumno.especialidad : '',
+            faltas_checklist: ["OTRO (ESPECIFIQUE)"],
+            descripcion_detallada: `OMISIÓN DE CHECADA DE SALIDA: El alumno checó entrada al plantel a las ${horaEntrada || 'S/H'} el día ${fecha}, pero omitió realizar su checada obligatoria de salida en torniquetes/QR. Se genera reporte oficial por incumplimiento de registro escolar.`,
+            fecha_registro: new Date().toISOString(),
+            fecha: fecha,
+            reporta: "Sistema Automatizado de Asistencia / Punto de Control"
+        };
+
+        const resInc = await fetch('/api/incidencias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(docIncidencia)
+        });
+
+        if (!resInc.ok) throw new Error("Error en servidor al guardar incidencia.");
+
+        // 3. Marcar el registro diario como reportado
+        if (idRegistro) {
+            try {
+                await fetch('/api/registros-diarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: idRegistro,
+                        matricula: matricula,
+                        fecha: fecha,
+                        tipo_salida: 'OMISION_SALIDA_CON_REPORTE'
+                    })
+                });
+            } catch(eReg) {}
+        }
+
+        // 4. Actualizar lista local y conteo
+        listaOmisionesSalidaGlobal = listaOmisionesSalidaGlobal.filter(o => !(o.matricula === matricula && o.fecha === fecha));
+        const elCountOmisiones = document.getElementById('countOmisionesSalida');
+        if (elCountOmisiones) elCountOmisiones.innerText = listaOmisionesSalidaGlobal.length;
+        renderizarTablaOmisionesSalida();
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Reporte de Incidencia Creado!',
+            html: `
+                <div class="text-center p-2">
+                    <p class="mb-1">Se generó correctamente el reporte con Folio:</p>
+                    <span class="badge bg-danger fs-5 font-monospace px-3 py-1 mb-3">${folioStr}</span>
+                    <div class="mt-2">
+                        <a href="/admin/incidencias/orientacion" class="btn btn-sm btn-primary">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Ver en Orientación Educativa
+                        </a>
+                    </div>
+                </div>
+            `
+        });
+
+    } catch(err) {
+        console.error("Error al generar incidencia de omisión:", err);
+        Swal.fire("Error", "No se pudo generar el reporte: " + err.message, "error");
+    }
+}
+window.generarReporteOmisionSalida = generarReporteOmisionSalida;
+
+async function generarReportesOmisionSalidaMasivo() {
+    if (listaOmisionesSalidaGlobal.length === 0) {
+        return Swal.fire("Sin omisiones", "No hay estudiantes con omisión de salida pendientes de reportar.", "info");
+    }
+
+    const total = listaOmisionesSalidaGlobal.length;
+    const confirm = await Swal.fire({
+        icon: 'warning',
+        title: `¿Generar ${total} Reportes de Incidencia?`,
+        text: `Se generará automáticamente un reporte oficial de incidencia para cada uno de los ${total} alumnos que omitieron su registro de salida.`,
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, Generar Todos',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({ title: `Generando ${total} reportes...`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    let exitosos = 0;
+    for (const o of [...listaOmisionesSalidaGlobal]) {
+        try {
+            let folioStr = `INC-${Date.now().toString().slice(-4)}`;
+            try {
+                const resF = await fetch('/api/incidencias/siguiente-folio');
+                if (resF.ok) {
+                    const dataF = await resF.json();
+                    if (dataF.siguiente_folio) folioStr = dataF.siguiente_folio;
+                }
+            } catch(e) {}
+
+            const docIncidencia = {
+                _id: folioStr,
+                folio_incidencia: folioStr,
+                id_alumno: o.matricula,
+                matricula: o.matricula,
+                nombre: o.nombre,
+                tutor: o.tutor,
+                grado: Number(o.grado) || 0,
+                grupo: o.grupo,
+                especialidad: o.especialidad,
+                faltas_checklist: ["OTRO (ESPECIFIQUE)"],
+                descripcion_detallada: `OMISIÓN DE CHECADA DE SALIDA: El alumno checó entrada al plantel a las ${o.hora_entrada || 'S/H'} el día ${o.fecha}, pero omitió realizar su checada obligatoria de salida en torniquetes/QR. Se genera reporte oficial automático.`,
+                fecha_registro: new Date().toISOString(),
+                fecha: o.fecha,
+                reporta: "Sistema Automatizado de Asistencia / Punto de Control"
+            };
+
+            await fetch('/api/incidencias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(docIncidencia)
+            });
+
+            if (o.idRegistro) {
+                await fetch('/api/registros-diarios', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: o.idRegistro, matricula: o.matricula, fecha: o.fecha, tipo_salida: 'OMISION_SALIDA_CON_REPORTE' })
+                }).catch(() => {});
+            }
+
+            exitosos++;
+        } catch(e) {
+            console.error("Error en reporte masivo:", e);
+        }
+    }
+
+    listaOmisionesSalidaGlobal = [];
+    const elCountOmisiones = document.getElementById('countOmisionesSalida');
+    if (elCountOmisiones) elCountOmisiones.innerText = 0;
+    renderizarTablaOmisionesSalida();
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Reportes Generados',
+        text: `Se crearon con éxito ${exitosos} reportes oficiales de incidencia en la base de datos.`
+    });
+}
+window.generarReportesOmisionSalidaMasivo = generarReportesOmisionSalidaMasivo;
 
 async function enviarWhatsappTutorDesercion(matricula) {
     const alumno = listaAlumnosRiesgoGlobal.find(a => a.matricula === matricula);
@@ -1778,17 +2120,95 @@ window.confirmarCambioCiclo = confirmarCambioCiclo;
 
 async function generarExcelAsistencias() {
     const mes = document.getElementById('mesReporteAsistencia')?.value;
-    Swal.fire({ title: 'Generando reporte...', didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando reporte de asistencias en Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const data = await safeFetchJson('/api/registros-diarios') || [];
-        if (data.length === 0) return Swal.fire("Info", "Sin registros de asistencia.", "info");
+        if (data.length === 0) return Swal.fire("Info", "Sin registros de asistencia para exportar.", "info");
 
-        const ws = XLSX.utils.json_to_sheet(data);
+        const hoy = obtenerFechaLocal();
+        const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        // Filtrar y ordenar cronológicamente
+        const registrosFiltrados = data.filter(r => {
+            if (!r.fecha) return false;
+            if (mes && !r.fecha.startsWith(mes)) return false;
+            return esDiaHabil(r.fecha); // Estrictamente Lunes a Viernes
+        }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
+        if (registrosFiltrados.length === 0) {
+            return Swal.fire("Aviso", "No se encontraron registros de días hábiles (L-V) para el período seleccionado.", "info");
+        }
+
+        const filasExcel = registrosFiltrados.map((r, index) => {
+            let diaTexto = 'Día Hábil';
+            try {
+                const [y, m, d] = r.fecha.split('-').map(Number);
+                diaTexto = diasNombres[new Date(y, m - 1, d).getDay()] || 'Día Hábil';
+            } catch(e) {}
+
+            const tieneEntrada = Boolean(r.hora_entrada);
+            const tieneSalida = Boolean(r.hora_salida) || (r.estatus_actual === 'FUERA');
+
+            let estadoAsistencia = 'SIN REGISTRO';
+            let asistenciaValor = 0;
+
+            if (tieneEntrada && tieneSalida) {
+                estadoAsistencia = 'ASISTENCIA COMPLETA (ENTRADA Y SALIDA)';
+                asistenciaValor = 1; // 1 Asistencia por día calendario checado
+            } else if (tieneEntrada && !tieneSalida) {
+                if (r.fecha === hoy) {
+                    estadoAsistencia = 'PRESENTE EN PLANTEL (EN PROGRESO)';
+                    asistenciaValor = 1;
+                } else {
+                    estadoAsistencia = 'OMISIÓN DE CHECADA DE SALIDA';
+                    asistenciaValor = 0;
+                }
+            }
+
+            return {
+                'No.': index + 1,
+                'Fecha': r.fecha,
+                'Día': diaTexto,
+                'No. Control': r.matricula || r.ncontrol || 'S/N',
+                'Estudiante': r.nombre || 'S/N',
+                'Especialidad': r.especialidad || 'Tronco Común',
+                'Grado/Semestre': r.grado || '',
+                'Grupo': r.grupo || '',
+                'Hora Entrada': r.hora_entrada || 'S/E',
+                'Hora Salida': r.hora_salida || (r.estatus_actual === 'DENTRO' ? 'En plantel' : 'S/S'),
+                'Asistencia en el Día': asistenciaValor,
+                'Estatus Asistencia': estadoAsistencia,
+                'Tipo de Salida': r.tipo_salida || (tieneSalida ? 'ORDINARIA' : 'PENDIENTE')
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(filasExcel);
+        ws['!cols'] = [
+            { wch: 6 },  // No.
+            { wch: 14 }, // Fecha
+            { wch: 12 }, // Día
+            { wch: 18 }, // No. Control
+            { wch: 38 }, // Estudiante
+            { wch: 28 }, // Especialidad
+            { wch: 14 }, // Grado
+            { wch: 8 },  // Grupo
+            { wch: 14 }, // Entrada
+            { wch: 14 }, // Salida
+            { wch: 20 }, // Asistencia en el Día
+            { wch: 35 }, // Estatus
+            { wch: 22 }  // Tipo Salida
+        ];
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Asistencias");
-        XLSX.writeFile(wb, `Reporte_Asistencias_${mes || 'General'}.xlsx`);
-        Swal.fire("Éxito", "Archivo Excel descargado.", "success");
-    } catch(e) { Swal.fire("Error", "No se pudo exportar", "error"); }
+        XLSX.utils.book_append_sheet(wb, ws, "Control_Asistencia");
+        const nombreArchivo = `Reporte_Oficial_Asistencias_${mes || 'General'}_${new Date().toLocaleDateString('en-CA')}.xlsx`;
+        XLSX.writeFile(wb, nombreArchivo);
+
+        Swal.fire("Éxito", `Archivo Excel "${nombreArchivo}" generado correctamente.`, "success");
+    } catch(e) { 
+        console.error("Error al exportar asistencias:", e);
+        Swal.fire("Error", "No se pudo exportar: " + e.message, "error"); 
+    }
 }
 window.generarExcelAsistencias = generarExcelAsistencias;
 
@@ -1975,7 +2395,9 @@ async function generarExcelRiesgoDesercion() {
             'Semestre': `${a.grado}°`,
             'Grupo': `"${a.grupo}"`,
             'Turno': a.turno,
-            'Días Sin Asistencia (Lunes a Viernes)': a.diasSinRegistro,
+            'Inasistencias Consecutivas (L-V)': a.diasSinRegistro,
+            'Total Inasistencias Acumuladas (L-V)': a.totalInasistencias || a.diasSinRegistro,
+            'Total Asistencias Registradas (L-V)': a.totalAsistencias || 0,
             'Nivel de Riesgo': a.nivelRiesgo,
             'Nombre del Tutor': a.tutor,
             'Teléfono Tutor': a.telefonoTutor

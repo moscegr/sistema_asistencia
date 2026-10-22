@@ -590,22 +590,176 @@ async function validarSalida(al, regExistente, salidaGeneralActiva, hoy) {
 
     } else {
         reproducirBeepError();
-        
+        const horaSalida = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+
         Swal.fire({
-            icon: 'error',
-            title: '<span style="font-size: 1.5rem; font-weight: 800; color: #dc3545;">SALIDA DENEGADA</span>',
+            icon: 'warning',
+            title: '<span style="font-size: 1.35rem; font-weight: 800; color: #dc3545;">SALIDA NO AUTORIZADA</span>',
             html: `
                 <div class="p-2 text-center">
-                    <p class="mb-1 fw-bold fs-5">${al.nombre} ${al.apepat || al.primerApellido || ''}</p>
-                    <p class="text-muted mb-0">El alumno no cuenta con pases de salida individuales ni grupales vigentes hoy.</p>
+                    <p class="mb-1 fw-bold fs-5 text-dark">${nombreCompleto}</p>
+                    <p class="badge bg-secondary font-monospace px-3 py-1 mb-2">${mat}</p>
+                    <div class="alert alert-danger py-2 px-3 small text-start mb-2">
+                        <i class="bi bi-shield-x me-1 fs-5 align-middle"></i>
+                        El estudiante <strong>NO cuenta con pase de salida vigente</strong> ni contingencia escolar activa hoy.
+                    </div>
+                    <p class="text-muted small mb-0">Si el estudiante se retira de las instalaciones, debe registrarse su salida y generarse el reporte oficial de incidencia.</p>
                 </div>
             `,
             position: 'center',
-            width: '480px',
-            timer: 3500,
-            showConfirmButton: false
+            width: '500px',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="bi bi-exclamation-triangle-fill me-1"></i>Registrar Salida y Generar Reporte',
+            cancelButtonText: '<i class="bi bi-x-circle me-1"></i>Bloquear Salida (Entendido)',
+            focusCancel: true
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await registrarSalidaConReporteIncidencia(al, regExistente, hoy, horaSalida);
+            }
         });
     }
+async function registrarSalidaConReporteIncidencia(al, regExistente, hoy, horaSalida) {
+    const mat = String(al.ncontrol || al.matricula || '').trim();
+    const pat = al.apepat || al.primerApellido || '';
+    const matApe = al.apemat || al.segundoApellido || '';
+    const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+    const tutorTexto = al.nombretutor || al.nombre_tutor || (al.tutor && al.tutor.nombre) || 'Tutor Registrado';
+
+    Swal.fire({
+        title: 'Generando reporte de incidencia...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // 1. Obtener siguiente folio consecutivo oficial
+        let folioStr = `INC-${Date.now().toString().slice(-4)}`;
+        try {
+            const resFolio = await fetch('/api/incidencias/siguiente-folio');
+            if (resFolio.ok) {
+                const dataFolio = await resFolio.json();
+                if (dataFolio.siguiente_folio) folioStr = dataFolio.siguiente_folio;
+            }
+        } catch(eFolio) {
+            console.warn("Folio fallback:", eFolio);
+        }
+
+        // 2. Registrar salida en registros diarios con estatus de salida no autorizada
+        const horaEntradaStr = regExistente?.hora_entrada || 'S/E';
+        const regSalida = regExistente || {
+            matricula: mat,
+            nombre: nombreCompleto,
+            especialidad: al.especialidad,
+            grado: String(al.grado || ''),
+            grupo: al.grupo,
+            fecha: hoy
+        };
+
+        regSalida.hora_salida = horaSalida;
+        regSalida.estatus_actual = "FUERA";
+        regSalida.tipo_salida = "SALIDA_NO_AUTORIZADA";
+        regSalida.timestamp_ultimo_cambio = Date.now();
+
+        await fetch('/api/registros-diarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(regSalida)
+        });
+
+        al.estado = "FUERA";
+        actualizarRegistroLocalHoy(regSalida);
+
+        fetch('/api/alumnos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(al)
+        }).catch(e => console.error("Error actualizando alumno:", e));
+
+        // 3. Crear el documento oficial de Incidencia
+        const incidenciaDoc = {
+            _id: folioStr,
+            folio_incidencia: folioStr,
+            id_alumno: mat,
+            matricula: mat,
+            nombre: nombreCompleto,
+            tutor: tutorTexto,
+            grado: Number(al.grado) || 0,
+            grupo: al.grupo || '',
+            especialidad: al.especialidad || '',
+            faltas_checklist: ["OTRO (ESPECIFIQUE)"],
+            descripcion_detallada: `SALIDA SIN PASE / NO AUTORIZADA: El alumno registró entrada al plantel a las ${horaEntradaStr} y checó salida a las ${horaSalida} sin contar con pase escolar autorizado vigente ni contingencia activa. Se levanta reporte oficial automático en punto de control.`,
+            fecha_registro: new Date().toISOString(),
+            fecha: hoy,
+            reporta: "Punto de Control / Caseta de Vigilancia"
+        };
+
+        await fetch('/api/incidencias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(incidenciaDoc)
+        });
+
+        // 4. Notificar al tutor por WhatsApp con aviso de reporte de incidencia
+        enviarNotificacionSalidaNoAutorizada(al, horaSalida, folioStr);
+
+        // 5. Retroalimentación visual al personal de vigilancia
+        reproducirBeepExito();
+        Swal.fire({
+            icon: 'warning',
+            title: '<span style="color:#d97706; font-weight:800;">SALIDA REGISTRADA CON REPORTE</span>',
+            html: `
+                <div class="text-center p-2">
+                    <p class="mb-1 fw-bold fs-5 text-dark">${nombreCompleto}</p>
+                    <p class="text-muted small mb-2">Se registró la salida a las <b>${horaSalida}</b>.</p>
+                    <div class="alert alert-warning py-2 mb-2 text-start small">
+                        <div><b>Folio de Incidencia:</b> <span class="badge bg-danger font-monospace fs-6">${folioStr}</span></div>
+                        <div class="text-muted mt-1">El reporte ha sido turnado automáticamente a Orientación Educativa y Prefectura.</div>
+                    </div>
+                </div>
+            `,
+            width: '480px',
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#d97706'
+        });
+
+        actualizarFaceMatcher();
+        renderizarListaFiltrada(document.getElementById('filtroRapido')?.value || "");
+
+    } catch(err) {
+        console.error("Error al registrar salida con reporte:", err);
+        Swal.fire("Error", "No se pudo registrar la incidencia: " + err.message, "error");
+    }
+}
+
+async function enviarNotificacionSalidaNoAutorizada(al, horaSalida, folioStr) {
+    try {
+        const tel = al.teltutor || (al.tutor && al.tutor.telefono) || al.telefono_tutor || al.tel_tutor || al.tutor_telefono || al.celular;
+        if (!tel) return;
+
+        const pat = al.apepat || al.primerApellido || '';
+        const matApe = al.apemat || al.segundoApellido || '';
+        const nombreCompleto = `${al.nombre || ''} ${pat} ${matApe}`.trim();
+        const mat = al.ncontrol || al.matricula || '';
+        const tutorTexto = al.nombretutor || al.nombre_tutor || (al.tutor && al.tutor.nombre) || 'Estimado Tutor';
+        const nomEscuela = (window.cfgSistemaGlobal && window.cfgSistemaGlobal.nombre_plantel) || 'CBTis 134';
+
+        const mensaje = `⚠️ *[${nomEscuela} - AVISO URGENTE]*\nEstimado(a) ${tutorTexto}:\nLe informamos que el estudiante *${nombreCompleto}* (Matrícula: ${mat}) ha salido del plantel escolar a las *${horaSalida}* SIN CONTAR CON PASE DE SALIDA AUTORIZADO.\n\nSe ha generado el Reporte Oficial de Incidencia Folio: *${folioStr}*.\nFavor de comunicarse a la brevedad con la oficina de Orientación Educativa o Prefectura.`;
+
+        await fetch('/api/whatsapp/enviar-mensaje', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: tel, telefono: tel, body: mensaje, mensaje: mensaje })
+        });
+    } catch(e) {
+        console.warn("No se pudo enviar WhatsApp de salida no autorizada:", e);
+    }
+}
+
 }
 
 function mostrarResultadoPersonal(persona, accion) {
