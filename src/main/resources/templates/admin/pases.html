@@ -44,8 +44,8 @@
       flex-shrink: 0;
       min-height: auto;
       background: #FFFAB9;
-      border: 1px solid #c8b44a;
-      padding: 14px 18px 14px 16px;
+      border: 1.5px solid #c8b44a;
+      padding: 16px 20px 24px 20px;
       font-size: 11.5px; 
       color: #000;
       box-shadow: 0 3px 12px rgba(0,0,0,.22);
@@ -110,12 +110,53 @@
 	  color:#000; vertical-align:bottom; padding-bottom: 1px; word-break: break-word; min-height: 16px;
 	}
     
-    .observacion { font-weight:bold; text-decoration:underline; font-size:10.5px; text-align:justify; margin:10px 0 16px 0; line-height:1.35; }
+    .observacion { 
+      font-weight: bold; 
+      text-decoration: underline; 
+      font-size: 10.5px; 
+      text-align: justify; 
+      margin: 10px 0 14px 0; 
+      line-height: 1.35; 
+    }
     
-    .fila-firmas { display:flex; justify-content:space-between; align-items:flex-end; margin-top:8px; }
-    .bloque-firma { width:42%; text-align:center; }
-    .linea-firma { border-top:1px solid #000; margin-bottom:4px; }
-    .etiqueta-firma { font-weight:bold; font-size:11.5px; }
+    .fila-firmas { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-end; 
+      margin-top: 26px; 
+      padding: 0 12px;
+      page-break-inside: avoid;
+    }
+    .bloque-firma { 
+      width: 44%; 
+      text-align: center; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .espacio-firma {
+      height: 48px;
+      width: 100%;
+    }
+    .linea-firma { 
+      width: 100%; 
+      height: 1.5px; 
+      background-color: #000000; 
+      border-top: 1.5px solid #000000; 
+      margin-bottom: 5px; 
+    }
+    .etiqueta-firma { 
+      font-weight: bold; 
+      font-size: 11.5px; 
+      color: #000000;
+      line-height: 1.25;
+    }
+    .subetiqueta-firma {
+      font-size: 10px;
+      font-weight: 600;
+      color: #333333;
+      margin-top: 2px;
+    }
     
     @media print {
       body, #wrapper, #page-content-wrapper, .container-fluid {
@@ -134,17 +175,29 @@
       }
       .hoja-pase { 
           box-shadow: none !important; 
-          border: 1px solid #c8b44a !important; 
+          border: 1.5px solid #c8b44a !important; 
           width: 100% !important;
           max-width: 100% !important;
           min-width: 0 !important;
           min-height: 0 !important;
-          padding: 12px 16px !important;
+          padding: 16px 20px 24px 20px !important;
           background: #FFFAB9 !important;
           -webkit-print-color-adjust: exact; 
           print-color-adjust: exact; 
           margin: 0 !important;
           page-break-inside: avoid;
+      }
+      .fila-firmas {
+          margin-top: 26px !important;
+          page-break-inside: avoid !important;
+      }
+      .espacio-firma {
+          height: 48px !important;
+      }
+      .linea-firma {
+          height: 1.5px !important;
+          background-color: #000000 !important;
+          border-top: 1.5px solid #000000 !important;
       }
       @page { size: portrait; margin: 8mm 12mm; }
     }
@@ -267,12 +320,19 @@
 							
 							    <div class="fila-firmas">
 							        <div class="bloque-firma">
+							            <div class="espacio-firma"></div>
 							            <div class="linea-firma"></div>
-							            <div class="etiqueta-firma">Autoriza Salida de Alumno.</div>
+							            <div class="etiqueta-firma">Autoriza Salida de Alumno</div>
+							            <div class="subetiqueta-firma">(Firma de Autorización)</div>
 							        </div>
 							        <div class="bloque-firma">
+							            <div class="espacio-firma"></div>
 							            <div class="linea-firma"></div>
-							            <div class="etiqueta-firma">Orientación Educativa.</div>
+							            <div class="etiqueta-firma">Orientación Educativa</div>
+							            <div class="subetiqueta-firma text-uppercase fw-bold"
+							                 th:text="${configSistema != null and configSistema['responsable_orientacion'] != null and !configSistema['responsable_orientacion'].isEmpty() ? configSistema['responsable_orientacion'] : 'Sello y Firma'}">
+							                 Sello y Firma
+							            </div>
 							        </div>
 							    </div>
 							

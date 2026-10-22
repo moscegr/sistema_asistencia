@@ -214,7 +214,11 @@ function construirHojaDobleConLineaDeCorte(originalElement) {
     const copiaInferior = originalElement.cloneNode(true);
 
     copiaSuperior.style.margin = "0";
+    copiaSuperior.style.boxShadow = "none";
+    copiaSuperior.style.overflow = "visible";
     copiaInferior.style.margin = "0";
+    copiaInferior.style.boxShadow = "none";
+    copiaInferior.style.overflow = "visible";
 
     // Línea divisora central de corte entre las dos partes
     const lineaCorte = document.createElement('div');
@@ -274,6 +278,11 @@ async function guardarJustificante() {
         const original = document.getElementById('disenoJustificante');
         const tempContainer = construirHojaDobleConLineaDeCorte(original);
 
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        document.body.appendChild(tempContainer);
+
         const opciones = {
             margin: 0,
             filename: `Justificante_${datos.folio_justificante}.pdf`,
@@ -281,7 +290,8 @@ async function guardarJustificante() {
             html2canvas: {
                 scale: 2,
                 useCORS: true,
-                scrollY: 0
+                scrollY: 0,
+                scrollX: 0
             },
             jsPDF: {
                 unit: 'mm',
@@ -292,6 +302,9 @@ async function guardarJustificante() {
 
         if (typeof html2pdf !== 'undefined') {
             await html2pdf().set(opciones).from(tempContainer).save();
+        }
+        if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
         }
 
         Swal.fire("Éxito", "Justificante generado correctamente.", "success")

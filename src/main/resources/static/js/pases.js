@@ -308,18 +308,36 @@ async function guardarPaseIndividual() {
             body: JSON.stringify(datosPase)
         });
 
-        const elementoPDF = document.getElementById('contenedorPaseReal');
+        const original = document.getElementById('contenedorPaseReal');
+        const clonPDF = original.cloneNode(true);
+        clonPDF.removeAttribute('id');
+        clonPDF.style.boxShadow = 'none';
+        clonPDF.style.margin = '0 auto';
+        clonPDF.style.width = '750px';
+        clonPDF.style.maxWidth = '750px';
+
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '750px';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.appendChild(clonPDF);
+        document.body.appendChild(tempContainer);
 
         const opciones = {
-            margin: [8, 10, 8, 10], 
+            margin: [10, 10, 10, 10], 
             filename: `Pase_${folio}_${mat}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
             jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
         };
         
         if (typeof html2pdf !== 'undefined') {
-            await html2pdf().set(opciones).from(elementoPDF).save();
+            await html2pdf().set(opciones).from(clonPDF).save();
+        }
+        if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
         }
         await Swal.fire({ icon: 'success', title: '¡Pase Autorizado!', confirmButtonColor: '#7b1b37' });
         limpiarFormularioPase();
