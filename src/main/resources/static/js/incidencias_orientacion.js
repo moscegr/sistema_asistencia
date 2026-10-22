@@ -1,10 +1,12 @@
 /**
  * Incidencias Orientación - CBTis 134 (REST API Spring Boot Backend)
+ * Formato Vectorial Oficial 100% Nativo en HTML/CSS
  */
 
 let alumnoSeleccionado = null;
 let incidenciasCache = [];
 let limiteIncidencias = 10;
+let alumnosActivosCache = null;
 
 const PUNTOS_OFICIALES = [
     "NO PORTA EL UNIFORME CORRECTAMENTE",
@@ -26,24 +28,50 @@ const PUNTOS_OFICIALES = [
     "OTRO (ESPECIFIQUE)"
 ];
 
-const POSICIONES_Y = [25.2, 27.3, 29.4, 31.5, 33.6, 35.7, 41.0, 44.5, 52.5, 55.0, 58.8, 65.0, 67.8, 70.5, 73.5, 76.5, 79.2];
-const POS_X_OVALO = 85.6; 
-
 const normalizar = (texto) => {
     return texto ? texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     renderizarChecklistInfacciones();
+    renderizarListaFaltasVisual();
+    inicializarFechaHoy();
     configurarBusquedaInteligente();
     configurarEventosReglamento();
-    escucharIncidenciasGlobales();
+    await actualizarSiguienteFolioIncidencia();
+    await escucharIncidenciasGlobales();
 
     const inputFiltro = document.getElementById('buscarIncidenciaGlobal');
     if (inputFiltro) {
         inputFiltro.addEventListener('input', renderizarTablaIncidencias);
     }
 });
+
+function inicializarFechaHoy() {
+    const hoy = new Date();
+    const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+    
+    const diaEl = document.getElementById('pdfDia');
+    const mesEl = document.getElementById('pdfMes');
+    const anioEl = document.getElementById('pdfAnio');
+
+    if (diaEl) diaEl.innerText = hoy.getDate().toString().padStart(2, '0');
+    if (mesEl) mesEl.innerText = meses[hoy.getMonth()];
+    if (anioEl) anioEl.innerText = hoy.getFullYear();
+}
+
+async function actualizarSiguienteFolioIncidencia() {
+    try {
+        const res = await fetch('/api/incidencias/siguiente-folio');
+        if (res.ok) {
+            const data = await res.json();
+            const el = document.getElementById('pdfFolioInc');
+            if (el) el.innerText = "FOLIO: " + (data.siguiente_folio || "INC-0001");
+        }
+    } catch(e) {
+        console.warn("Error al sincronizar folio:", e);
+    }
+}
 
 function renderizarChecklistInfacciones() {
     const contenedor = document.getElementById('checklistIncidencias');
@@ -52,37 +80,78 @@ function renderizarChecklistInfacciones() {
     contenedor.innerHTML = PUNTOS_OFICIALES.map((falta, idx) => `
         <div class="form-check mb-2">
             <input class="form-check-input check-falta" type="checkbox" value="${falta}" id="falta_${idx}">
-            <label class="form-check-label x-small text-dark fw-bold" for="falta_${idx}" style="cursor: pointer; font-size: 0.82rem;">
-                ${falta}
+            <label class="form-check-label text-dark fw-bold" for="falta_${idx}" style="cursor: pointer; font-size: 0.80rem;">
+                ${idx + 1}. ${falta}
             </label>
         </div>
     `).join('');
 }
 
+function renderizarListaFaltasVisual() {
+    const contenedor = document.getElementById('contenedorListaFaltasVisual');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = PUNTOS_OFICIALES.map((falta, idx) => {
+        if (idx === PUNTOS_OFICIALES.length - 1) {
+            return `
+                <div class="fila-falta-item py-1">
+                    <div style="flex-grow: 1; max-width: 88%;">
+                        <span class="fw-bold text-muted me-1">&gt;</span>
+                        <span class="fw-bold text-uppercase">OTRO (ESPECIFIQUE):</span>
+                        <span id="pdfTextoOtro" class="border-bottom-dark fw-bold text-uppercase" style="min-width: 200px; display: inline-block; padding-left: 6px;">&nbsp;</span>
+                    </div>
+                    <div class="ovalo-falta" id="visual_ovalo_${idx}">X</div>
+                </div>
+            `;
+        }
+        return `
+            <div class="fila-falta-item">
+                <div style="max-width: 88%;">
+                    <span class="fw-bold text-muted me-1">&gt;</span>
+                    <span>${falta}</span>
+                </div>
+                <div class="ovalo-falta" id="visual_ovalo_${idx}">X</div>
+            </div>
+        `;
+    }).join('');
+}
+
 function configurarEventosReglamento() {
     const checkboxes = document.querySelectorAll('.check-falta');
-    checkboxes.forEach(cb => cb.addEventListener('change', actualizarMarcasX));
+    checkboxes.forEach(cb => cb.addEventListener('change', actualizarOvalosVisuales));
 
     const inputOtro = document.getElementById('inputOtro');
     if (inputOtro) {
         inputOtro.addEventListener('input', (e) => {
+            const val = e.target.value.toUpperCase();
             const txt = document.getElementById('pdfTextoOtro');
-            if (txt) txt.innerText = e.target.value.toUpperCase();
+            if (txt) txt.innerText = val || "";
+            
+            const idxOtro = PUNTOS_OFICIALES.length - 1;
+            const cbOtro = document.getElementById(`falta_${idxOtro}`);
+            if (cbOtro) {
+                cbOtro.checked = (val.trim().length > 0);
+            }
+            actualizarOvalosVisuales();
         });
     }
 }
 
-function actualizarMarcasX() {
-    const capa = document.getElementById('capaMarcasX');
-    if (!capa) return;
-    capa.innerHTML = "";
-
+function actualizarOvalosVisuales() {
     const seleccionados = Array.from(document.querySelectorAll('.check-falta:checked')).map(cb => cb.value);
+    
+    const contadorBadge = document.getElementById('contadorFaltasSel');
+    if (contadorBadge) {
+        contadorBadge.innerText = `${seleccionados.length} seleccionada${seleccionados.length === 1 ? '' : 's'}`;
+    }
 
-    seleccionados.forEach(falta => {
-        const idx = PUNTOS_OFICIALES.indexOf(falta);
-        if (idx !== -1) {
-            capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
+    PUNTOS_OFICIALES.forEach((falta, idx) => {
+        const ovalo = document.getElementById(`visual_ovalo_${idx}`);
+        if (!ovalo) return;
+        if (seleccionados.includes(falta)) {
+            ovalo.classList.add('marcado');
+        } else {
+            ovalo.classList.remove('marcado');
         }
     });
 }
@@ -94,101 +163,113 @@ function configurarBusquedaInteligente() {
 
     input.addEventListener('input', async (e) => {
         const query = normalizar(e.target.value);
-        if (query.length < 3) {
+        if (query.length < 2) {
             sugerencias.style.display = 'none';
             return;
         }
 
         try {
-            const res = await fetch('/api/alumnos');
-            if (!res.ok) return;
-            const alumnos = await res.json();
+            if (!alumnosActivosCache) {
+                const res = await fetch('/api/alumnos');
+                if (!res.ok) return;
+                alumnosActivosCache = await res.json();
+            }
 
-            const filtrados = alumnos.filter(al => {
+            const filtrados = alumnosActivosCache.filter(al => {
                 const estatus = al.estatus_escolar || al.estatus || 'Activo';
                 if (estatus !== 'Activo') return false;
                 const mat = al.ncontrol || al.matricula || '';
                 const pat = al.apepat || al.primerApellido || '';
-                const nom = normalizar(`${al.nombre} ${pat}`);
-                return nom.includes(query) || normalizar(mat).includes(query);
+                const matApe = al.apemat || al.segundoApellido || '';
+                const nom = normalizar(`${al.nombre} ${pat} ${matApe}`);
+                return normalizar(mat).includes(query) || nom.includes(query);
             }).slice(0, 5);
 
             if (filtrados.length > 0) {
                 sugerencias.innerHTML = filtrados.map(al => {
                     const mat = al.ncontrol || al.matricula;
                     const pat = al.apepat || al.primerApellido || '';
+                    const matApe = al.apemat || al.segundoApellido || '';
                     return `
                         <button type="button" class="list-group-item list-group-item-action py-2" onclick="seleccionarParaIncidencia('${mat}')">
-                            <div class="fw-bold small">${al.nombre} ${pat}</div>
-                            <small class="text-muted">${mat} | ${al.especialidad || ''}</small>
-                        </button>`;
+                            <div class="fw-bold small">${al.nombre} ${pat} ${matApe}</div>
+                            <small class="text-muted">${mat} | ${al.especialidad || ''} | ${al.grado || ''}° "${al.grupo || ''}"</small>
+                        </button>
+                    `;
                 }).join('');
                 sugerencias.style.display = 'block';
             } else {
                 sugerencias.style.display = 'none';
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error("Error en búsqueda:", e);
+        }
     });
 }
 
 async function seleccionarParaIncidencia(matricula) {
     try {
-        const res = await fetch(`/api/alumnos/ncontrol/${matricula}`);
-        if (res.ok) {
-            const data = await res.json();
-            const estatus = data.estatus_escolar || data.estatus || 'Activo';
-            if (estatus !== "Activo") {
-                return Swal.fire("Alumno Inactivo", "No se pueden registrar incidencias a alumnos en BAJA.", "error");
-            }
+        const res = await fetch(`/api/alumnos/${matricula}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        alumnoSeleccionado = data;
+        const pat = data.apepat || data.primerApellido || '';
+        const matApe = data.apemat || data.segundoApellido || '';
+        const nombreCompleto = `${data.nombre || ''} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
 
-            alumnoSeleccionado = data;
-            const pat = data.apepat || data.primerApellido || '';
-            const matApe = data.apemat || data.segundoApellido || '';
-            
-            document.getElementById('pdfNombreAl').innerText = `${data.nombre} ${pat} ${matApe}`.toUpperCase();
-            document.getElementById('pdfSemestre').innerText = data.grado || '';
-            document.getElementById('pdfGrupo').innerText = data.grupo || '';
-            document.getElementById('pdfEsp').innerText = (data.especialidad || '').toUpperCase();
-            
-            const hoy = new Date();
-            document.getElementById('pdfDia').innerText = hoy.getDate().toString().padStart(2, '0');
-            document.getElementById('pdfMes').innerText = hoy.toLocaleString('es-MX', { month: 'long' }).toUpperCase();
-            
-            const anioDoc = document.getElementById('pdfAnio');
-            if (anioDoc) anioDoc.innerText = hoy.getFullYear();
-            
-            if (document.getElementById('sugerenciasInc')) document.getElementById('sugerenciasInc').style.display = 'none';
-            document.getElementById('busquedaAlInc').value = matricula;
+        document.getElementById('pdfNombreAl').innerText = nombreCompleto.toUpperCase();
+        document.getElementById('pdfSemestre').innerText = data.grado || '';
+        document.getElementById('pdfGrupo').innerText = data.grupo || '';
+        document.getElementById('pdfEsp').innerText = (data.especialidad || '').toUpperCase();
+        
+        inicializarFechaHoy();
+
+        if (document.getElementById('sugerenciasInc')) {
+            document.getElementById('sugerenciasInc').style.display = 'none';
         }
-    } catch(e) {}
+        document.getElementById('busquedaAlInc').value = `${data.nombre || ''} ${pat}`.trim();
+
+    } catch(e) {
+        console.error("Error seleccionando alumno:", e);
+    }
 }
+window.seleccionarParaIncidencia = seleccionarParaIncidencia;
 
 async function guardarIncidencia() {
-    if (!alumnoSeleccionado) return Swal.fire("Error", "Seleccione un alumno primero", "warning");
+    if (!alumnoSeleccionado) {
+        return Swal.fire("Atención", "Busque y seleccione un alumno activo primero.", "warning");
+    }
 
     const faltas = Array.from(document.querySelectorAll('.check-falta:checked')).map(cb => cb.value);
-    if (faltas.length === 0) return Swal.fire("Atención", "Marque al menos una falta del reglamento", "info");
+    if (faltas.length === 0) {
+        return Swal.fire("Faltas Requeridas", "Marque al menos una falta del reglamento escolar.", "info");
+    }
+
+    const folioStr = document.getElementById('pdfFolioInc').innerText.replace("FOLIO: ", "").trim();
+    const mat = alumnoSeleccionado.ncontrol || alumnoSeleccionado.matricula;
+    const pat = alumnoSeleccionado.apepat || alumnoSeleccionado.primerApellido || '';
+    const matApe = alumnoSeleccionado.apemat || alumnoSeleccionado.segundoApellido || '';
+    const nombreFull = `${alumnoSeleccionado.nombre} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
+    const hoy = new Date().toISOString().split('T')[0];
+
+    const datos = {
+        _id: folioStr,
+        folio_incidencia: folioStr, 
+        id_alumno: mat,
+        matricula: mat,
+        nombre: nombreFull,
+        grado: Number(alumnoSeleccionado.grado), 
+        grupo: alumnoSeleccionado.grupo, 
+        especialidad: alumnoSeleccionado.especialidad,
+        faltas_checklist: faltas, 
+        descripcion_detallada: document.getElementById('inputOtro').value.trim().toUpperCase(), 
+        fecha_registro: new Date().toISOString(),
+        fecha: hoy
+    };
 
     try {
-        Swal.fire({ title: 'Guardando reporte...', didOpen: () => Swal.showLoading() });
-
-        const mat = alumnoSeleccionado.ncontrol || alumnoSeleccionado.matricula;
-        const hoy = new Date().toISOString().split('T')[0];
-        const docId = `INC_${mat}_${hoy}_${Date.now()}`;
-        
-        const datos = {
-            folio_incidencia: docId, 
-            id_alumno: mat,
-            matricula: mat,
-            grado: Number(alumnoSeleccionado.grado), 
-            grupo: alumnoSeleccionado.grupo, 
-            especialidad: alumnoSeleccionado.especialidad,
-            ciclo: "FEB-JUL 2026",
-            faltas_checklist: faltas, 
-            descripcion_detallada: document.getElementById('inputOtro').value.toUpperCase(), 
-            fecha_registro: new Date().toISOString(),
-            fecha: hoy
-        };
+        Swal.fire({ title: 'Guardando reporte y generando PDF...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         await fetch('/api/incidencias', {
             method: 'POST',
@@ -196,100 +277,49 @@ async function guardarIncidencia() {
             body: JSON.stringify(datos)
         });
 
-        const element = document.getElementById('contenedorReporteReal');
-        const scrollOriginalY = window.scrollY;
-        const originalTransform = element.style.transform;
-        const originalMargin = element.style.marginBottom;
+        // Generar PDF limpio y seguro
+        const original = document.getElementById('contenedorReporteReal');
+        const clonPDF = original.cloneNode(true);
+        clonPDF.removeAttribute('id');
+        clonPDF.style.boxShadow = 'none';
+        clonPDF.style.margin = '0';
+        clonPDF.style.width = '216mm';
+        clonPDF.style.minHeight = '279mm';
 
-        window.scrollTo(0, 0);
-        element.style.transform = "none";
-        element.style.marginBottom = "0";
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '216mm';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.appendChild(clonPDF);
+        document.body.appendChild(tempContainer);
 
         const opt = {
             margin: 0,
-            filename: `Incidencia_${mat}.pdf`,
+            filename: `Incidencia_${folioStr}_${mat}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+            jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
         };
 
         if (typeof html2pdf !== 'undefined') {
-            await html2pdf().set(opt).from(element).save();
+            await html2pdf().set(opt).from(clonPDF).save();
         }
 
-        element.style.transform = originalTransform;
-        element.style.marginBottom = originalMargin;
-        window.scrollTo(0, scrollOriginalY);
+        if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+        }
 
-        Swal.fire("Éxito", "Incidencia registrada y PDF generado", "success").then(() => location.reload());
+        await Swal.fire("Éxito", "Reporte de incidencia registrado y PDF generado exitosamente.", "success");
+        location.reload();
 
     } catch (e) {
         console.error("Error en proceso de guardado:", e);
         Swal.fire("Error", "Hubo un problema al procesar el reporte: " + e.message, "error");
     }
 }
-
-async function reimprimirIncidencia(folio) {
-    const inc = incidenciasCache.find(i => i.folio_incidencia === folio);
-    if (!inc) return Swal.fire("Error", "No se encontró la información de la incidencia.", "error");
-
-    Swal.fire({ title: 'Generando PDF...', didOpen: () => Swal.showLoading() });
-
-    try {
-        document.getElementById('pdfNombreAl').innerText = (inc.nombreFull || '').toUpperCase();
-        document.getElementById('pdfSemestre').innerText = inc.grado || '';
-        document.getElementById('pdfGrupo').innerText = inc.grupo || '';
-        document.getElementById('pdfEsp').innerText = (inc.especialidad || '').toUpperCase();
-        document.getElementById('pdfTextoOtro').innerText = inc.descripcion_detallada || "";
-
-        const fecha = inc.fecha_registro ? new Date(inc.fecha_registro) : new Date();
-        document.getElementById('pdfDia').innerText = fecha.getDate().toString().padStart(2, '0');
-        document.getElementById('pdfMes').innerText = fecha.toLocaleString('es-MX', { month: 'long' }).toUpperCase();
-        
-        const anioDoc = document.getElementById('pdfAnio');
-        if (anioDoc) anioDoc.innerText = fecha.getFullYear();
-
-        const capa = document.getElementById('capaMarcasX');
-        capa.innerHTML = "";
-        (inc.faltas_checklist || []).forEach(falta => {
-            const idx = PUNTOS_OFICIALES.indexOf(falta);
-            if (idx !== -1) {
-                capa.innerHTML += `<span class="marca-x" style="top: ${POSICIONES_Y[idx]}%; left: ${POS_X_OVALO}%;">X</span>`;
-            }
-        });
-
-        const element = document.getElementById('contenedorReporteReal');
-        const scrollOriginalY = window.scrollY;
-        const originalTransform = element.style.transform;
-        const originalMargin = element.style.marginBottom;
-        
-        window.scrollTo(0, 0);
-        element.style.transform = "none";
-        element.style.marginBottom = "0";
-
-        const opt = {
-            margin: 0,
-            filename: `Incidencia_${inc.id_alumno}_REIMPRESION.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 3, useCORS: true, scrollY: 0 },
-            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-        };
-
-        if (typeof html2pdf !== 'undefined') {
-            await html2pdf().set(opt).from(element).save();
-        }
-
-        element.style.transform = originalTransform;
-        element.style.marginBottom = originalMargin;
-        window.scrollTo(0, scrollOriginalY);
-
-        Swal.close();
-
-    } catch (error) {
-        console.error("Error al reimprimir:", error);
-        Swal.fire("Error", "No se pudo generar el PDF: " + error.message, "error");
-    }
-}
+window.guardarIncidencia = guardarIncidencia;
 
 async function escucharIncidenciasGlobales() {
     try {
@@ -298,11 +328,14 @@ async function escucharIncidenciasGlobales() {
             fetch('/api/alumnos').then(r => r.ok ? r.json() : [])
         ]);
 
+        alumnosActivosCache = resAl;
+
         const mapAlumnos = {};
         resAl.forEach(a => {
             const mat = a.ncontrol || a.matricula;
             const pat = a.apepat || a.primerApellido || '';
-            if (mat) mapAlumnos[mat] = `${a.nombre} ${pat}`.trim();
+            const matApe = a.apemat || a.segundoApellido || '';
+            if (mat) mapAlumnos[mat] = `${a.nombre} ${pat} ${matApe}`.replace(/\s+/g, ' ').trim();
         });
 
         incidenciasCache = resInc.map(inc => ({
@@ -311,7 +344,9 @@ async function escucharIncidenciasGlobales() {
         }));
 
         renderizarTablaIncidencias();
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+        console.error("Error cargando incidencias:", e); 
+    }
 }
 
 function renderizarTablaIncidencias() {
@@ -323,80 +358,255 @@ function renderizarTablaIncidencias() {
     const filtro = normalizar(inputBusqueda ? inputBusqueda.value : "");
 
     const filtrados = incidenciasCache.filter(inc => {
-        const folio = normalizar(inc.folio_incidencia);
+        const folio = normalizar(inc.folio_incidencia || inc._id || "");
         const nombre = normalizar(inc.nombreFull);
         const matricula = normalizar(inc.id_alumno || inc.matricula);
         return folio.includes(filtro) || nombre.includes(filtro) || matricula.includes(filtro);
     });
 
     if (filtrados.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron incidencias.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron incidencias registradas.</td></tr>`;
         return;
     }
 
     const paginados = filtrados.slice(0, limiteIncidencias);
 
     paginados.forEach(inc => {
-        const fechaTxt = inc.fecha || (inc.fecha_registro ? new Date(inc.fecha_registro).toLocaleDateString() : 'Pendiente');
-        const folio = inc.folio_incidencia || inc.id || 'INC-001';
+        const fechaTxt = inc.fecha || (inc.fecha_registro ? inc.fecha_registro.split('T')[0] : 'Pendiente');
+        const folio = inc.folio_incidencia || inc._id || 'INC-0001';
         const faltas = inc.faltas_checklist || (inc.motivo ? [inc.motivo] : []);
 
         tbody.innerHTML += `
             <tr>
-                <td class="fw-bold text-guinda">${String(folio).substring(0,15)}...</td>
+                <td class="fw-bold text-guinda">${folio}</td>
                 <td>
                     <div class="fw-bold small">${inc.nombreFull}</div>
                     <small class="text-muted">${inc.id_alumno || inc.matricula}</small>
                 </td>
                 <td>${fechaTxt}</td>
                 <td>
-                    <small class="text-truncate d-inline-block" style="max-width: 200px;">
-                        ${faltas.join(', ')}
+                    <small class="text-truncate d-inline-block" style="max-width: 250px;" title="${faltas.join(', ')}">
+                        ${faltas.length} falta${faltas.length === 1 ? '' : 's'}: ${faltas.join(', ')}
                     </small>
                 </td>
                 <td class="text-center">
                     <div class="btn-group">
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="reimprimirIncidencia('${folio}')">
+                        <button class="btn btn-sm btn-outline-primary border-0" title="Ver Formato Completo" onclick="verIncidencia('${folio}')">
+                            <i class="bi bi-eye-fill fs-5"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger border-0" title="Descargar PDF" onclick="reimprimirIncidencia('${folio}')">
                             <i class="bi bi-file-pdf-fill fs-5"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary border-0 text-danger" onclick="confirmarEliminarIncidencia('${inc.id || folio}')">
-                            <i class="bi bi-trash3-fill fs-5"></i>
+                        <button class="btn btn-sm btn-outline-dark border-0 text-danger" title="Eliminar Incidencia" onclick="confirmarEliminarIncidencia('${folio}')">
+                            <i class="bi bi-trash-fill fs-5"></i>
                         </button>
                     </div>
                 </td>
-            </tr>`;
+            </tr>
+        `;
     });
 
     if (filtrados.length > limiteIncidencias) {
-        tbody.innerHTML += `
-            <tr>
-                <td colspan="5" class="text-center py-2">
-                    <button class="btn btn-link text-guinda btn-sm fw-bold text-decoration-none" onclick="limiteIncidencias += 10; renderizarTablaIncidencias();">
-                        <i class="bi bi-arrow-down-circle me-1"></i> Ver más incidencias...
-                    </button>
-                </td>
-            </tr>`;
+        tbody.innerHTML += `<tr><td colspan="5" class="text-center py-2 bg-light"><button class="btn btn-link btn-sm fw-bold" onclick="limiteIncidencias += 10; renderizarTablaIncidencias();">Mostrar más (+10)</button></td></tr>`;
     }
 }
 
-async function confirmarEliminarIncidencia(id) {
+async function verIncidencia(folio) {
+    const inc = incidenciasCache.find(i => (i.folio_incidencia === folio || i._id === folio));
+    if (!inc) return Swal.fire("Error", "No se encontró la información de la incidencia.", "error");
+
+    const original = document.getElementById('contenedorReporteReal');
+    const contenedorModal = document.getElementById('contenedorModalIncidencia');
+    if (!original || !contenedorModal) return;
+
+    // Clonar nodo para aislarlo de la pantalla de captura
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
+
+    // Asignar datos del registro en el clon
+    const folEl = clon.querySelector('#pdfFolioInc');
+    if (folEl) folEl.innerText = "FOLIO: " + (inc.folio_incidencia || inc._id || 'INC-0001');
+
+    const nomEl = clon.querySelector('#pdfNombreAl');
+    if (nomEl) nomEl.innerText = (inc.nombreFull || inc.nombre || inc.id_alumno || inc.matricula || '').toUpperCase();
+
+    const semEl = clon.querySelector('#pdfSemestre');
+    if (semEl) semEl.innerText = inc.grado || '';
+
+    const gpoEl = clon.querySelector('#pdfGrupo');
+    if (gpoEl) gpoEl.innerText = inc.grupo || '';
+
+    const espEl = clon.querySelector('#pdfEsp');
+    if (espEl) espEl.innerText = (inc.especialidad || '').toUpperCase();
+
+    const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+    const fechaObj = inc.fecha ? new Date(inc.fecha + "T12:00:00") : (inc.fecha_registro ? new Date(inc.fecha_registro) : new Date());
+    
+    const diaEl = clon.querySelector('#pdfDia');
+    const mesEl = clon.querySelector('#pdfMes');
+    const anioEl = clon.querySelector('#pdfAnio');
+
+    if (diaEl) diaEl.innerText = fechaObj.getDate().toString().padStart(2, '0');
+    if (mesEl) mesEl.innerText = meses[fechaObj.getMonth()];
+    if (anioEl) anioEl.innerText = fechaObj.getFullYear();
+
+    // Actualizar texto otro
+    const txtOtro = clon.querySelector('#pdfTextoOtro');
+    if (txtOtro) txtOtro.innerText = (inc.descripcion_detallada || '').toUpperCase();
+
+    // Marcar los óvalos correspondientes
+    const faltas = inc.faltas_checklist || [];
+    PUNTOS_OFICIALES.forEach((falta, idx) => {
+        const ovalo = clon.querySelector(`#visual_ovalo_${idx}`);
+        if (!ovalo) return;
+        if (faltas.includes(falta) || (falta === "OTRO (ESPECIFIQUE)" && inc.descripcion_detallada)) {
+            ovalo.classList.add('marcado');
+        } else {
+            ovalo.classList.remove('marcado');
+        }
+    });
+
+    contenedorModal.innerHTML = '';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.width = "100%";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.overflow = "hidden";
+
+    clon.style.transform = "scale(0.68)";
+    clon.style.transformOrigin = "top center";
+    clon.style.margin = "0 auto";
+    clon.style.marginBottom = "-90mm"; // Ajuste para compensar el scaling
+    clon.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)";
+    clon.style.borderRadius = "4px";
+
+    wrapper.appendChild(clon);
+    contenedorModal.appendChild(wrapper);
+
+    const modalEl = document.getElementById('modalVisualizarIncidencia');
+    if (modalEl && typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+window.verIncidencia = verIncidencia;
+
+async function reimprimirIncidencia(folio) {
+    const inc = incidenciasCache.find(i => (i.folio_incidencia === folio || i._id === folio));
+    if (!inc) return Swal.fire("Error", "No se encontró la información de la incidencia.", "error");
+
+    try {
+        Swal.fire({ title: 'Generando PDF...', didOpen: () => Swal.showLoading() });
+
+        const original = document.getElementById('contenedorReporteReal');
+        const clon = original.cloneNode(true);
+        clon.removeAttribute('id');
+
+        const folEl = clon.querySelector('#pdfFolioInc');
+        if (folEl) folEl.innerText = "FOLIO: " + (inc.folio_incidencia || inc._id || 'INC-0001');
+
+        const nomEl = clon.querySelector('#pdfNombreAl');
+        if (nomEl) nomEl.innerText = (inc.nombreFull || inc.nombre || inc.id_alumno || inc.matricula || '').toUpperCase();
+
+        const semEl = clon.querySelector('#pdfSemestre');
+        if (semEl) semEl.innerText = inc.grado || '';
+
+        const gpoEl = clon.querySelector('#pdfGrupo');
+        if (gpoEl) gpoEl.innerText = inc.grupo || '';
+
+        const espEl = clon.querySelector('#pdfEsp');
+        if (espEl) espEl.innerText = (inc.especialidad || '').toUpperCase();
+
+        const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+        const fechaObj = inc.fecha ? new Date(inc.fecha + "T12:00:00") : (inc.fecha_registro ? new Date(inc.fecha_registro) : new Date());
+        
+        const diaEl = clon.querySelector('#pdfDia');
+        const mesEl = clon.querySelector('#pdfMes');
+        const anioEl = clon.querySelector('#pdfAnio');
+
+        if (diaEl) diaEl.innerText = fechaObj.getDate().toString().padStart(2, '0');
+        if (mesEl) mesEl.innerText = meses[fechaObj.getMonth()];
+        if (anioEl) anioEl.innerText = fechaObj.getFullYear();
+
+        const txtOtro = clon.querySelector('#pdfTextoOtro');
+        if (txtOtro) txtOtro.innerText = (inc.descripcion_detallada || '').toUpperCase();
+
+        const faltas = inc.faltas_checklist || [];
+        PUNTOS_OFICIALES.forEach((falta, idx) => {
+            const ovalo = clon.querySelector(`#visual_ovalo_${idx}`);
+            if (!ovalo) return;
+            if (faltas.includes(falta) || (falta === "OTRO (ESPECIFIQUE)" && inc.descripcion_detallada)) {
+                ovalo.classList.add('marcado');
+            } else {
+                ovalo.classList.remove('marcado');
+            }
+        });
+
+        clon.style.boxShadow = 'none';
+        clon.style.margin = '0';
+        clon.style.width = '216mm';
+        clon.style.minHeight = '279mm';
+
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '216mm';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.appendChild(clon);
+        document.body.appendChild(tempContainer);
+
+        const folClean = inc.folio_incidencia || inc._id || 'INC-0001';
+        const opt = {
+            margin: 0,
+            filename: `Incidencia_${folClean}_${inc.id_alumno || inc.matricula}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0 },
+            jsPDF: { unit: 'mm', format: [216, 279], orientation: 'portrait' }
+        };
+
+        if (typeof html2pdf !== 'undefined') {
+            await html2pdf().set(opt).from(clon).save();
+        }
+
+        if (document.body.contains(tempContainer)) {
+            document.body.removeChild(tempContainer);
+        }
+
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error al reimprimir:", error);
+        Swal.fire("Error", "No se pudo generar el PDF: " + error.message, "error");
+    }
+}
+window.reimprimirIncidencia = reimprimirIncidencia;
+
+async function confirmarEliminarIncidencia(folio) {
     const { isConfirmed } = await Swal.fire({
         title: '¿Eliminar incidencia?',
-        text: "Esta acción no se puede deshacer y el registro desaparecerá de las estadísticas.",
+        text: `Se eliminará permanentemente la incidencia ${folio}.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
     });
 
     if (isConfirmed) {
         try {
-            await fetch(`/api/incidencias/${id}`, { method: 'DELETE' });
-            Swal.fire("Eliminado", "El registro ha sido borrado.", "success");
-            escucharIncidenciasGlobales();
+            Swal.fire({ title: 'Eliminando...', didOpen: () => Swal.showLoading() });
+            const res = await fetch(`/api/incidencias/${encodeURIComponent(folio)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error("Error en servidor al eliminar");
+
+            await Swal.fire("Eliminada", "La incidencia ha sido eliminada.", "success");
+            await actualizarSiguienteFolioIncidencia();
+            await escucharIncidenciasGlobales();
         } catch (e) {
-            Swal.fire("Error", "No se pudo eliminar: " + e.message, "error");
+            Swal.fire("Error", "No se pudo eliminar la incidencia: " + e.message, "error");
         }
     }
 }
+window.confirmarEliminarIncidencia = confirmarEliminarIncidencia;

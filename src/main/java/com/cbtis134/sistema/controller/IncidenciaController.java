@@ -23,9 +23,59 @@ public class IncidenciaController {
         return mongoTemplate.findAll(Document.class, "incidencias");
     }
 
+    @GetMapping("/siguiente-folio")
+    public ResponseEntity<Map<String, Object>> obtenerSiguienteFolio() {
+        List<Document> docs = mongoTemplate.findAll(Document.class, "incidencias");
+        int maxFolio = 0;
+        for (Document d : docs) {
+            Object folObj = d.get("folio_incidencia");
+            if (folObj == null) folObj = d.get("_id");
+            if (folObj != null) {
+                String str = folObj.toString();
+                String numStr = str.replaceAll("[^0-9]", "");
+                if (!numStr.isEmpty()) {
+                    try {
+                        int num = Integer.parseInt(numStr);
+                        if (num > maxFolio) {
+                            maxFolio = num;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        int siguiente = maxFolio + 1;
+        String folioStr = String.format("INC-%04d", siguiente);
+        return ResponseEntity.ok(Map.of("siguiente_numero", siguiente, "siguiente_folio", folioStr));
+    }
+
     @GetMapping("/personal")
     public List<Document> obtenerPersonal() {
         return mongoTemplate.findAll(Document.class, "incidencias_personal");
+    }
+
+    @GetMapping("/personal/siguiente-folio")
+    public ResponseEntity<Map<String, Object>> obtenerSiguienteFolioPersonal() {
+        List<Document> docs = mongoTemplate.findAll(Document.class, "incidencias_personal");
+        int maxFolio = 0;
+        for (Document d : docs) {
+            Object folObj = d.get("clave_reporte");
+            if (folObj == null) folObj = d.get("_id");
+            if (folObj != null) {
+                String str = folObj.toString();
+                String numStr = str.replaceAll("[^0-9]", "");
+                if (!numStr.isEmpty()) {
+                    try {
+                        int num = Integer.parseInt(numStr);
+                        if (num > maxFolio) {
+                            maxFolio = num;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        int siguiente = maxFolio + 1;
+        String folioStr = String.format("PREF-%04d", siguiente);
+        return ResponseEntity.ok(Map.of("siguiente_numero", siguiente, "siguiente_folio", folioStr));
     }
 
     @PostMapping

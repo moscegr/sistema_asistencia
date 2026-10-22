@@ -13,6 +13,79 @@
         .text-guinda { color: var(--guinda); }
         .bg-guinda { background-color: var(--guinda); color: white; }
         #page-content-wrapper { width: 100%; min-width: 0; }
+
+        /* Formato Oficial Vectorial Prefectura */
+        #formatoPdfPrefectura {
+            width: 216mm;
+            min-height: 279mm;
+            padding: 10mm 16mm 8mm 16mm;
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            color: #000000;
+            background: #ffffff;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .border-bottom-dark {
+            border-bottom: 1.5px solid #000;
+            display: inline-block;
+            min-width: 24px;
+            text-align: center;
+            padding: 0 4px;
+            line-height: 1.2;
+        }
+
+        .tabla-modulos-pdf {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8.5pt;
+            text-align: center;
+            border: 1.5px solid #000000;
+        }
+
+        .tabla-modulos-pdf th {
+            border: 1px solid #000000;
+            background-color: #f2f2f2;
+            padding: 4px;
+            font-weight: bold;
+        }
+
+        .tabla-modulos-pdf td {
+            border: 1px solid #000000;
+            padding: 3px 5px;
+            height: 22px;
+        }
+
+        .just-barra-institucional {
+            width: 100%;
+            height: 3.5px;
+            background: linear-gradient(90deg, #5e1329 0%, #7b1b37 80%, #c59b6d 80%, #c59b6d 84%, #5e1329 84%, #5e1329 100%);
+            margin-bottom: 1mm;
+        }
+
+        @media print {
+            body, #wrapper, #page-content-wrapper, .container-fluid {
+                background: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                box-shadow: none !important;
+            }
+            #sidebar-wrapper, .navbar, .card:not(#formatoPdfPrefectura), .btn {
+                display: none !important;
+            }
+            #formatoPdfPrefectura {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                padding: 8mm 14mm !important;
+                page-break-inside: avoid;
+            }
+            @page { size: letter portrait; margin: 8mm 12mm; }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -27,7 +100,10 @@
                 <div class="row g-4">
                     <div class="col-lg-4">
                         <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 15px;">
-                            <h6 class="fw-bold mb-3 text-guinda">Configuración del Reporte</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0 text-guinda"><i class="bi bi-person-badge-fill me-2"></i>Captura de Incidencia</h6>
+                                <span class="badge bg-guinda" id="badgeFolioPref">PREF-0001</span>
+                            </div>
                             
                             <div class="mb-3">
                                 <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
@@ -36,7 +112,9 @@
                                 </label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-light text-muted"><i class="bi bi-lock-fill"></i></span>
-                                    <input type="text" id="jefePersonal" class="form-control" value="LIC. JUANA MORALES APARICIO" readonly style="background-color: #f8f9fa; cursor: not-allowed; font-weight: 500;">
+                                    <input type="text" id="jefePersonal" class="form-control" 
+                                           th:value="${configSistema != null and configSistema['jefe_personal'] != null and !configSistema['jefe_personal'].isEmpty() ? configSistema['jefe_personal'] : 'LIC. JUANA MORALES APARICIO'}" 
+                                           readonly style="background-color: #f8f9fa; cursor: not-allowed; font-weight: 600;">
                                 </div>
                                 <small class="text-muted" style="font-size: 11px;"><i class="bi bi-info-circle me-1"></i>Configurado desde Datos de la Institución</small>
                             </div>
@@ -70,22 +148,27 @@
                             
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Fecha del Incidente</label>
-                                <input type="date" id="fechaIncidenciaPref" class="form-control">
+                                <input type="date" id="fechaIncidenciaPref" class="form-control shadow-sm">
                             </div>
 
                             <button class="btn bg-guinda w-100 rounded-pill mt-3 shadow" onclick="guardarReportePrefectura()">
-                                <i class="bi bi-printer-fill me-2"></i>Imprimir y Guardar
+                                <i class="bi bi-printer-fill me-2"></i>Generar y Guardar Reporte
                             </button>
                         </div>
                     </div>
 
                     <div class="col-lg-8">
                         <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                            <h6 class="fw-bold mb-3 text-guinda"><i class="bi bi-calendar-check me-2"></i>Módulos e Incidencias del Día</h6>
                             <div class="table-responsive">
                                 <table class="table table-bordered border-secondary text-center align-middle">
                                     <thead class="table-light small">
                                         <tr>
-                                            <th>MOD.</th><th>HORA</th><th>CLAVE</th><th>INCIDENCIA</th><th>OBSERVACIONES</th>
+                                            <th style="width: 8%;">MOD.</th>
+                                            <th style="width: 14%;">HORA</th>
+                                            <th style="width: 12%;">CLAVE</th>
+                                            <th style="width: 32%;">INCIDENCIA</th>
+                                            <th style="width: 34%;">OBSERVACIONES</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tablaModulosIncidencias"></tbody>
@@ -100,7 +183,7 @@
                     <div class="col-12 mt-2">
 					    <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
 					        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-					            <h5 class="fw-bold mb-0 text-guinda">Registro Histórico</h5>
+					            <h5 class="fw-bold mb-0 text-guinda"><i class="bi bi-clock-history me-2"></i>Registro Histórico de Incidencias</h5>
 					            
 					            <div class="row g-2" style="max-width: 600px;">
 					                <div class="col-md-5">
@@ -143,82 +226,151 @@
         </div> 
     </div>
 
-    <div style="display: none;">
-        <div id="formatoPdfPrefectura" style="width: 216mm; min-height: 279mm; padding: 15mm 20mm; font-family: 'Arial', sans-serif; color: black; background: white; box-sizing: border-box;">
-
-            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16pt; font-family: 'Times New Roman', serif;">
-                <span>S.E.P.</span>
-                <span>S.E.M.S.</span>
-            </div>
-
-            <div style="text-align: center; margin-top: -10px; margin-bottom: 25px;">
-                <h2 style="margin: 0; font-size: 16pt; font-weight: bold;">Dirección General de Educación Tecnológica Industrial</h2>
-                <h3 style="margin: 3px 0; font-size: 12pt; font-weight: normal;">Subdirección de Educación Media Superior</h3>
-                <h3 class="nombre-oficial-plantel" style="margin: 3px 0; font-size: 12pt; font-weight: normal;" th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios'}">Centro de Bachillerato Tecnológico Industrial y de Servicios</h3>
-                <h3 style="margin: 15px 0 15px 0; font-size: 11pt; font-weight: bold;">REPORTE DE INCIDENCIAS</h3>
-            </div>
-
-            <div style="font-size: 10pt; margin-bottom: 15px; font-weight: bold;">
-                <div style="margin-bottom: 15px;">
-                    REPORTE DE INCIDENCIAS DEL DIA <span id="pdfDia" style="display: inline-block; width: 40px; text-align: center; border-bottom: 1px solid black;"></span>
-                    DEL MES DE: <span id="pdfMes" style="display: inline-block; width: 120px; text-align: center; border-bottom: 1px solid black;"></span>
-                    DEL: <span id="pdfAnio" style="display: inline-block; width: 60px; text-align: center; border-bottom: 1px solid black;"></span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <div style="width: 65%;">
-                        C. <span id="pdfInteresado" style="display: inline-block; width: 90%; border-bottom: 1px solid black; font-weight: normal; padding-left: 5px;"></span>
+    <!-- FORMATO OFICIAL VECTORIAL PARA PREFECTURA (PLANTILLA BASE PARA PDF Y MODAL) -->
+    <div style="position: fixed; left: -9999px; top: 0; width: 216mm; background: #ffffff;">
+        <div id="formatoPdfPrefectura">
+            
+            <!-- 1. ENCABEZADO OFICIAL VECTORIAL CON LOGOS -->
+            <div>
+                <div class="d-flex align-items-center justify-content-between mb-2" style="gap: 10px;">
+                    <div class="d-flex align-items-center" style="gap: 8px; flex-shrink: 0;">
+                        <img th:src="@{/img/logo_sep_educacion.png}" alt="Secretaría de Educación Pública" style="height: 14mm; width: auto; object-fit: contain;">
+                        <div style="height: 12mm; border-left: 1.5px solid #a0a0a0; margin: 0 4px;"></div>
+                        <img th:src="@{/img/logo_dgeti_oficial.png}" alt="DGETI" style="height: 13.5mm; width: auto; object-fit: contain;">
                     </div>
-                    <div style="width: 35%; text-align: right;">
-                        TURNO <span id="pdfTurno" style="display: inline-block; width: 120px; text-align: center; border-bottom: 1px solid black; font-weight: normal;"></span>
+                    <div class="text-end" style="line-height: 1.15; flex-grow: 1; padding: 0 8px;">
+                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Subsecretaría de Educación Media Superior</div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Dirección General de Educación Tecnológica Industrial y de Servicios</div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8.5pt; color: #7b1b37;"
+                             th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null and !configSistema['nombre_oficial_plantel'].isEmpty() ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134'}">
+                            Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134
+                        </div>
+                        <div class="fw-bold" style="font-size: 7.5pt; color: #444;"
+                             th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : '12DCT0001L'}">
+                            12DCT0001L
+                        </div>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <img th:src="@{/img/logo_joven_patria.png}" alt="Joven Patria con Bandera" style="height: 15mm; width: auto; object-fit: contain;">
+                    </div>
+                </div>
+
+                <!-- 2. TITULO Y FOLIO -->
+                <div class="d-flex justify-content-between align-items-center mt-2 mb-2 pb-1 border-bottom" style="border-color: #7b1b37 !important;">
+                    <div>
+                        <span class="badge bg-guinda px-3 py-1 fs-6" id="pdfFolioPref">FOLIO: PREF-0001</span>
+                    </div>
+                    <div class="fw-bold text-uppercase text-end" style="font-size: 11pt; letter-spacing: 0.5px; color: #000;">
+                        Asunto: <span style="text-decoration: underline;">REPORTE DE INCIDENCIAS (PERSONAL)</span>
+                    </div>
+                </div>
+
+                <!-- 3. FECHA Y DATOS DEL PERSONAL -->
+                <div class="mb-2 p-2 rounded" style="background-color: #fafafa; border: 1px solid #e2e8f0; font-size: 9pt; line-height: 1.6;">
+                    <div class="mb-1">
+                        REPORTE DE INCIDENCIAS DEL DÍA <span id="pdfDia" class="border-bottom-dark fw-bold" style="min-width: 30px;">__</span>
+                        DEL MES DE: <span id="pdfMes" class="border-bottom-dark fw-bold" style="min-width: 90px;">__________</span>
+                        DEL AÑO: <span id="pdfAnio" class="border-bottom-dark fw-bold" style="min-width: 45px;">____</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <div style="flex-grow: 1;">
+                            <span class="fw-bold">C.</span>
+                            <span id="pdfInteresado" class="border-bottom-dark fw-bold text-uppercase" style="width: 85%; text-align: left; padding-left: 6px;">&nbsp;</span>
+                        </div>
+                        <div style="min-width: 150px; text-align: right;">
+                            <span class="fw-bold">TURNO:</span>
+                            <span id="pdfTurno" class="border-bottom-dark fw-bold text-uppercase" style="min-width: 90px;">&nbsp;</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. TABLA DE MÓDULOS -->
+                <div class="mb-2">
+                    <table class="tabla-modulos-pdf">
+                        <thead>
+                            <tr>
+                                <th style="width: 8%;">MOD.</th>
+                                <th style="width: 14%;">HORA</th>
+                                <th style="width: 12%;">CLAVE</th>
+                                <th style="width: 33%;">INCIDENCIA</th>
+                                <th style="width: 33%;">OBSERVACIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pdfCuerpoTabla">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="text-center fw-bold mb-2 p-1 rounded" style="font-size: 7.5pt; background-color: #f8f9fa; border: 1px solid #e9ecef;">
+                    CLAVES: &nbsp;&nbsp; F) FALTA &nbsp;&nbsp;|&nbsp;&nbsp; R) RETARDO &nbsp;&nbsp;|&nbsp;&nbsp; PE) PERMISO ECONÓMICO &nbsp;&nbsp;|&nbsp;&nbsp; LI) LICENCIA MÉDICA &nbsp;&nbsp;|&nbsp;&nbsp; CO) COMISIÓN OFICIAL
+                </div>
+            </div>
+
+            <!-- 5. FIRMAS Y NOTA -->
+            <div>
+                <div class="d-flex justify-content-around text-center mt-3 mb-2" style="page-break-inside: avoid;">
+                    <div style="width: 44%;">
+                        <div style="height: 42px;"></div>
+                        <div style="border-top: 1.5px solid #000; width: 100%; margin-bottom: 4px;"></div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #000;">JEFE DE PERSONAL</div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #444;" id="pdfJefeFirma">
+                            LIC. JUANA MORALES APARICIO
+                        </div>
+                    </div>
+                    <div style="width: 44%;">
+                        <div style="height: 42px;"></div>
+                        <div style="border-top: 1.5px solid #000; width: 100%; margin-bottom: 4px;"></div>
+                        <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #000;">FECHA Y FIRMA DEL INTERESADO</div>
+                        <p style="font-size: 6.8pt; text-align: center; margin: 2px 0 0 0; line-height: 1.2; color: #555;">
+                            NOTA: AL RECIBIR EL PRESENTE REPORTE SE LE DAN 48 HRS. PARA JUSTIFICARLO DE LO CONTRARIO PROCEDERÁ SU FALTA.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between font-weight-bold my-2 px-3 fw-bold" style="font-size: 8pt;">
+                    <div>
+                        ELABORÓ: <span id="pdfElaboro" class="border-bottom-dark text-uppercase" style="min-width: 140px; padding-left: 4px;">PREFECTURA</span>
+                    </div>
+                    <div>
+                        FECHA: <span id="pdfFechaElab" class="border-bottom-dark" style="min-width: 100px;">&nbsp;</span>
+                    </div>
+                </div>
+
+                <!-- 6. PIE INSTITUCIONAL -->
+                <div class="text-center mt-2" style="line-height: 1.15;">
+                    <div class="just-barra-institucional mb-1"></div>
+                    <div class="fw-bold" style="font-size: 7.5pt; color: #2b2b2b;"
+                         th:text="${configSistema != null and configSistema['slogan_plantel'] != null and !configSistema['slogan_plantel'].isEmpty() ? configSistema['slogan_plantel'] : '&quot;PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134&quot;'}">
+                        "PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134"
+                    </div>
+                    <div style="font-size: 6.8pt; font-weight: 600; color: #444;"
+                         th:text="${configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.'}">
+                        Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.
+                    </div>
+                    <div style="font-size: 6.8pt; font-weight: 600; color: #444;">
+                        Tel. <span th:text="${configSistema != null and configSistema['telefono_escuela'] != null and !configSistema['telefono_escuela'].isEmpty() ? configSistema['telefono_escuela'] : '7474723464'}">7474723464</span>
                     </div>
                 </div>
             </div>
 
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 10pt; text-align: center; border: 1px solid black;">
-                <thead>
-                    <tr>
-                        <th style="border: 1px solid black; padding: 5px; width: 8%;">MODULO</th>
-                        <th style="border: 1px solid black; padding: 5px; width: 12%;">HORA</th>
-                        <th style="border: 1px solid black; padding: 5px; width: 10%;">CLAVE</th>
-                        <th style="border: 1px solid black; padding: 5px; width: 30%;">INCIDENCIA</th>
-                        <th style="border: 1px solid black; padding: 5px; width: 40%;">OBSERVACIONES</th>
-                    </tr>
-                </thead>
-                <tbody id="pdfCuerpoTabla">
-                </tbody>
-            </table>
+        </div>
+    </div>
 
-            <div style="text-align: center; font-size: 8pt; font-weight: bold; margin-bottom: 50px;">
-                F) FALTA &nbsp;&nbsp;&nbsp; R) RETARDO &nbsp;&nbsp;&nbsp; PE) PERMISO ECONOMICO &nbsp;&nbsp;&nbsp; LI) LICENCIA MEDICA &nbsp;&nbsp;&nbsp; CO) COMISION OFICIAL
-            </div>
-
-            <div style="display: flex; justify-content: space-between; text-align: center; font-size: 9pt; font-weight: bold; margin-bottom: 40px;">
-                <div style="width: 45%;">
-                    <p style="margin-bottom: 40px;">JEFE DE PERSONAL</p>
-                    <p style="margin: 0; text-decoration: underline;" id="pdfJefeFirma"></p>
+    <!-- Modal de Visualización Previa de Incidencias de Prefectura -->
+    <div class="modal fade" id="modalVisualizarPrefectura" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="max-width: 860px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; max-height: 92vh;">
+                <div class="modal-header border-0 pb-1">
+                    <h6 class="modal-title fw-bold text-guinda"><i class="bi bi-file-earmark-text me-2"></i>Vista Previa del Reporte de Prefectura</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div style="width: 45%;">
-                    <p style="margin-bottom: 40px;">FECHA Y FIRMA DEL INTERESADO</p>
-                    <div style="border-top: 1px solid black; width: 80%; margin: 0 auto 5px auto;"></div>
-                    <p style="font-size: 7.5pt; text-align: center; margin: 0; line-height: 1.2;">
-                        NOTA: AL RECIBIR EL PRESENTE REPORTE<br>
-                        SE LE DAN 48 HRS. PARA JUSTIFICARLO DE<br>
-                        LO CONTRARIO PROCEDERA SU FALTA.
-                    </p>
+                <div class="modal-body p-2 text-center bg-light" style="overflow-y: auto; overflow-x: hidden;">
+                    <div id="contenedorModalPrefectura" style="width: 100%; display: flex; justify-content: center; align-items: flex-start;"></div>
+                </div>
+                <div class="modal-footer border-0 pt-1 pb-2 justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
-
-            <div style="display: flex; justify-content: space-between; font-size: 9pt; font-weight: bold; margin-top: 50px;">
-                <div style="width: 50%;">
-                    ELABORO: <span style="display: inline-block; width: 70%; border-bottom: 1px solid black;"></span>
-                </div>
-                <div style="width: 50%; text-align: right;">
-                    FECHA: <span style="display: inline-block; width: 30px; border-bottom: 1px solid black;"></span>
-                    DE <span style="display: inline-block; width: 80px; border-bottom: 1px solid black;"></span>
-                    DEL <span style="display: inline-block; width: 40px; border-bottom: 1px solid black;"></span>
-                </div>
-            </div>
-
         </div>
     </div>
 

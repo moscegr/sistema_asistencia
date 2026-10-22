@@ -11,16 +11,101 @@
     <style>
         :root { --guinda: #7b1b37; }
         .text-guinda { color: var(--guinda); }
-        .fuente-reporte { font-family: 'Courier New', Courier, monospace; color: #000; font-weight: bold; text-transform: uppercase; }
+        .bg-guinda { background-color: var(--guinda); color: white; }
         
-        #contenedorReporteReal {
-            width: 216mm; height: 279mm;
-            background: url('/img/formato_reporte_incidencia.png') no-repeat center;
-            background-size: contain; position: relative; margin: auto; background-color: white;
-        }
-        .campo-inc { position: absolute; font-size: 11pt; white-space: nowrap; }
-        .marca-x { position: absolute; font-size: 14pt; font-family: Arial, sans-serif; font-weight: bold; }
         #page-content-wrapper { width: 100%; min-width: 0; }
+        
+        /* Contenedor del Formato Vectorial Oficial (Tamaño Carta) */
+        #contenedorReporteReal {
+            width: 216mm;
+            min-height: 279mm;
+            box-sizing: border-box;
+            background: #ffffff;
+            padding: 8mm 16mm 7mm 16mm;
+            font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
+            color: #000000;
+            position: relative;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+        }
+
+        .border-bottom-dark {
+            border-bottom: 1.5px solid #000;
+            display: inline-block;
+            min-width: 24px;
+            text-align: center;
+            padding: 0 4px;
+            line-height: 1.2;
+        }
+
+        .fila-falta-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2.2px 4px;
+            border-bottom: 1px dotted #e0e0e0;
+            line-height: 1.25;
+            font-size: 8pt;
+        }
+
+        .fila-falta-item:last-child {
+            border-bottom: none;
+        }
+
+        .ovalo-falta {
+            width: 28px;
+            height: 15px;
+            border: 1.5px solid #333333;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 8.5pt;
+            color: transparent;
+            user-select: none;
+            flex-shrink: 0;
+            background: #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .ovalo-falta.marcado {
+            color: #000000 !important;
+            background-color: #fff9db !important;
+            border-color: #000000 !important;
+            border-width: 2px !important;
+        }
+
+        .just-barra-institucional {
+            width: 100%;
+            height: 3.5px;
+            background: linear-gradient(90deg, #5e1329 0%, #7b1b37 80%, #c59b6d 80%, #c59b6d 84%, #5e1329 84%, #5e1329 100%);
+            margin-bottom: 1mm;
+        }
+
+        @media print {
+            body, #wrapper, #page-content-wrapper, .container-fluid {
+                background: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                box-shadow: none !important;
+            }
+            #sidebar-wrapper, .navbar, .no-print, .card:not(#areaVistaPreviaIncidencia), .btn {
+                display: none !important;
+            }
+            #contenedorReporteReal {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                padding: 6mm 12mm !important;
+                page-break-inside: avoid;
+            }
+            @page { size: letter portrait; margin: 6mm 10mm; }
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -35,42 +120,156 @@
                 <div class="row g-4">
                     <div class="col-lg-4 no-print">
                         <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 15px;">
-                            <h6 class="fw-bold mb-3 text-guinda">Captura de Incidencia</h6>
+                            <h6 class="fw-bold mb-3 text-guinda"><i class="bi bi-pencil-square me-2"></i>Captura de Incidencia</h6>
                             <div class="mb-3 position-relative">
-                                <label class="form-label small fw-bold">Buscar Alumno</label>
-                                <input type="text" id="busquedaAlInc" class="form-control shadow-sm" placeholder="Nombre o Matrícula...">
+                                <label class="form-label small fw-bold">Buscar Alumno (Nombre o Matrícula)</label>
+                                <input type="text" id="busquedaAlInc" class="form-control shadow-sm" placeholder="Escriba para buscar...">
                                 <div id="sugerenciasInc" class="list-group position-absolute w-100 shadow-lg z-3 mt-1" style="display: none;"></div>
                             </div>
                             
-                            <label class="form-label small fw-bold">Faltas cometidas:</label>
+                            <label class="form-label small fw-bold d-flex justify-content-between align-items-center">
+                                <span>Faltas cometidas:</span>
+                                <span class="badge bg-light text-muted border" id="contadorFaltasSel">0 seleccionadas</span>
+                            </label>
                             <div id="checklistIncidencias" class="overflow-auto pe-2 border rounded p-3 bg-white shadow-inner" style="max-height: 350px;">
-                                </div>
+                            </div>
 
                             <div class="mt-3">
                                 <label class="small fw-bold text-guinda">Especifique (OTRO):</label>
-                                <input type="text" id="inputOtro" class="form-control" placeholder="...">
+                                <input type="text" id="inputOtro" class="form-control shadow-sm" placeholder="Detalle si aplica...">
                             </div>
 
                             <button class="btn btn-danger w-100 mt-4 rounded-pill shadow" onclick="guardarIncidencia()">
-                                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Generar Reporte
+                                <i class="bi bi-file-earmark-pdf-fill me-2"></i>Generar y Guardar Reporte
                             </button>
                         </div>
                     </div>
 
                     <div class="col-lg-8">
-					    <div class="shadow-lg rounded-3 overflow-auto p-2 bg-secondary bg-opacity-10" style="max-height: 700px;">
-					        <div id="contenedorReporteReal" class="fuente-reporte mx-auto" style="transform: scale(0.90); transform-origin: top center; margin-bottom: -50px;"> 
-					            <div style="top: 14.3%; left: -7%; width: 80%;" class="campo-inc text-end">
-								    <span class="ciudad-plantel" th:text="${configSistema != null and configSistema['ciudad_plantel'] != null and !configSistema['ciudad_plantel'].isEmpty() ? configSistema['ciudad_plantel'] : (configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Chilpancingo de los Bravo, Gro.')}">Chilpancingo de los Bravo, Gro.</span>; a <span id="pdfDia">__</span> de <span id="pdfMes">__________</span> del <span id="pdfAnio">____</span>.
-								</div>
-					            <div style="top: 16.6%; left: 13.5%; width: 80%;" class="campo-inc">
-					                Nombre del alumno(a): <span id="pdfNombreAl" style="padding-left: 10px;">________________________________________</span>
-					            </div>
-					            <div style="top: 18.8%; left: 13.5%; width: 80%;" class="campo-inc">
-					                Semestre: <span id="pdfSemestre">__</span> Grupo: <span id="pdfGrupo">__</span> Especialidad: <span id="pdfEsp">_______________________</span>
-					            </div>
-					            <div id="capaMarcasX"></div>
-					            <span style="top: 66.4%; left: 44%; font-size: 9pt;" class="campo-inc" id="pdfTextoOtro"></span>
+					    <div id="areaVistaPreviaIncidencia" class="shadow-lg rounded-3 overflow-auto p-2 bg-white" style="max-height: 820px;">
+					        <div id="contenedorReporteReal"> 
+					            
+                                <!-- 1. ENCABEZADO OFICIAL VECTORIAL CON LOGOS -->
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2" style="gap: 10px;">
+                                        <div class="d-flex align-items-center" style="gap: 8px; flex-shrink: 0;">
+                                            <img th:src="@{/img/logo_sep_educacion.png}" alt="Secretaría de Educación Pública" style="height: 14mm; width: auto; object-fit: contain;">
+                                            <div style="height: 12mm; border-left: 1.5px solid #a0a0a0; margin: 0 4px;"></div>
+                                            <img th:src="@{/img/logo_dgeti_oficial.png}" alt="DGETI" style="height: 13.5mm; width: auto; object-fit: contain;">
+                                        </div>
+                                        <div class="text-end" style="line-height: 1.15; flex-grow: 1; padding: 0 8px;">
+                                            <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Subsecretaría de Educación Media Superior</div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 8pt; color: #1a1a1a;">Dirección General de Educación Tecnológica Industrial y de Servicios</div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 8.5pt; color: #7b1b37;"
+                                                 th:text="${configSistema != null and configSistema['nombre_oficial_plantel'] != null and !configSistema['nombre_oficial_plantel'].isEmpty() ? configSistema['nombre_oficial_plantel'] : 'Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134'}">
+                                                Centro de Bachillerato Tecnológico Industrial y de Servicios No. 134
+                                            </div>
+                                            <div class="fw-bold" style="font-size: 7.5pt; color: #444;"
+                                                 th:text="${configSistema != null and configSistema['cct_plantel'] != null and !configSistema['cct_plantel'].isEmpty() ? configSistema['cct_plantel'] : '12DCT0001L'}">
+                                                12DCT0001L
+                                            </div>
+                                        </div>
+                                        <div style="flex-shrink: 0;">
+                                            <img th:src="@{/img/logo_joven_patria.png}" alt="Joven Patria con Bandera" style="height: 15mm; width: auto; object-fit: contain;">
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. ASUNTO Y FOLIO -->
+                                    <div class="d-flex justify-content-between align-items-center mt-2 mb-2 pb-1 border-bottom" style="border-color: #7b1b37 !important;">
+                                        <div>
+                                            <span class="badge bg-guinda px-3 py-1 fs-6" id="pdfFolioInc">FOLIO: INC-0001</span>
+                                        </div>
+                                        <div class="fw-bold text-uppercase text-end" style="font-size: 11pt; letter-spacing: 0.5px; color: #000;">
+                                            Asunto: <span style="text-decoration: underline;">REPORTE DE INCIDENCIA</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. LUGAR Y FECHA -->
+                                    <div class="text-end fw-bold mb-2" style="font-size: 9.2pt; color: #222;">
+                                        <span id="pdfCiudad" th:text="${configSistema != null and configSistema['ciudad_plantel'] != null and !configSistema['ciudad_plantel'].isEmpty() ? configSistema['ciudad_plantel'] : 'CHILPANCINGO DE LOS BRAVO, GUERRERO'}">CHILPANCINGO DE LOS BRAVO, GUERRERO</span>; 
+                                        A <span id="pdfDia" class="border-bottom-dark" style="min-width: 25px;">__</span> 
+                                        DE <span id="pdfMes" class="border-bottom-dark" style="min-width: 80px;">__________</span> 
+                                        DEL <span id="pdfAnio" class="border-bottom-dark" style="min-width: 45px;">____</span>.
+                                    </div>
+
+                                    <!-- 4. DATOS DEL ALUMNO -->
+                                    <div class="mb-2 p-2 rounded" style="background-color: #fafafa; border: 1px solid #e2e8f0; font-size: 9pt; line-height: 1.6;">
+                                        <div>
+                                            <span class="fw-bold">NOMBRE DEL ALUMNO (A):</span>
+                                            <span id="pdfNombreAl" class="border-bottom-dark fw-bold text-uppercase" style="width: 72%; text-align: left; padding-left: 8px;">&nbsp;</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <div>
+                                                <span class="fw-bold">SEMESTRE:</span>
+                                                <span id="pdfSemestre" class="border-bottom-dark fw-bold" style="min-width: 30px;">&nbsp;</span>
+                                            </div>
+                                            <div>
+                                                <span class="fw-bold">GRUPO:</span>
+                                                <span id="pdfGrupo" class="border-bottom-dark fw-bold" style="min-width: 30px;">&nbsp;</span>
+                                            </div>
+                                            <div style="flex-grow: 1; margin-left: 15px;">
+                                                <span class="fw-bold">ESPECIALIDAD:</span>
+                                                <span id="pdfEsp" class="border-bottom-dark fw-bold text-uppercase" style="min-width: 140px; text-align: left; padding-left: 6px;">&nbsp;</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5. FALTAS EN LAS QUE INCURRE -->
+                                    <div class="mb-2">
+                                        <div class="fw-bold text-uppercase mb-1" style="font-size: 8.8pt; letter-spacing: 0.5px; color: #111;">
+                                            FALTA EN LAS QUE INCURRE:
+                                        </div>
+                                        <div id="contenedorListaFaltasVisual">
+                                            <!-- Se inyecta dinámicamente con los 17 puntos oficiales y sus óvalos en la derecha -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 6. ÁREA DE FIRMAS, NOTA Y PIE INSTITUCIONAL -->
+                                <div>
+                                    <!-- FIRMAS -->
+                                    <div class="d-flex justify-content-around text-center mt-2 mb-1" style="page-break-inside: avoid;">
+                                        <div style="width: 44%;">
+                                            <div style="height: 38px;"></div>
+                                            <div style="border-top: 1.5px solid #000; width: 100%; margin-bottom: 4px;"></div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 7.8pt; color: #000;">
+                                                Nombre y Firma de Orientación Educativa
+                                            </div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 7.5pt; color: #555;"
+                                                 th:text="${configSistema != null and configSistema['responsable_orientacion'] != null and !configSistema['responsable_orientacion'].isEmpty() ? configSistema['responsable_orientacion'] : ''}">
+                                            </div>
+                                        </div>
+                                        <div style="width: 44%;">
+                                            <div style="height: 38px;"></div>
+                                            <div style="border-top: 1.5px solid #000; width: 100%; margin-bottom: 4px;"></div>
+                                            <div class="fw-bold text-uppercase" style="font-size: 7.8pt; color: #000;">
+                                                Nombre y Firma de Enterado del Padre de Familia o Tutor
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- NOTA DE 24 HORAS -->
+                                    <div class="p-1 px-2 my-1 rounded text-center fw-bold" style="background: #f8f9fa; border: 1px solid #dee2e6; font-size: 7pt; line-height: 1.25; color: #222;">
+                                        AL RECIBIR ESTE REPORTE, DISPONE DE 24 HORAS PARA ENTREGARLO A LA OFICINA DE ORIENTACIÓN EDUCATIVA T.M. EL PADRE DE FAMILIA O TUTOR CON COPIA DE LA CREDENCIAL DE ELECTOR VIGENTE.
+                                    </div>
+
+                                    <!-- PIE INSTITUCIONAL -->
+                                    <div class="text-center mt-1" style="line-height: 1.15;">
+                                        <div class="just-barra-institucional mb-1"></div>
+                                        <div class="fw-bold" style="font-size: 7.5pt; color: #2b2b2b;"
+                                             th:text="${configSistema != null and configSistema['slogan_plantel'] != null and !configSistema['slogan_plantel'].isEmpty() ? configSistema['slogan_plantel'] : '&quot;PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134&quot;'}">
+                                            "PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134"
+                                        </div>
+                                        <div style="font-size: 6.8pt; font-weight: 600; color: #444;"
+                                             th:text="${configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.'}">
+                                            Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.
+                                        </div>
+                                        <div style="font-size: 6.8pt; font-weight: 600; color: #444;">
+                                            Tel. <span th:text="${configSistema != null and configSistema['telefono_escuela'] != null and !configSistema['telefono_escuela'].isEmpty() ? configSistema['telefono_escuela'] : '7474723464'}">7474723464</span>
+                                        </div>
+                                    </div>
+                                </div>
+
 					        </div>
 					    </div>
 					</div>
@@ -78,7 +277,7 @@
                     <div class="col-12 mt-2">
 					    <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
 					        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-					            <h5 class="fw-bold mb-2 mb-md-0 text-guinda">Historial de Incidencias</h5>
+					            <h5 class="fw-bold mb-2 mb-md-0 text-guinda"><i class="bi bi-clock-history me-2"></i>Historial de Incidencias</h5>
 					            <div class="input-group shadow-sm" style="max-width: 350px;">
 					                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
 					                <input type="text" id="buscarIncidenciaGlobal" class="form-control border-start-0 form-control-sm" placeholder="Buscar folio, matrícula o nombre...">
@@ -96,7 +295,29 @@
 					    </div>
 					</div>
                 </div>
-            </div> </div> </div> <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            </div> 
+        </div> 
+    </div>
+
+    <!-- Modal de Visualización Previa del Reporte de Incidencia -->
+    <div class="modal fade" id="modalVisualizarIncidencia" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="max-width: 860px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; max-height: 92vh;">
+                <div class="modal-header border-0 pb-1">
+                    <h6 class="modal-title fw-bold text-guinda"><i class="bi bi-file-earmark-text me-2"></i>Vista Previa del Reporte de Incidencia</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-2 text-center bg-light" style="overflow-y: auto; overflow-x: hidden;">
+                    <div id="contenedorModalIncidencia" style="width: 100%; display: flex; justify-content: center; align-items: flex-start;"></div>
+                </div>
+                <div class="modal-footer border-0 pt-1 pb-2 justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script th:src="@{/js/app-init.js}"></script>
