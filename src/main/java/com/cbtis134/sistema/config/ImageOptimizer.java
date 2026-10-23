@@ -193,6 +193,33 @@ public class ImageOptimizer {
         }
     }
 
+    /**
+     * Reconstruye físicamente en disco (/app/uploads/{subcarpeta}/{nombreArchivo}) un archivo a partir de su
+     * cadena Base64 preservada en MongoDB. Devuelve true si se pudo restaurar exitosamente.
+     */
+    public static boolean restaurarArchivoEnDisco(String subcarpeta, String nombreArchivoConExt, String dataUri) {
+        if (dataUri == null || !esBase64Imagen(dataUri) || subcarpeta == null || nombreArchivoConExt == null) {
+            return false;
+        }
+        try {
+            boolean esPng = dataUri.startsWith("data:image/png") || dataUri.startsWith("data:image/webp");
+            boolean[] outPng = new boolean[]{false};
+            byte[] bytes = procesarImagenBytes(dataUri, 360, esPng, 0.85f, outPng);
+            if (bytes == null || bytes.length == 0) return false;
+
+            File folder = new File(getUploadDir(), limpiarNombreArchivo(subcarpeta));
+            if (!folder.exists() && !folder.mkdirs()) return false;
+
+            File targetFile = new File(folder, nombreArchivoConExt);
+            try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                fos.write(bytes);
+            }
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static String sanitizarUrlOExistente(String url, String fallbackDefault) {
         if (url == null || url.isBlank()) {
             return fallbackDefault;

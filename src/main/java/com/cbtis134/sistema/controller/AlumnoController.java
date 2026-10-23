@@ -58,15 +58,24 @@ public class AlumnoController {
     }
 
     private void migrarFotoAlumnoSiBase64(Alumno a) {
-        if (a != null && ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
+        if (a == null) return;
+        if (ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
             String idArchivo = a.getNcontrol() != null && !a.getNcontrol().isBlank() ? a.getNcontrol()
                     : (a.getMatricula() != null && !a.getMatricula().isBlank() ? a.getMatricula() : a.getId());
-            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(a.getFotoUrl(), "alumnos", idArchivo);
+            String base64Opt = ImageOptimizer.optimizarFotoPerfil(a.getFotoUrl());
+            a.setFotoBase64(base64Opt);
+            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "alumnos", idArchivo);
             if (!nuevaUrl.equals(a.getFotoUrl())) {
                 a.setFotoUrl(nuevaUrl);
                 try {
                     alumnoRepository.save(a);
                 } catch (Exception ignored) {}
+            }
+        } else if (a.getFotoBase64() != null && ImageOptimizer.esBase64Imagen(a.getFotoBase64())) {
+            String idArchivo = a.getNcontrol() != null && !a.getNcontrol().isBlank() ? a.getNcontrol()
+                    : (a.getMatricula() != null && !a.getMatricula().isBlank() ? a.getMatricula() : a.getId());
+            if (!ImageOptimizer.existeArchivoEnDisco(a.getFotoUrl())) {
+                ImageOptimizer.restaurarArchivoEnDisco("alumnos", idArchivo + ".jpg", a.getFotoBase64());
             }
         }
     }
@@ -127,7 +136,9 @@ public class AlumnoController {
         if (a.getFotoUrl() != null && ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
             String idArchivo = mat != null && !mat.isEmpty() ? mat
                     : (a.getCurp() != null && !a.getCurp().isEmpty() ? a.getCurp() : a.getId());
-            a.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(a.getFotoUrl(), "alumnos", idArchivo));
+            String base64Opt = ImageOptimizer.optimizarFotoPerfil(a.getFotoUrl());
+            a.setFotoBase64(base64Opt);
+            a.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "alumnos", idArchivo));
         }
 
         String nomCompleto = ((a.getNombre() != null ? a.getNombre() : "") + " " +

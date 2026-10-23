@@ -40,6 +40,7 @@ public class Alumno {
     private String fotoUrl;
     private String foto_url;
     private String foto;
+    private String fotoBase64;
     private String registradoPor;
     private List<Double> descriptor_facial;
     private List<Float> descriptorFacial;
@@ -159,6 +160,9 @@ public class Alumno {
 
     public String getFoto() { return getFotoUrl(); }
     public void setFoto(String foto) { setFotoUrl(foto); }
+
+    public String getFotoBase64() { return fotoBase64; }
+    public void setFotoBase64(String fotoBase64) { this.fotoBase64 = fotoBase64; }
 
     public String getRegistradoPor() { return registradoPor; }
     public void setRegistradoPor(String registradoPor) { this.registradoPor = registradoPor; }

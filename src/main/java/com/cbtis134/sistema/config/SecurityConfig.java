@@ -198,17 +198,14 @@ public class SecurityConfig {
             // ── Rutas públicas y protegidas ──────────────────────────────────────
             .authorizeHttpRequests(auth -> auth
                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                // Recursos estáticos públicos (incluye logos institucionales en /uploads/logos/**)
+                // Recursos estáticos públicos (incluye logos y fotos optimizadas en /uploads/**)
                 .requestMatchers(
                     "/", "/index", "/landing", "/login", "/login/**", "/logout",
-                    "/css/**", "/js/**", "/img/**", "/qrs/**", "/uploads/logos/**",
+                    "/css/**", "/js/**", "/img/**", "/qrs/**", "/uploads/**",
                     "/models/**", "/error", "/favicon.ico", "/favicon.png"
                 ).permitAll()
                 // Configuración pública de lectura (nombre del plantel, logo, etc.)
                 .requestMatchers(HttpMethod.GET, "/api/configuracion/sistema", "/api/configuracion/escolar").permitAll()
-
-                // /uploads REQUIERE autenticación (fotos de alumnos y personal son datos sensibles)
-                .requestMatchers("/uploads/**").authenticated()
 
                 // Endpoint para consultar datos y rol de la sesión activa
                 .requestMatchers("/api/usuarios/me").authenticated()

@@ -79,14 +79,22 @@ public class UsuarioController {
     }
 
     private void migrarFotoUsuarioSiBase64(Usuario u) {
-        if (u != null && ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
+        if (u == null) return;
+        if (ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
             String idArchivo = obtenerIdentificadorArchivoUsuario(u);
-            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", idArchivo);
+            String base64Opt = ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl());
+            u.setFotoBase64(base64Opt);
+            String nuevaUrl = ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "usuarios", idArchivo);
             if (!nuevaUrl.equals(u.getFotoUrl())) {
                 u.setFotoUrl(nuevaUrl);
                 try {
                     usuarioRepository.save(u);
                 } catch (Exception ignored) {}
+            }
+        } else if (u.getFotoBase64() != null && ImageOptimizer.esBase64Imagen(u.getFotoBase64())) {
+            String idArchivo = obtenerIdentificadorArchivoUsuario(u);
+            if (!ImageOptimizer.existeArchivoEnDisco(u.getFotoUrl())) {
+                ImageOptimizer.restaurarArchivoEnDisco("usuarios", idArchivo + ".jpg", u.getFotoBase64());
             }
         }
     }
@@ -222,7 +230,9 @@ public class UsuarioController {
                 if (u.getFotoUrl() != null) {
                     String foto = u.getFotoUrl();
                     if (ImageOptimizer.esBase64Imagen(foto)) {
-                        foto = ImageOptimizer.guardarFotoPerfilEnDisco(foto, "usuarios", obtenerIdentificadorArchivoUsuario(existente));
+                        String base64Opt = ImageOptimizer.optimizarFotoPerfil(foto);
+                        foto = ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "usuarios", obtenerIdentificadorArchivoUsuario(existente));
+                        existente.setFotoBase64(base64Opt);
                     }
                     existente.setFotoUrl(foto);
                 }
@@ -250,7 +260,9 @@ public class UsuarioController {
                     u.setPassword(passwordEncoder.encode(u.getPassword()));
                 }
                 if (u.getFotoUrl() != null && ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
-                    u.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(u.getFotoUrl(), "usuarios", obtenerIdentificadorArchivoUsuario(u)));
+                    String base64Opt = ImageOptimizer.optimizarFotoPerfil(u.getFotoUrl());
+                    u.setFotoBase64(base64Opt);
+                    u.setFotoUrl(ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "usuarios", obtenerIdentificadorArchivoUsuario(u)));
                 }
                 if (u.getEstatus() == null) u.setEstatus("Activo");
                 usuarioRepository.save(u);
@@ -301,11 +313,14 @@ public class UsuarioController {
                         if (usuarioActualizado.getFotoUrl().trim().isEmpty()) {
                             ImageOptimizer.eliminarArchivoDisco(usuario.getFotoUrl());
                             usuario.setFotoUrl(null);
+                            usuario.setFotoBase64(null);
                             usuario.setDescriptor_facial(null);
                         } else {
                             String foto = usuarioActualizado.getFotoUrl();
                             if (ImageOptimizer.esBase64Imagen(foto)) {
-                                foto = ImageOptimizer.guardarFotoPerfilEnDisco(foto, "usuarios", obtenerIdentificadorArchivoUsuario(usuario));
+                                String base64Opt = ImageOptimizer.optimizarFotoPerfil(foto);
+                                foto = ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "usuarios", obtenerIdentificadorArchivoUsuario(usuario));
+                                usuario.setFotoBase64(base64Opt);
                             }
                             usuario.setFotoUrl(foto);
                         }
@@ -340,6 +355,7 @@ public class UsuarioController {
                 .map(usuario -> {
                     ImageOptimizer.eliminarArchivoDisco(usuario.getFotoUrl());
                     usuario.setFotoUrl(null);
+                    usuario.setFotoBase64(null);
                     usuario.setDescriptor_facial(null);
                     Usuario guardado = usuarioRepository.save(usuario);
                     return ResponseEntity.ok(java.util.Map.of(

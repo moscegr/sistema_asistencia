@@ -1051,6 +1051,13 @@ async function abrirModalGafeteCredencialPersonal(id) {
         recuadroFoto.style.backgroundPosition = 'center';
         recuadroFoto.style.backgroundRepeat = 'no-repeat';
         recuadroFoto.style.backgroundSize = 'cover';
+        if (fotoReal !== '/img/default_avatar.png') {
+            const probe = new Image();
+            probe.onerror = () => {
+                recuadroFoto.style.backgroundImage = `url('/img/default_avatar.png')`;
+            };
+            probe.src = fotoReal;
+        }
     }
 
     const persPvcNombre = document.getElementById('persPvcNombre');
@@ -1267,6 +1274,16 @@ async function generarImagenGafetePersonal(user) {
             try {
                 if (imgFoto && imgFoto.complete && imgFoto.naturalWidth > 0) {
                     ctx.drawImage(imgFoto, fotoX, fotoY, fotoW, fotoH);
+                } else {
+                    ctx.fillStyle = "#f1f5f9";
+                    ctx.fillRect(fotoX, fotoY, fotoW, fotoH);
+                    ctx.fillStyle = "#94a3b8";
+                    ctx.beginPath();
+                    ctx.arc(fotoX + fotoW / 2, fotoY + fotoH * 0.38, fotoW * 0.22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(fotoX + fotoW / 2, fotoY + fotoH * 0.95, fotoW * 0.38, Math.PI, 0, false);
+                    ctx.fill();
                 }
             } catch (eFoto) {}
             ctx.restore();
@@ -1338,7 +1355,13 @@ async function generarImagenGafetePersonal(user) {
 
         imgEscuela.onerror = alCargarImg;
         imgTigre.onerror = alCargarImg;
-        imgFoto.onerror = alCargarImg;
+        imgFoto.onerror = () => {
+            if (!imgFoto.src.includes('default_avatar.png')) {
+                imgFoto.src = '/img/default_avatar.png';
+            } else {
+                alCargarImg();
+            }
+        };
 
         imgEscuela.src = logoEscuelaSrc;
         imgTigre.src = logoInicioSrc;

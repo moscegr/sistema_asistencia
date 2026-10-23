@@ -24,6 +24,7 @@ public class Usuario {
     private String turno;
     private String telefono;
     private String fotoUrl;
+    private String fotoBase64;
     private List<Double> descriptor_facial;
     private String estado;
     private String qrCode;
@@ -162,6 +163,14 @@ public class Usuario {
 
     public void setFotoUrl(String fotoUrl) {
         this.fotoUrl = fotoUrl;
+    }
+
+    public String getFotoBase64() {
+        return fotoBase64;
+    }
+
+    public void setFotoBase64(String fotoBase64) {
+        this.fotoBase64 = fotoBase64;
     }
 
     public List<Double> getDescriptor_facial() {
