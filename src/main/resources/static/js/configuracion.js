@@ -118,11 +118,23 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('confDireccionPlantel')) document.getElementById('confDireccionPlantel').value = data.direccion_plantel || "";
             if (document.getElementById('confCiudadPlantel')) document.getElementById('confCiudadPlantel').value = data.ciudad_plantel || "";
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
-            if (document.getElementById('imgPreviewLogoPlantel') && data.logo_plantel_url) {
-                document.getElementById('imgPreviewLogoPlantel').src = data.logo_plantel_url;
+            const imgP = document.getElementById('imgPreviewLogoPlantel');
+            if (imgP) {
+                imgP.onerror = () => { imgP.onerror = null; imgP.src = '/img/logo_aniversario.jpg'; };
+                if (data.logo_plantel_url && data.logo_plantel_url.trim() !== '') {
+                    imgP.src = data.logo_plantel_url;
+                } else {
+                    imgP.src = '/img/logo_aniversario.jpg';
+                }
             }
-            if (document.getElementById('imgPreviewLogoInicio') && data.logo_inicio_url) {
-                document.getElementById('imgPreviewLogoInicio').src = data.logo_inicio_url;
+            const imgI = document.getElementById('imgPreviewLogoInicio');
+            if (imgI) {
+                imgI.onerror = () => { imgI.onerror = null; imgI.src = '/img/tigres.png'; };
+                if (data.logo_inicio_url && data.logo_inicio_url.trim() !== '') {
+                    imgI.src = data.logo_inicio_url;
+                } else {
+                    imgI.src = '/img/tigres.png';
+                }
             }
         }
     } catch (e) { console.error("Error al cargar datos institucionales:", e); }
@@ -149,13 +161,15 @@ if (formInst) {
             notificaciones_whatsapp_activas: document.getElementById('switchNotifWhatsapp') ? document.getElementById('switchNotifWhatsapp').checked : true
         };
 
+        const inputLogoP = document.getElementById('inputLogoPlantelConfig');
         const imgPreview = document.getElementById('imgPreviewLogoPlantel');
-        if (imgPreview && imgPreview.src && (imgPreview.src.startsWith('data:image') || imgPreview.src.includes('/'))) {
+        if (inputLogoP && inputLogoP.files && inputLogoP.files.length > 0 && imgPreview && imgPreview.src.startsWith('data:image')) {
             actualizaciones.logo_plantel_url = imgPreview.src;
         }
 
+        const inputLogoI = document.getElementById('inputLogoInicioConfig');
         const imgPreviewInicio = document.getElementById('imgPreviewLogoInicio');
-        if (imgPreviewInicio && imgPreviewInicio.src && (imgPreviewInicio.src.startsWith('data:image') || imgPreviewInicio.src.includes('/'))) {
+        if (inputLogoI && inputLogoI.files && inputLogoI.files.length > 0 && imgPreviewInicio && imgPreviewInicio.src.startsWith('data:image')) {
             actualizaciones.logo_inicio_url = imgPreviewInicio.src;
         }
 

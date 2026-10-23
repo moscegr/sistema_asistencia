@@ -54,8 +54,8 @@ function aplicarConfiguracionInstitucionalUI(data) {
     const nomPlantel = data.nombre_plantel || 'Control Escolar';
     const nomOficial = data.nombre_oficial_plantel || 'CENTRO DE BACHILLERATO TECNOLÓGICO INDUSTRIAL Y DE SERVICIOS';
     const slogan = data.slogan_plantel || '';
-    const logoPlantel = data.logo_plantel_url || '/img/logo-cbtis.png';
-    const logoInicio = data.logo_inicio_url || '/img/logo.png';
+    const logoPlantel = data.logo_plantel_url || '/img/logo_aniversario.jpg';
+    const logoInicio = data.logo_inicio_url || '/img/tigres.png';
 
     // Actualizar título del documento si contiene referencias al plantel anterior
     if (document.title.includes('CBTis 134') && nomPlantel !== 'CBTis 134') {
@@ -64,11 +64,17 @@ function aplicarConfiguracionInstitucionalUI(data) {
 
     // Actualizar logotipos
     document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo').forEach(img => {
-        if (img.tagName === 'IMG' && img.src !== logoPlantel) img.src = logoPlantel;
+        if (img.tagName === 'IMG') {
+            img.onerror = () => { img.onerror = null; img.src = '/img/logo_aniversario.jpg'; };
+            if (img.src !== logoPlantel) img.src = logoPlantel;
+        }
     });
 
     document.querySelectorAll('.img-logo-inicio, #headerMascotaLogo, img[src*="tigres.png"]').forEach(img => {
-        if (img.tagName === 'IMG' && img.src !== logoInicio) img.src = logoInicio;
+        if (img.tagName === 'IMG') {
+            img.onerror = () => { img.onerror = null; img.src = '/img/tigres.png'; };
+            if (img.src !== logoInicio) img.src = logoInicio;
+        }
     });
 
     // Actualizar textos del plantel

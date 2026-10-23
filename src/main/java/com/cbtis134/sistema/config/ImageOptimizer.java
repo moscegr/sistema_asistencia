@@ -171,6 +171,40 @@ public class ImageOptimizer {
         } catch (Exception ignored) {}
     }
 
+    public static boolean existeArchivoEnDisco(String fotoUrl) {
+        if (fotoUrl == null || !fotoUrl.startsWith("/uploads/")) {
+            return false;
+        }
+        try {
+            String cleanPath = fotoUrl;
+            int qIdx = cleanPath.indexOf('?');
+            if (qIdx >= 0) {
+                cleanPath = cleanPath.substring(0, qIdx);
+            }
+            String relPath = cleanPath.substring("/uploads/".length());
+            if (relPath.isBlank() || relPath.contains("..")) {
+                return false;
+            }
+            File baseDir = new File(getUploadDir()).getCanonicalFile();
+            File target = new File(baseDir, relPath).getCanonicalFile();
+            return target.exists() && target.isFile() && target.length() > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String sanitizarUrlOExistente(String url, String fallbackDefault) {
+        if (url == null || url.isBlank()) {
+            return fallbackDefault;
+        }
+        if (url.startsWith("/uploads/")) {
+            if (!existeArchivoEnDisco(url)) {
+                return fallbackDefault;
+            }
+        }
+        return url;
+    }
+
     private static String limpiarNombreArchivo(String input) {
         if (input == null) return "";
         return input.trim().replaceAll("[^A-Za-z0-9_-]", "_");

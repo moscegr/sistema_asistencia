@@ -56,11 +56,24 @@ public class VistaController {
                     if (ImageOptimizer.esBase64Imagen(logoP)) {
                         doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                         modificado = true;
+                    } else {
+                        String logoPSanitizado = ImageOptimizer.sanitizarUrlOExistente(logoP, "/img/logo_aniversario.jpg");
+                        if (!logoPSanitizado.equals(logoP)) {
+                            doc.put("logo_plantel_url", logoPSanitizado);
+                            modificado = true;
+                        }
                     }
+
                     String logoI = doc.getString("logo_inicio_url");
                     if (ImageOptimizer.esBase64Imagen(logoI)) {
                         doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                         modificado = true;
+                    } else {
+                        String logoISanitizado = ImageOptimizer.sanitizarUrlOExistente(logoI, "/img/tigres.png");
+                        if (!logoISanitizado.equals(logoI)) {
+                            doc.put("logo_inicio_url", logoISanitizado);
+                            modificado = true;
+                        }
                     }
                     if (modificado) {
                         try {

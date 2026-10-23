@@ -74,12 +74,26 @@ public class ConfiguracionController {
             if (ImageOptimizer.esBase64Imagen(logoP)) {
                 doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                 modificado = true;
+            } else {
+                String logoPSanitizado = ImageOptimizer.sanitizarUrlOExistente(logoP, "/img/logo_aniversario.jpg");
+                if (!logoPSanitizado.equals(logoP)) {
+                    doc.put("logo_plantel_url", logoPSanitizado);
+                    modificado = true;
+                }
             }
+
             String logoI = doc.getString("logo_inicio_url");
             if (ImageOptimizer.esBase64Imagen(logoI)) {
                 doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                 modificado = true;
+            } else {
+                String logoISanitizado = ImageOptimizer.sanitizarUrlOExistente(logoI, "/img/tigres.png");
+                if (!logoISanitizado.equals(logoI)) {
+                    doc.put("logo_inicio_url", logoISanitizado);
+                    modificado = true;
+                }
             }
+
             if (modificado) {
                 try {
                     mongoTemplate.save(doc, "configuracion");
@@ -179,14 +193,28 @@ public class ConfiguracionController {
         if ("sistema".equals(id)) {
             if (body.containsKey("logo_plantel_url") && body.get("logo_plantel_url") != null) {
                 String logoP = body.get("logo_plantel_url").toString();
+                if (logoP.contains("/uploads/")) {
+                    logoP = logoP.substring(logoP.indexOf("/uploads/"));
+                } else if (logoP.contains("/img/")) {
+                    logoP = logoP.substring(logoP.indexOf("/img/"));
+                }
                 if (ImageOptimizer.esBase64Imagen(logoP)) {
                     body.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
+                } else {
+                    body.put("logo_plantel_url", logoP);
                 }
             }
             if (body.containsKey("logo_inicio_url") && body.get("logo_inicio_url") != null) {
                 String logoI = body.get("logo_inicio_url").toString();
+                if (logoI.contains("/uploads/")) {
+                    logoI = logoI.substring(logoI.indexOf("/uploads/"));
+                } else if (logoI.contains("/img/")) {
+                    logoI = logoI.substring(logoI.indexOf("/img/"));
+                }
                 if (ImageOptimizer.esBase64Imagen(logoI)) {
                     body.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
+                } else {
+                    body.put("logo_inicio_url", logoI);
                 }
             }
             VistaController.invalidarCacheConfig();
