@@ -99,7 +99,7 @@ function actualizarTextoFechaEnPlantilla() {
         const fIni = document.getElementById('fechaFaltaInicio')?.value;
         const fFin = document.getElementById('fechaFaltaFin')?.value;
         if (!fIni && !fFin) {
-            if (elPrefijo) elPrefijo.innerText = "EL DÍA";
+            if (elPrefijo) elPrefijo.innerText = "el día";
             elFecha.innerText = '\u00A0';
             return;
         }
@@ -108,7 +108,7 @@ function actualizarTextoFechaEnPlantilla() {
         elFecha.innerText = res.texto || '\u00A0';
     } else {
         const fUnica = document.getElementById('fechaFalta')?.value;
-        if (elPrefijo) elPrefijo.innerText = "EL DÍA";
+        if (elPrefijo) elPrefijo.innerText = "el día";
         if (fUnica) {
             elFecha.innerText = formatearFechaFalta(fUnica).toUpperCase();
         } else {
@@ -119,13 +119,13 @@ function actualizarTextoFechaEnPlantilla() {
 window.actualizarTextoFechaEnPlantilla = actualizarTextoFechaEnPlantilla;
 
 function formatearRangoFechas(fechaInicioStr, fechaFinStr) {
-    if (!fechaInicioStr && !fechaFinStr) return { prefijo: "EL DÍA", texto: "" };
+    if (!fechaInicioStr && !fechaFinStr) return { prefijo: "el día", texto: "" };
     const fIni = fechaInicioStr || fechaFinStr;
     const fFin = fechaFinStr || fechaInicioStr;
 
     if (fIni === fFin) {
         return {
-            prefijo: "EL DÍA",
+            prefijo: "el día",
             texto: formatearFechaFalta(fIni).toUpperCase()
         };
     }
@@ -136,8 +136,8 @@ function formatearRangoFechas(fechaInicioStr, fechaFinStr) {
 
     if (pIni.length < 3 || pFin.length < 3) {
         return {
-            prefijo: "LOS DÍAS",
-            texto: `DEL ${fIni} AL ${fFin}`.toUpperCase()
+            prefijo: "los días",
+            texto: `${fIni} AL ${fFin}`.toUpperCase()
         };
     }
 
@@ -152,23 +152,23 @@ function formatearRangoFechas(fechaInicioStr, fechaFinStr) {
     // Mismo mes y mismo año
     if (mesIni === mesFin && anioIni === anioFin) {
         return {
-            prefijo: "LOS DÍAS",
-            texto: `DEL ${diaIni} AL ${diaFin} DE ${meses[mesIni]}`
+            prefijo: "los días",
+            texto: `${diaIni} AL ${diaFin} DE ${meses[mesIni]}`
         };
     }
 
     // Diferente mes, mismo año
     if (anioIni === anioFin) {
         return {
-            prefijo: "LOS DÍAS",
-            texto: `DEL ${diaIni} DE ${meses[mesIni]} AL ${diaFin} DE ${meses[mesFin]}`
+            prefijo: "los días",
+            texto: `${diaIni} DE ${meses[mesIni]} AL ${diaFin} DE ${meses[mesFin]}`
         };
     }
 
     // Diferente año
     return {
-        prefijo: "LOS DÍAS",
-        texto: `DEL ${diaIni} DE ${meses[mesIni]} DE ${anioIni} AL ${diaFin} DE ${meses[mesFin]} DE ${anioFin}`
+        prefijo: "los días",
+        texto: `${diaIni} DE ${meses[mesIni]} DE ${anioIni} AL ${diaFin} DE ${meses[mesFin]} DE ${anioFin}`
     };
 }
 window.formatearRangoFechas = formatearRangoFechas;
@@ -402,7 +402,7 @@ function limpiarFormularioJustificante() {
     const elEsp = document.getElementById('valEsp');
     if (elEsp) elEsp.innerText = '\u00A0';
     const elPref = document.getElementById('valPrefijoFecha');
-    if (elPref) elPref.innerText = 'EL DÍA';
+    if (elPref) elPref.innerText = 'el día';
     const elFec = document.getElementById('valFechaFalta');
     if (elFec) elFec.innerText = '\u00A0';
     const elMotVal = document.getElementById('valMotivo');
@@ -411,8 +411,12 @@ function limpiarFormularioJustificante() {
     const radioUnDia = document.getElementById('tipoUnDia');
     if (radioUnDia) {
         radioUnDia.checked = true;
-        cambiarTipoInasistencia('UN_DIA');
     }
+    const gUnDia = document.getElementById('grupoFechaUnDia');
+    if (gUnDia) gUnDia.classList.remove('d-none');
+    const gRango = document.getElementById('grupoFechaRango');
+    if (gRango) gRango.classList.add('d-none');
+    tipoInasistenciaActual = 'UN_DIA';
 }
 window.limpiarFormularioJustificante = limpiarFormularioJustificante;
 
@@ -429,7 +433,7 @@ async function guardarJustificante() {
     let inasistenciaDiaFinal = "";
     let fechaInicioFinal = "";
     let fechaFinFinal = "";
-    let prefijoFinal = "EL DÍA";
+    let prefijoFinal = "el día";
     let textoFechaFinal = "";
 
     if (tipoInasistenciaActual === 'RANGO') {
@@ -455,17 +459,9 @@ async function guardarJustificante() {
         fechaInicioFinal = fUnica;
         fechaFinFinal = fUnica;
         inasistenciaDiaFinal = fUnica;
-        prefijoFinal = "EL DÍA";
+        prefijoFinal = "el día";
         textoFechaFinal = formatearFechaFalta(fUnica).toUpperCase();
     }
-
-    // Actualizar vista previa en vivo antes de la captura
-    const elPrefijo = document.getElementById('valPrefijoFecha');
-    if (elPrefijo) elPrefijo.innerText = prefijoFinal;
-    const elFecha = document.getElementById('valFechaFalta');
-    if (elFecha) elFecha.innerText = textoFechaFinal;
-    const elMotivo = document.getElementById('valMotivo');
-    if (elMotivo) elMotivo.innerText = motivo;
 
     const folioStr = document.getElementById('prevFolio').innerText;
     const folioLimpio = folioStr.replace("FOLIO: ", "").trim();
@@ -503,9 +499,29 @@ async function guardarJustificante() {
             body: JSON.stringify(datos)
         });
 
-        // 2. Construir la hoja doble directamente (idéntico a reimpresión para evitar PDFs en blanco)
+        // 2. Construir la hoja doble directamente usando un clon aislado
         const original = document.getElementById('disenoJustificante');
-        const tempContainer = construirHojaDobleConLineaDeCorte(original);
+        const clon = original.cloneNode(true);
+        clon.removeAttribute('id');
+
+        const elNom = clon.querySelector('#valNombre');
+        if (elNom) elNom.innerText = (document.getElementById('valNombre')?.innerText || '').toUpperCase();
+        const elGra = clon.querySelector('#valGrado');
+        if (elGra) elGra.innerText = document.getElementById('valGrado')?.innerText || '';
+        const elGpo = clon.querySelector('#valGpo');
+        if (elGpo) elGpo.innerText = document.getElementById('valGpo')?.innerText || '';
+        const elEsp = clon.querySelector('#valEsp');
+        if (elEsp) elEsp.innerText = (document.getElementById('valEsp')?.innerText || '').toUpperCase();
+        const elFol = clon.querySelector('#prevFolio');
+        if (elFol) elFol.innerText = "FOLIO: " + datos.folio_justificante;
+        const elPref = clon.querySelector('#valPrefijoFecha');
+        if (elPref) elPref.innerText = prefijoFinal;
+        const elFec = clon.querySelector('#valFechaFalta');
+        if (elFec) elFec.innerText = textoFechaFinal;
+        const elMot = clon.querySelector('#valMotivo');
+        if (elMot) elMot.innerText = motivo;
+
+        const tempContainer = construirHojaDobleConLineaDeCorte(clon);
 
         // Asegurar que las imágenes institucionales estén listas
         const imgs = tempContainer.querySelectorAll('img');
@@ -539,6 +555,11 @@ async function guardarJustificante() {
 
         Swal.close();
 
+        // 3. Limpiar formulario inmediatamente y reactivar el folio siguiente
+        limpiarFormularioJustificante();
+        await escucharJustificantesGlobales();
+        await actualizarFolioSiguiente();
+
         await Swal.fire({
             icon: 'success',
             title: '¡Justificante Emitido!',
@@ -546,10 +567,6 @@ async function guardarJustificante() {
             confirmButtonColor: '#7b1b37',
             confirmButtonText: 'Aceptar'
         });
-
-        limpiarFormularioJustificante();
-        await escucharJustificantesGlobales();
-        await actualizarFolioSiguiente();
 
     } catch (e) {
         console.error("Error al emitir justificante:", e);
@@ -705,7 +722,7 @@ function verJustificante(folio) {
     if (elFol) elFol.innerText = "FOLIO: " + (j.folio_justificante || j.id || j._id);
 
     // Resolver texto de inasistencia (un solo día o rango)
-    let prefijo = "EL DÍA";
+    let prefijo = "el día";
     let textoFecha = "";
 
     if (j.tipo_inasistencia === 'RANGO' || (j.fecha_inicio && j.fecha_fin && j.fecha_inicio !== j.fecha_fin) || (j.inasistencia_dia && j.inasistencia_dia.includes(' al '))) {
@@ -721,7 +738,7 @@ function verJustificante(folio) {
         textoFecha = res.texto;
     } else {
         const fechaUnica = j.inasistencia_dia || j.fecha_inicio || '';
-        prefijo = "EL DÍA";
+        prefijo = "el día";
         textoFecha = formatearFechaFalta(fechaUnica).toUpperCase();
     }
 
@@ -799,19 +816,14 @@ async function reimprimirJust(folio) {
     const j = justificantesCache.find(item => (item.folio_justificante === folio || item.id === folio || item._id === folio));
     if (!j) return Swal.fire("Error", "No se encontraron los datos en el sistema.", "error");
 
-    document.getElementById('valNombre').innerText = (j.nombreFull || j.nombre || '').toUpperCase();
-    document.getElementById('valGrado').innerText = j.grado || '';
-    document.getElementById('valGpo').innerText = j.grupo || '';
-    document.getElementById('valEsp').innerText = (j.especialidad || '').toUpperCase();
-    document.getElementById('prevFolio').innerText = "FOLIO: " + (j.folio_justificante || j.id || j._id);
+    const original = document.getElementById('disenoJustificante');
+    if (!original) return Swal.fire("Error", "No se encontró el diseño base del justificante.", "error");
 
-    const elTurno = document.getElementById('valTurnoJust');
-    if (elTurno) {
-        const esVesp = (j.turnoAlumno || '').toUpperCase().startsWith('V');
-        elTurno.innerText = esVesp ? 'T.V.' : 'T.M.';
-    }
+    // CLONAR EL DISEÑO BASE - NUNCA TOCAR EL FORMULARIO DE CAPTURA EN PANTALLA
+    const clon = original.cloneNode(true);
+    clon.removeAttribute('id');
 
-    let prefijo = "EL DÍA";
+    let prefijo = "el día";
     let textoFecha = "";
 
     if (j.tipo_inasistencia === 'RANGO' || (j.fecha_inicio && j.fecha_fin && j.fecha_inicio !== j.fecha_fin) || (j.inasistencia_dia && j.inasistencia_dia.includes(' al '))) {
@@ -827,19 +839,30 @@ async function reimprimirJust(folio) {
         textoFecha = res.texto;
     } else {
         const fechaUnica = j.inasistencia_dia || j.fecha_inicio || '';
-        prefijo = "EL DÍA";
+        prefijo = "el día";
         textoFecha = formatearFechaFalta(fechaUnica).toUpperCase();
     }
 
-    const elPref = document.getElementById('valPrefijoFecha');
+    // Llenar datos única y exclusivamente en el clon aislado
+    const elNom = clon.querySelector('#valNombre');
+    if (elNom) elNom.innerText = (j.nombreFull || j.nombre || '').toUpperCase();
+    const elGra = clon.querySelector('#valGrado');
+    if (elGra) elGra.innerText = j.grado || '';
+    const elGpo = clon.querySelector('#valGpo');
+    if (elGpo) elGpo.innerText = j.grupo || '';
+    const elEsp = clon.querySelector('#valEsp');
+    if (elEsp) elEsp.innerText = (j.especialidad || '').toUpperCase();
+    const elFol = clon.querySelector('#prevFolio');
+    if (elFol) elFol.innerText = "FOLIO: " + (j.folio_justificante || j.id || j._id);
+    const elPref = clon.querySelector('#valPrefijoFecha');
     if (elPref) elPref.innerText = prefijo;
-    document.getElementById('valFechaFalta').innerText = textoFecha || '\u00A0';
-    document.getElementById('valMotivo').innerText = (j.motivo_detalle || '').toUpperCase();
+    const elFec = clon.querySelector('#valFechaFalta');
+    if (elFec) elFec.innerText = textoFecha || '\u00A0';
+    const elMot = clon.querySelector('#valMotivo');
+    if (elMot) elMot.innerText = (j.motivo_detalle || '').toUpperCase();
 
-    const original = document.getElementById('disenoJustificante');
-    if (!original) return Swal.fire("Error", "No se encontró el diseño base del justificante.", "error");
-
-    const tempContainer = construirHojaDobleConLineaDeCorte(original);
+    // Construir la hoja doble a partir del clon aislado
+    const tempContainer = construirHojaDobleConLineaDeCorte(clon);
 
     // Asegurar carga de imágenes antes de capturar
     const imgs = tempContainer.querySelectorAll('img');
@@ -879,6 +902,10 @@ async function reimprimirJust(folio) {
             await html2pdf().set(opciones).from(tempContainer).save();
         }
         Swal.close();
+
+        // Limpiar el formulario de captura por si estaba sucio y restaurar el folio siguiente
+        limpiarFormularioJustificante();
+        await actualizarFolioSiguiente();
 
     } catch (e) {
         console.error("Error html2pdf:", e);
