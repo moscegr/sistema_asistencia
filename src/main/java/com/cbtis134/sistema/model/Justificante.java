@@ -4,6 +4,11 @@ public class Justificante {
     private String folio_justificante;
     private String id_alumno;
     private String inasistencia_dia;
+    private String tipo_inasistencia;
+    private String fecha_inicio;
+    private String fecha_fin;
+    private String inasistencia_texto;
+    private String prefijo_fecha;
     private String fecha_expedicion;
     private String motivo_detalle;
     private Integer grado;
@@ -19,6 +24,16 @@ public class Justificante {
     public void setId_alumno(String id_alumno) { this.id_alumno = id_alumno; }
     public String getInasistencia_dia() { return inasistencia_dia; }
     public void setInasistencia_dia(String inasistencia_dia) { this.inasistencia_dia = inasistencia_dia; }
+    public String getTipo_inasistencia() { return tipo_inasistencia; }
+    public void setTipo_inasistencia(String tipo_inasistencia) { this.tipo_inasistencia = tipo_inasistencia; }
+    public String getFecha_inicio() { return fecha_inicio; }
+    public void setFecha_inicio(String fecha_inicio) { this.fecha_inicio = fecha_inicio; }
+    public String getFecha_fin() { return fecha_fin; }
+    public void setFecha_fin(String fecha_fin) { this.fecha_fin = fecha_fin; }
+    public String getInasistencia_texto() { return inasistencia_texto; }
+    public void setInasistencia_texto(String inasistencia_texto) { this.inasistencia_texto = inasistencia_texto; }
+    public String getPrefijo_fecha() { return prefijo_fecha; }
+    public void setPrefijo_fecha(String prefijo_fecha) { this.prefijo_fecha = prefijo_fecha; }
     public String getFecha_expedicion() { return fecha_expedicion; }
     public void setFecha_expedicion(String fecha_expedicion) { this.fecha_expedicion = fecha_expedicion; }
     public String getMotivo_detalle() { return motivo_detalle; }

@@ -69,9 +69,40 @@
                                 <div id="sugerenciasJust" class="list-group position-absolute w-100 shadow-lg z-3 mt-1" style="display: none;"></div>
                             </div>
 
+                            <!-- Selector de tipo: Un solo día vs Rango de días -->
                             <div class="mb-3">
+                                <label class="form-label small fw-bold d-block text-secondary">Modalidad de Inasistencia</label>
+                                <div class="btn-group w-100 shadow-sm" role="group">
+                                    <input type="radio" class="btn-check" name="tipoInasistencia" id="tipoUnDia" value="UN_DIA" checked autocomplete="off" onchange="cambiarTipoInasistencia('UN_DIA')">
+                                    <label class="btn btn-outline-danger btn-sm fw-bold py-2" for="tipoUnDia">
+                                        <i class="bi bi-calendar-event me-1"></i>Un solo día
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="tipoInasistencia" id="tipoRango" value="RANGO" autocomplete="off" onchange="cambiarTipoInasistencia('RANGO')">
+                                    <label class="btn btn-outline-danger btn-sm fw-bold py-2" for="tipoRango">
+                                        <i class="bi bi-calendar-range me-1"></i>Rango de días
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Input para Un solo día -->
+                            <div class="mb-3" id="grupoFechaUnDia">
                                 <label class="form-label small fw-bold">Fecha de la Falta</label>
                                 <input type="date" id="fechaFalta" class="form-control shadow-sm">
+                            </div>
+
+                            <!-- Inputs para Rango de fechas -->
+                            <div class="mb-3 d-none" id="grupoFechaRango">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Fecha Inicio</label>
+                                        <input type="date" id="fechaFaltaInicio" class="form-control shadow-sm">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-bold">Fecha Fin</label>
+                                        <input type="date" id="fechaFaltaFin" class="form-control shadow-sm">
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -139,7 +170,7 @@
                                         <span id="valGrado" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>° Semestre, Grupo: 
                                         "<span id="valGpo" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>" de la 
                                         ESPECIALIDAD DE <span id="valEsp" class="text-uppercase border-bottom-dark" style="min-width: 48mm;">&nbsp;</span> 
-                                        EL DÍA <span id="valFechaFalta" class="text-uppercase border-bottom-dark" style="min-width: 35mm;">&nbsp;</span> del año en curso, 
+                                        <span id="valPrefijoFecha">EL DÍA</span> <span id="valFechaFalta" class="text-uppercase border-bottom-dark" style="min-width: 35mm;">&nbsp;</span> del año en curso, 
                                         por motivos <span id="valMotivo" class="text-uppercase border-bottom-dark" style="min-width: 55mm;">&nbsp;</span>.
                                     </div>
 
@@ -196,7 +227,7 @@
                                 <table class="table table-hover align-middle text-center small">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Folio</th><th>Estudiante</th><th>Fecha Falta</th><th>Motivo</th><th>Acciones</th>
+                                            <th>Folio</th><th>Estudiante</th><th>Inasistencia</th><th>Motivo</th><th>Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tablaJustGlobal"></tbody>
