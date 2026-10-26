@@ -13,15 +13,16 @@
         .text-guinda { color: var(--guinda); }
         
         /* Contenedor del Formato Oficial Renderizado 100% en HTML/CSS */
-        #disenoJustificante {
+        #disenoJustificante, .diseno-justificante-estilo {
             width: 216mm;
-            height: 138.8mm;
+            height: 138.5mm;
+            max-height: 138.5mm;
             background: #ffffff;
             font-family: 'Calibri', 'Segoe UI', Arial, sans-serif;
             color: #000;
             box-sizing: border-box;
             overflow: hidden;
-            padding: 6mm 14mm 4.5mm 14mm;
+            padding: 5.5mm 14mm 4mm 14mm;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -118,7 +119,7 @@
 
                     <div class="col-lg-8">
                         <div id="areaImpresionJustificante" class="shadow-lg p-2 bg-white rounded-3 overflow-auto">
-                            <div id="disenoJustificante" class="mx-auto bg-white">
+                            <div id="disenoJustificante" class="diseno-justificante-estilo mx-auto bg-white">
                                 
                                 <!-- 1. ENCABEZADO OFICIAL SEP / DGETI / PLANTEL -->
                                 <div>
@@ -156,32 +157,32 @@
                                     </div>
 
                                     <!-- 3. DESTINATARIO -->
-                                    <div class="fw-bold" style="margin-top: 2.5mm; font-size: 10.5pt; line-height: 1.2;">
+                                    <div class="fw-bold" style="margin-top: 2mm; font-size: 10.5pt; line-height: 1.2;">
                                         CC. CATEDRÁTICOS DE ESTA INSTITUCIÓN<br>
                                         PRESENTE.
                                     </div>
                                 </div>
 
                                 <!-- 4. CUERPO DEL JUSTIFICANTE -->
-                                <div style="margin-top: 2mm;">
-                                    <div id="parrafoJustificante" class="fw-bold" style="font-size: 10.5pt; text-align: justify; line-height: 1.65;">
+                                <div style="margin-top: 1.5mm;">
+                                    <div id="parrafoJustificante" class="fw-bold" style="font-size: 10.5pt; text-align: justify; line-height: 1.55;">
                                         De la manera más atenta se les pide JUSTIFICAR la inasistencia del alumno: 
-                                        <span id="valNombre" class="text-uppercase border-bottom-dark" style="min-width: 65mm;">&nbsp;</span> del 
-                                        <span id="valGrado" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>° semestre, grupo: 
-                                        "<span id="valGpo" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>" de la 
+                                        <span id="valNombre" class="text-uppercase border-bottom-dark" style="min-width: 65mm;">&nbsp;</span> 
+                                        <span style="white-space: nowrap;">del <span id="valGrado" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>° semestre</span>, 
+                                        <span style="white-space: nowrap;">grupo: "<span id="valGpo" class="border-bottom-dark" style="min-width: 8mm;">&nbsp;</span>"</span> de la 
                                         especialidad de <span id="valEsp" class="text-uppercase border-bottom-dark" style="min-width: 48mm;">&nbsp;</span> 
                                         <span id="valPrefijoFecha">el día</span> <span id="valFechaFalta" class="text-uppercase border-bottom-dark" style="min-width: 35mm;">&nbsp;</span> del año en curso, 
                                         por motivos <span id="valMotivo" class="text-uppercase border-bottom-dark" style="min-width: 55mm;">&nbsp;</span>.
                                     </div>
 
-                                    <div class="fw-bold" style="margin-top: 3mm; font-size: 10pt; color: #2b2b2b;">
+                                    <div class="fw-bold" style="margin-top: 2mm; font-size: 10pt; color: #2b2b2b;">
                                         Sin más por el momento, les envío un cordial saludo.
                                     </div>
                                 </div>
 
                                 <!-- 5. FIRMA DE ORIENTACIÓN EDUCATIVA -->
                                 <div class="text-center" style="margin-top: 1mm;">
-                                    <div class="fw-bold" style="font-size: 10pt; color: #2b2b2b; margin-bottom: 8.5mm;">Atentamente</div>
+                                    <div class="fw-bold" style="font-size: 10pt; color: #2b2b2b; margin-bottom: 7mm;">Atentamente</div>
                                     <div style="border-top: 1.5px solid #000; display: inline-block; min-width: 72mm; padding-top: 1mm; line-height: 1.15;">
                                         <div id="nombreResponsableJust" class="fw-bold text-uppercase" style="font-size: 10pt; color: #000;"
                                              th:text="${configSistema != null and configSistema['responsable_orientacion'] != null and !configSistema['responsable_orientacion'].isEmpty() ? configSistema['responsable_orientacion'] : 'ORIENTACIÓN EDUCATIVA'}">
@@ -194,17 +195,17 @@
                                 </div>
 
                                 <!-- 6. PIE DE PÁGINA INSTITUCIONAL DINÁMICO -->
-                                <div class="text-center" style="margin-top: 1.5mm; line-height: 1.18;">
+                                <div class="text-center" style="margin-top: 1mm; line-height: 1.15;">
                                     <div class="just-barra-institucional"></div>
-                                    <div id="justSloganPlantel" class="fw-bold" style="font-size: 8.5pt; color: #2b2b2b;"
+                                    <div id="justSloganPlantel" class="fw-bold" style="font-size: 8.2pt; color: #2b2b2b;"
                                          th:text="${configSistema != null and configSistema['slogan_plantel'] != null and !configSistema['slogan_plantel'].isEmpty() ? configSistema['slogan_plantel'] : '&quot;PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134&quot;'}">
                                         "PORQUE EL PRESTIGIO SE GANA CON ESFUERZO, SOMOS CBTIS 134"
                                     </div>
-                                    <div id="justDireccionPlantel" style="font-size: 7.4pt; font-weight: 600; color: #444;"
+                                    <div id="justDireccionPlantel" style="font-size: 7.2pt; font-weight: 600; color: #444;"
                                          th:text="${configSistema != null and configSistema['direccion_plantel'] != null and !configSistema['direccion_plantel'].isEmpty() ? configSistema['direccion_plantel'] : 'Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.'}">
                                         Carretera Nacional México-Acapulco, km. 275.5, Col. Salubridad, Chilpancingo, Gro.
                                     </div>
-                                    <div id="justTelefonoPlantel" style="font-size: 7.4pt; font-weight: 600; color: #444;">
+                                    <div id="justTelefonoPlantel" style="font-size: 7.2pt; font-weight: 600; color: #444;">
                                         Tel. <span id="justTelSpan" th:text="${configSistema != null and configSistema['telefono_escuela'] != null and !configSistema['telefono_escuela'].isEmpty() ? configSistema['telefono_escuela'] : '7474723464'}">7474723464</span>
                                     </div>
                                 </div>

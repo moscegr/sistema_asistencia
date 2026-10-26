@@ -340,22 +340,39 @@ function construirHojaDobleConLineaDeCorte(originalElement) {
     const tempContainer = document.createElement('div');
     tempContainer.style.width = "216mm";
     tempContainer.style.height = "279mm";
+    tempContainer.style.maxHeight = "279mm";
     tempContainer.style.backgroundColor = "#ffffff";
     tempContainer.style.display = "flex";
     tempContainer.style.flexDirection = "column";
     tempContainer.style.justifyContent = "space-between";
     tempContainer.style.boxSizing = "border-box";
     tempContainer.style.overflow = "hidden";
+    tempContainer.style.fontFamily = "'Calibri', 'Segoe UI', Arial, sans-serif";
 
     const copiaSuperior = originalElement.cloneNode(true);
     const copiaInferior = originalElement.cloneNode(true);
 
-    copiaSuperior.style.margin = "0";
-    copiaSuperior.style.boxShadow = "none";
-    copiaSuperior.style.overflow = "visible";
-    copiaInferior.style.margin = "0";
-    copiaInferior.style.boxShadow = "none";
-    copiaInferior.style.overflow = "visible";
+    const aplicarEstiloTanto = (el) => {
+        el.className = "diseno-justificante-estilo bg-white";
+        el.style.width = "216mm";
+        el.style.height = "138.5mm";
+        el.style.maxHeight = "138.5mm";
+        el.style.background = "#ffffff";
+        el.style.fontFamily = "'Calibri', 'Segoe UI', Arial, sans-serif";
+        el.style.color = "#000000";
+        el.style.boxSizing = "border-box";
+        el.style.overflow = "hidden";
+        el.style.padding = "5.5mm 14mm 4mm 14mm";
+        el.style.display = "flex";
+        el.style.flexDirection = "column";
+        el.style.justifyContent = "space-between";
+        el.style.position = "relative";
+        el.style.margin = "0";
+        el.style.boxShadow = "none";
+    };
+
+    aplicarEstiloTanto(copiaSuperior);
+    aplicarEstiloTanto(copiaInferior);
 
     // Línea divisora central de corte entre las dos partes
     const lineaCorte = document.createElement('div');
