@@ -635,7 +635,6 @@ async function generarImagenGafete(alumno) {
         imgTigre.src = logoInicioSrc;
     });
 }
-}
 
 // --- DESCARGA DE GAFETES Y CREDENCIALES (PDF Y PNG ZIP) ---
 

@@ -423,7 +423,7 @@ async function eliminarFotoPersonal(confirmarBD = true) {
 }
 window.eliminarFotoPersonal = eliminarFotoPersonal;
 
-function comprimirFotoClientSide(file, maxDim = 320, calidad = 0.84) {
+function comprimirFotoClientSide(file, maxDim = 1200, calidad = 0.95) {
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -456,7 +456,7 @@ async function procesarFotoUsuario(input) {
     if (!file) return;
 
     try {
-        fotoBase64Temporal = await comprimirFotoClientSide(file, 320, 0.84);
+        fotoBase64Temporal = await comprimirFotoClientSide(file, 1200, 0.95);
         if (!fotoBase64Temporal) return;
 
         document.getElementById('prevFotoUsuario').src = fotoBase64Temporal;
@@ -464,13 +464,21 @@ async function procesarFotoUsuario(input) {
         const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
         if (btnQuitar) btnQuitar.style.display = 'inline-block';
 
-        if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
-            const img = await faceapi.fetchImage(fotoBase64Temporal);
-            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-            if (deteccion) {
-                descriptorFacialTemporal = Array.from(deteccion.descriptor);
+        // Extracción facial FaceID diferida en segundo plano sin bloquear la UI
+        setTimeout(async () => {
+            if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
+                try {
+                    const smallImg = await comprimirFotoClientSide(file, 320, 0.80);
+                    const img = await faceapi.fetchImage(smallImg);
+                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+                    if (deteccion) {
+                        descriptorFacialTemporal = Array.from(deteccion.descriptor);
+                    }
+                } catch(e) {
+                    console.warn("FaceAPI diferido personal:", e);
+                }
             }
-        }
+        }, 50);
     } catch(err) {
         console.warn("No se pudo procesar la foto de perfil:", err);
     }
@@ -1386,7 +1394,6 @@ async function generarImagenGafetePersonal(user) {
         imgTigre.src = logoInicioSrc;
         imgFoto.src = obtenerUrlFotoPersonalAltaResolucion(user);
     });
-}
 }
 
 async function descargarGafetePersonalPDF() {

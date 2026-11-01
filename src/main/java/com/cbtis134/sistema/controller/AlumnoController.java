@@ -37,13 +37,12 @@ public class AlumnoController {
                 : (a.getMatricula() != null && !a.getMatricula().isBlank() ? a.getMatricula().trim() : (a.getId() != null ? a.getId().trim() : null));
 
         if (mat != null && !mat.isEmpty()) {
-            // Si la URL actual es nula, vacía o es una cadena Base64 de la base de datos, normalizar a uploads
+            // Asegurar que la URL pública apunte al archivo físico en uploads
             if (a.getFotoUrl() == null || a.getFotoUrl().isBlank() || ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
-                if (ImageOptimizer.esBase64Imagen(a.getFotoUrl()) && a.getFotoBase64() == null) {
-                    a.setFotoBase64(a.getFotoUrl());
-                }
                 a.setFotoUrl("/uploads/alumnos/" + mat + ".jpg");
             }
+            // Evitar inflar la respuesta JSON con cadenas pesadas Base64
+            a.setFotoBase64(null);
         }
     }
 

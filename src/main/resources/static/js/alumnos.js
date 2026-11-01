@@ -235,35 +235,56 @@ function cargarFotoDesdeArchivo(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
-        img.src = e.target.result;
-        img.onload = async () => {
+        img.onload = () => {
+            // 1. Redimensionar preservando alta resolución (hasta 1200px y 95% de calidad para impresión nítida en PVC/Gafetes)
+            const maxDim = 1200;
+            const w = img.width || 400;
+            const h = img.height || 400;
+            const scale = Math.min(1.0, maxDim / Math.max(w, h));
+            const nw = Math.max(1, Math.round(w * scale));
+            const nh = Math.max(1, Math.round(h * scale));
+
             const canvasSnap = document.createElement('canvas');
-            canvasSnap.width = 400;
-            canvasSnap.height = 400;
+            canvasSnap.width = nw;
+            canvasSnap.height = nh;
             const ctxSnap = canvasSnap.getContext('2d');
-            ctxSnap.drawImage(img, 0, 0, 400, 400);
-            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.90);
+            ctxSnap.fillStyle = '#ffffff';
+            ctxSnap.fillRect(0, 0, nw, nh);
+            ctxSnap.drawImage(img, 0, 0, nw, nh);
+            
+            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.95);
             mostrarFotoPreview(fotoPerfilGlobal);
 
-            // Generar vector facial si la IA está cargada
-            if (typeof faceapi !== 'undefined') {
-                try {
-                    if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
-                        await Promise.all([
-                            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-                            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-                            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-                        ]);
+            // 2. Extracción facial FaceID en segundo plano sin congelar la interfaz
+            setTimeout(async () => {
+                if (typeof faceapi !== 'undefined') {
+                    try {
+                        if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
+                            await Promise.all([
+                                faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
+                                faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                                faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                            ]);
+                        }
+                        // Usar canvas pequeño optimizado (320px) para cálculo instantáneo sin sobrecargar CPU
+                        const faceCanvas = document.createElement('canvas');
+                        const fScale = Math.min(1.0, 320 / Math.max(w, h));
+                        faceCanvas.width = Math.max(1, Math.round(w * fScale));
+                        faceCanvas.height = Math.max(1, Math.round(h * fScale));
+                        const fCtx = faceCanvas.getContext('2d');
+                        fCtx.drawImage(img, 0, 0, faceCanvas.width, faceCanvas.height);
+
+                        const deteccion = await faceapi.detectSingleFace(faceCanvas).withFaceLandmarks().withFaceDescriptor();
+                        if (deteccion) {
+                            descriptorFacialGlobal = Array.from(deteccion.descriptor);
+                        }
+                    } catch(err) {
+                        console.warn("Extracción vectorial facial en segundo plano omitida:", err);
                     }
-                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    if (deteccion) {
-                        descriptorFacialGlobal = Array.from(deteccion.descriptor);
-                    }
-                } catch(err) {
-                    console.warn("Extracción vectorial facial desde archivo omitida:", err);
                 }
-            }
+            }, 50);
         };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }

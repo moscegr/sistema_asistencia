@@ -67,6 +67,11 @@ public class UsuarioController {
             if (u.getNombre() != null) {
                 u.setNombre(u.getNombre().toUpperCase());
             }
+            String idArchivo = obtenerIdentificadorArchivoUsuario(u);
+            if (u.getFotoUrl() == null || u.getFotoUrl().isBlank() || ImageOptimizer.esBase64Imagen(u.getFotoUrl())) {
+                u.setFotoUrl("/uploads/usuarios/" + idArchivo + ".jpg");
+            }
+            u.setFotoBase64(null);
         }
         return lista;
     }
