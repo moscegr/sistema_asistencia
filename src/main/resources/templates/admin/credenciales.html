@@ -264,7 +264,9 @@
 								                
 								                <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
 								                    <div style="margin: 0 auto;">
-								                        <div id="pvcFoto" style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid var(--guinda); border-radius: 8px; background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
+								                        <div id="pvcFoto" style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid var(--guinda); border-radius: 8px; overflow: hidden; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25); display: flex; align-items: center; justify-content: center; position: relative;">
+								                            <img src="/img/default_avatar.png" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.src='/img/default_avatar.png';">
+								                        </div>
 								                    </div>
 								                    
 								                    <div style="margin: 1px 0;">

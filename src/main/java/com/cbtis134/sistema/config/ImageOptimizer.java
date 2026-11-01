@@ -71,7 +71,7 @@ public class ImageOptimizer {
             return dataUriOrUrl;
         }
         try {
-            byte[] jpegBytes = procesarImagenBytes(dataUriOrUrl, 360, false, 0.84f, new boolean[]{false});
+            byte[] jpegBytes = procesarImagenBytes(dataUriOrUrl, 1200, false, 0.95f, new boolean[]{false});
             if (jpegBytes == null || jpegBytes.length == 0) {
                 return optimizarFotoPerfil(dataUriOrUrl);
             }
@@ -115,7 +115,7 @@ public class ImageOptimizer {
         try {
             boolean esPngOriginal = dataUriOrUrl.startsWith("data:image/png") || dataUriOrUrl.startsWith("data:image/webp");
             boolean[] salioPng = new boolean[]{false};
-            byte[] imgBytes = procesarImagenBytes(dataUriOrUrl, 320, esPngOriginal, 0.88f, salioPng);
+            byte[] imgBytes = procesarImagenBytes(dataUriOrUrl, 1200, esPngOriginal, 0.95f, salioPng);
             if (imgBytes == null || imgBytes.length == 0) {
                 return optimizarLogo(dataUriOrUrl);
             }
@@ -204,7 +204,7 @@ public class ImageOptimizer {
         try {
             boolean esPng = dataUri.startsWith("data:image/png") || dataUri.startsWith("data:image/webp");
             boolean[] outPng = new boolean[]{false};
-            byte[] bytes = procesarImagenBytes(dataUri, 360, esPng, 0.85f, outPng);
+            byte[] bytes = procesarImagenBytes(dataUri, 1200, esPng, 0.95f, outPng);
             if (bytes == null || bytes.length == 0) return false;
 
             File folder = new File(getUploadDir(), limpiarNombreArchivo(subcarpeta));

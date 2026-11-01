@@ -47,16 +47,33 @@ public class UploadFallbackController {
 
         String safeCat = categoria != null ? categoria.trim().toLowerCase() : "general";
         String cleanNombre = nombreArchivo != null ? nombreArchivo.trim() : "";
+        int qIdx = cleanNombre.indexOf('?');
+        if (qIdx >= 0) {
+            cleanNombre = cleanNombre.substring(0, qIdx);
+        }
 
-        // 1. Verificar si el archivo ya existe físicamente en disco
-        File target = new File(new File(ImageOptimizer.getUploadDir(), safeCat), cleanNombre);
+        // 1. Verificar si el archivo ya existe físicamente en disco (en su nombre exacto o con extensiones comunes)
+        File folder = new File(ImageOptimizer.getUploadDir(), safeCat);
+        File target = new File(folder, cleanNombre);
+        if (!target.exists() || !target.isFile() || target.length() == 0) {
+            String baseSinExt = cleanNombre.replaceAll("\\.[^.]+$", "");
+            for (String ext : new String[]{".jpg", ".png", ".jpeg", ".webp", ".JPG", ".PNG", ".JPEG"}) {
+                File alt = new File(folder, baseSinExt + ext);
+                if (alt.exists() && alt.isFile() && alt.length() > 0) {
+                    target = alt;
+                    cleanNombre = alt.getName();
+                    break;
+                }
+            }
+        }
+
         if (target.exists() && target.isFile() && target.length() > 0) {
             try (FileInputStream fis = new FileInputStream(target)) {
                 byte[] data = fis.readAllBytes();
                 MediaType mt = inferirMediaType(cleanNombre);
                 return ResponseEntity.ok()
                         .contentType(mt)
-                        .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                        .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
                         .body(data);
             } catch (Exception ignored) {}
         }

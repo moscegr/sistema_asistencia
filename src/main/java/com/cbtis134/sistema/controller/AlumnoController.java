@@ -24,7 +24,27 @@ public class AlumnoController {
 
     @GetMapping
     public List<Alumno> obtenerTodos() {
-        return alumnoRepository.findAll();
+        List<Alumno> lista = alumnoRepository.findAll();
+        for (Alumno a : lista) {
+            sanitizarFotoUrlParaUploads(a);
+        }
+        return lista;
+    }
+
+    private void sanitizarFotoUrlParaUploads(Alumno a) {
+        if (a == null) return;
+        String mat = a.getNcontrol() != null && !a.getNcontrol().isBlank() ? a.getNcontrol().trim()
+                : (a.getMatricula() != null && !a.getMatricula().isBlank() ? a.getMatricula().trim() : (a.getId() != null ? a.getId().trim() : null));
+
+        if (mat != null && !mat.isEmpty()) {
+            // Si la URL actual es nula, vacía o es una cadena Base64 de la base de datos, normalizar a uploads
+            if (a.getFotoUrl() == null || a.getFotoUrl().isBlank() || ImageOptimizer.esBase64Imagen(a.getFotoUrl())) {
+                if (ImageOptimizer.esBase64Imagen(a.getFotoUrl()) && a.getFotoBase64() == null) {
+                    a.setFotoBase64(a.getFotoUrl());
+                }
+                a.setFotoUrl("/uploads/alumnos/" + mat + ".jpg");
+            }
+        }
     }
 
     @GetMapping("/{id}")

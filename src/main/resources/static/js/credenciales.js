@@ -7,6 +7,48 @@ let plantillaFrente = null;
 let plantillaReverso = null;
 let fotoTemporalAlumno = null;
 
+/**
+ * Resuelve la URL de la fotografía del alumno dando prioridad absoluta a las imágenes físicas
+ * en disco (/uploads/alumnos/{matricula}.jpg) por encima de cadenas Base64 de la base de datos (MongoDB).
+ * Esto garantiza que al imprimir credenciales o gafetes en PVC o papel, se obtenga la máxima resolución.
+ */
+function obtenerUrlFotoAlumnoAltaResolucion(alumno) {
+    if (!alumno) return '/img/default_avatar.png';
+    if (fotoTemporalAlumno) return fotoTemporalAlumno;
+
+    const mat = (alumno.ncontrol || alumno.matricula || alumno.curp || alumno.id || '').toString().trim();
+
+    // 1. Si la URL ya apunta directamente a un archivo físico en /uploads/
+    if (alumno.fotoUrl && alumno.fotoUrl.startsWith('/uploads/')) return alumno.fotoUrl;
+    if (alumno.foto_url && alumno.foto_url.startsWith('/uploads/')) return alumno.foto_url;
+    if (alumno.foto && alumno.foto.startsWith('/uploads/')) return alumno.foto;
+
+    // 2. Si cuenta con matrícula/número de control, solicitar SIEMPRE el archivo físico en uploads
+    if (mat) {
+        return `/uploads/alumnos/${encodeURIComponent(mat)}.jpg`;
+    }
+
+    // 3. Fallbacks si no es una cadena Base64 pesada de la base de datos
+    if (alumno.fotoUrl && !alumno.fotoUrl.startsWith('data:')) return alumno.fotoUrl;
+    if (alumno.foto_url && !alumno.foto_url.startsWith('data:')) return alumno.foto_url;
+    if (alumno.foto && !alumno.foto.startsWith('data:')) return alumno.foto;
+
+    return alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/default_avatar.png';
+}
+
+/**
+ * Resuelve la URL del logotipo institucional dando prioridad a los archivos físicos en uploads (/uploads/logos/...).
+ */
+function obtenerLogoAltaResolucion(urlConfig, tipo) {
+    if (urlConfig && urlConfig.startsWith('/uploads/')) return urlConfig;
+    if (urlConfig && !urlConfig.startsWith('data:')) return urlConfig;
+    if (tipo === 'plantel') {
+        return '/uploads/logos/logo_plantel.png';
+    } else {
+        return '/uploads/logos/logo_inicio.png';
+    }
+}
+
 document.getElementById('inputFotoTemporal')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     const recuadroFoto = document.getElementById('pvcFoto');
@@ -16,21 +58,17 @@ document.getElementById('inputFotoTemporal')?.addEventListener('change', functio
         reader.onload = (event) => { 
             fotoTemporalAlumno = event.target.result; 
             if (recuadroFoto) {
-                recuadroFoto.style.backgroundImage = `url(${fotoTemporalAlumno})`;
-                recuadroFoto.style.backgroundSize = 'contain';
-                recuadroFoto.style.backgroundRepeat = 'no-repeat';
-                recuadroFoto.style.backgroundPosition = 'center';
+                recuadroFoto.innerHTML = `<img src="${fotoTemporalAlumno}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block;">`;
+                recuadroFoto.style.backgroundImage = 'none';
             }
         };
         reader.readAsDataURL(file);
     } else {
         fotoTemporalAlumno = null;
-        const fotoDefault = (alumnoSeleccionadoInd && (alumnoSeleccionadoInd.fotoUrl || alumnoSeleccionadoInd.foto_url || alumnoSeleccionadoInd.foto)) || '/img/default_avatar.png';
+        const fotoDefault = obtenerUrlFotoAlumnoAltaResolucion(alumnoSeleccionadoInd);
         if (recuadroFoto) {
-            recuadroFoto.style.backgroundImage = `url('${fotoDefault}')`;
-            recuadroFoto.style.backgroundSize = 'contain';
-            recuadroFoto.style.backgroundRepeat = 'no-repeat';
-            recuadroFoto.style.backgroundPosition = 'center';
+            recuadroFoto.innerHTML = `<img src="${fotoDefault}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';">`;
+            recuadroFoto.style.backgroundImage = 'none';
         }
     }
 });
@@ -318,11 +356,9 @@ function seleccionarAlumnoCredencial(matricula, filaHtml) {
 
         const recuadroFoto = document.getElementById('pvcFoto');
         if (recuadroFoto) {
-            const fotoReal = fotoTemporalAlumno || al.fotoUrl || al.foto_url || al.foto || '/img/default_avatar.png';
-            recuadroFoto.style.backgroundImage = `url('${fotoReal}')`;
-            recuadroFoto.style.backgroundPosition = 'center';
-            recuadroFoto.style.backgroundRepeat = 'no-repeat';
-            recuadroFoto.style.backgroundSize = 'contain';
+            const fotoReal = obtenerUrlFotoAlumnoAltaResolucion(al);
+            recuadroFoto.innerHTML = `<img src="${fotoReal}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';">`;
+            recuadroFoto.style.backgroundImage = 'none';
         }
 
         // Reverso
@@ -421,9 +457,14 @@ async function generarImagenGafete(alumno) {
     return new Promise((resolve, reject) => {
         if (!alumno) return reject("Alumno no proporcionado");
 
+        const SCALE = 3; // Ultra HD: 1200 x 1680 píxeles (~360 DPI para impresión nítida)
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 400; canvas.height = 560;
+        canvas.width = 400 * SCALE; 
+        canvas.height = 560 * SCALE;
+
+        // Escalar el contexto para gráficos y tipografías vectoriales ultra nítidas
+        ctx.scale(SCALE, SCALE);
 
         ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, 400, 560);
         ctx.strokeStyle = "#7b1b37"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
@@ -440,11 +481,13 @@ async function generarImagenGafete(alumno) {
         ctx.fillStyle = "#d4af37";
         ctx.fillRect(0, 88, 400, 3);
 
-        const logoEscuelaSrc = (cfgSistema && cfgSistema.logo_plantel_url) ? cfgSistema.logo_plantel_url : '/img/logo-cbtis.png';
-        const logoInicioSrc = (cfgSistema && cfgSistema.logo_inicio_url) ? cfgSistema.logo_inicio_url : '/img/logo.png';
+        const logoEscuelaSrc = obtenerLogoAltaResolucion(cfgSistema && cfgSistema.logo_plantel_url, 'plantel');
+        const logoInicioSrc = obtenerLogoAltaResolucion(cfgSistema && cfgSistema.logo_inicio_url, 'inicio');
         const nomPlantel = (cfgSistema && cfgSistema.nombre_plantel) ? cfgSistema.nombre_plantel : 'Plantel Escolar';
         const imgEscuela = new Image();
         const imgTigre = new Image();
+        imgEscuela.crossOrigin = "anonymous";
+        imgTigre.crossOrigin = "anonymous";
 
         let cargas = 0;
         let renderizado = false;
@@ -510,11 +553,12 @@ async function generarImagenGafete(alumno) {
             }
             textoQR = sanitizarTextoQR(textoQR, mat);
 
+            // Generar código QR a resolución HD (720x720 px)
             try {
                 new QRCode(divTemporal, {
                     text: textoQR,
-                    width: 240,
-                    height: 240,
+                    width: 240 * SCALE,
+                    height: 240 * SCALE,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.M
@@ -523,8 +567,8 @@ async function generarImagenGafete(alumno) {
                 divTemporal.innerHTML = "";
                 new QRCode(divTemporal, {
                     text: sanitizarTextoQR(mat, '00000000000000'),
-                    width: 240,
-                    height: 240,
+                    width: 240 * SCALE,
+                    height: 240 * SCALE,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
                     correctLevel: QRCode.CorrectLevel.L
@@ -573,11 +617,24 @@ async function generarImagenGafete(alumno) {
 
         imgEscuela.onload = alCargarLogo;
         imgTigre.onload = alCargarLogo;
-        imgEscuela.onerror = alCargarLogo;
-        imgTigre.onerror = alCargarLogo;
+        imgEscuela.onerror = () => {
+            if (!imgEscuela.src.includes('logo_aniversario.jpg')) {
+                imgEscuela.src = '/img/logo_aniversario.jpg';
+            } else {
+                alCargarLogo();
+            }
+        };
+        imgTigre.onerror = () => {
+            if (!imgTigre.src.includes('tigres.png')) {
+                imgTigre.src = '/img/tigres.png';
+            } else {
+                alCargarLogo();
+            }
+        };
         imgEscuela.src = logoEscuelaSrc;
         imgTigre.src = logoInicioSrc;
     });
+}
 }
 
 // --- DESCARGA DE GAFETES Y CREDENCIALES (PDF Y PNG ZIP) ---
@@ -711,8 +768,11 @@ async function generarCanvasCredencialFrente(alumno) {
             container = document.createElement('div');
             container.id = 'tempCardContainer';
             container.style.position = 'fixed';
-            container.style.left = '-9999px';
-            container.style.top = '-9999px';
+            container.style.left = '0';
+            container.style.top = '0';
+            container.style.zIndex = '-9999';
+            container.style.opacity = '0';
+            container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
 
@@ -720,10 +780,10 @@ async function generarCanvasCredencialFrente(alumno) {
         const matApe = alumno.apemat || alumno.segundoApellido || '';
         const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase();
         const mat = alumno.ncontrol || alumno.matricula || '';
-        const fotoSrc = fotoTemporalAlumno || alumno.fotoUrl || alumno.foto_url || alumno.foto || '/img/default_avatar.png';
+        const fotoSrc = obtenerUrlFotoAlumnoAltaResolucion(alumno);
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
-        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
-        const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
+        const logoEscuelaSrc = obtenerLogoAltaResolucion(cfgSistema.logo_plantel_url, 'plantel');
+        const logoInicioSrc = obtenerLogoAltaResolucion(cfgSistema.logo_inicio_url, 'inicio');
         const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
 
         const estiloFondoCustom = plantillaFrente ? `background-image: url('${plantillaFrente}'); background-size: cover; background-position: center;` : `background: #ffffff;`;
@@ -731,17 +791,19 @@ async function generarCanvasCredencialFrente(alumno) {
         container.innerHTML = `
             <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px 8px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                    <img src="${logoEscuelaSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
+                    <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
                     <div style="text-align: center; flex: 1; margin: 0 4px;">
                         <div style="font-size: 9px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff;">${nomPlantel}</div>
                         <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
-                    <img src="${logoInicioSrc}" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
+                    <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
                 
                 <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
                     <div style="margin: 0 auto;">
-                        <div style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid #7b1b37; border-radius: 8px; background-image: url('${fotoSrc}'); background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
+                        <div style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid #7b1b37; border-radius: 8px; overflow: hidden; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25); display: flex; align-items: center; justify-content: center; position: relative;">
+                            <img src="${fotoSrc}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';" />
+                        </div>
                     </div>
                     
                     <div style="margin: 1px 0;">
@@ -781,11 +843,25 @@ async function generarCanvasCredencialFrente(alumno) {
         `;
 
         const targetEl = container.firstElementChild;
+
+        // Asegurar carga de todas las imágenes físicas antes de rasterizar con html2canvas
+        const imgs = Array.from(targetEl.querySelectorAll('img'));
+        await Promise.all(imgs.map(img => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise(res => {
+                img.onload = res;
+                img.onerror = res;
+                setTimeout(res, 2500);
+            });
+        }));
+
         const canvas = await html2canvas(targetEl, {
             scale: 6,
             useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            imageTimeout: 10000,
+            logging: false
         });
 
         resolve(canvas.toDataURL("image/png"));
@@ -799,8 +875,11 @@ async function generarCanvasCredencialReverso(alumno) {
             container = document.createElement('div');
             container.id = 'tempCardContainer';
             container.style.position = 'fixed';
-            container.style.left = '-9999px';
-            container.style.top = '-9999px';
+            container.style.left = '0';
+            container.style.top = '0';
+            container.style.zIndex = '-9999';
+            container.style.opacity = '0';
+            container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
 
@@ -808,8 +887,8 @@ async function generarCanvasCredencialReverso(alumno) {
         const textoQR = (alumno.qrCode || alumno.qr_texto || `${mat}|${alumno.nombre}`).substring(0, 60);
         const qrImgData = await generarQRConTigre(textoQR);
         const director = cfgSistema.nombre_director || "Dirección del Plantel";
-        const logoEscuelaSrc = cfgSistema.logo_plantel_url || '/img/logo-cbtis.png';
-        const logoInicioSrc = cfgSistema.logo_inicio_url || '/img/logo.png';
+        const logoEscuelaSrc = obtenerLogoAltaResolucion(cfgSistema.logo_plantel_url, 'plantel');
+        const logoInicioSrc = obtenerLogoAltaResolucion(cfgSistema.logo_inicio_url, 'inicio');
         const nomPlantel = cfgSistema.nombre_plantel || 'Plantel Escolar';
         const cct = cfgSistema.cct_escuela || '12DCT0001L';
 
@@ -818,15 +897,15 @@ async function generarCanvasCredencialReverso(alumno) {
         container.innerHTML = `
             <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
                 <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
-                    <img src="${logoEscuelaSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
+                    <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
                     <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
-                    <img src="${logoInicioSrc}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px;">
+                    <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
                 
                 <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
                     <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 10px; padding: 4px; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.15);">
                         <div style="width: 32mm; height: 32mm; margin: 0 auto;">
-                            <img src="${qrImgData}" style="width: 100%; height: 100%; object-fit: contain;">
+                            <img src="${qrImgData}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
                         </div>
                         <div style="font-size: 5.5px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 2px;">ESCANEAME PARA ACCESO</div>
                     </div>
@@ -849,11 +928,23 @@ async function generarCanvasCredencialReverso(alumno) {
         `;
 
         const targetEl = container.firstElementChild;
+        const imgs = Array.from(targetEl.querySelectorAll('img'));
+        await Promise.all(imgs.map(img => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise(res => {
+                img.onload = res;
+                img.onerror = res;
+                setTimeout(res, 2500);
+            });
+        }));
+
         const canvas = await html2canvas(targetEl, {
             scale: 6,
             useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
+            allowTaint: false,
+            backgroundColor: '#ffffff',
+            imageTimeout: 10000,
+            logging: false
         });
 
         resolve(canvas.toDataURL("image/png"));
