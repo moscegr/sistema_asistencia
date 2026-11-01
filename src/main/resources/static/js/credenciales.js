@@ -49,6 +49,54 @@ function obtenerLogoAltaResolucion(urlConfig, tipo) {
     }
 }
 
+/**
+ * Recorta asíncronamente una fotografía al aspect ratio exacto requerido (por ej. 26mm x 32mm)
+ * generando un PNG en ultra alta resolución (600x738 px @ ~600 DPI). Al coincidir el aspect ratio
+ * de la imagen con el contenedor HTML, html2canvas no sufre de deformaciones ni rostros alargados o ensanchados.
+ */
+async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
+    return new Promise((resolve) => {
+        if (!url) return resolve('/img/default_avatar.png');
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            try {
+                const iw = img.naturalWidth || img.width;
+                const ih = img.naturalHeight || img.height;
+                if (!iw || !ih) return resolve(url);
+
+                const targetAspect = targetWmm / targetHmm;
+                const imgAspect = iw / ih;
+
+                let sx = 0, sy = 0, sw = iw, sh = ih;
+                if (imgAspect > targetAspect) {
+                    sw = ih * targetAspect;
+                    sx = (iw - sw) / 2;
+                } else {
+                    sh = iw / targetAspect;
+                    sy = (ih - sh) * 0.25; // 25% superior para encuadrar adecuadamente cabeza y rostro
+                    if (sy < 0) sy = 0;
+                    if (sy + sh > ih) sy = ih - sh;
+                }
+
+                const c = document.createElement('canvas');
+                c.width = 600;
+                c.height = Math.round(600 / targetAspect);
+                const ctx = c.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+
+                resolve(c.toDataURL('image/png'));
+            } catch (e) {
+                resolve(url);
+            }
+        };
+        img.onerror = () => resolve(url);
+        img.src = url;
+    });
+}
+
 document.getElementById('inputFotoTemporal')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     const recuadroFoto = document.getElementById('pvcFoto');
@@ -779,7 +827,8 @@ async function generarCanvasCredencialFrente(alumno) {
         const matApe = alumno.apemat || alumno.segundoApellido || '';
         const nombreCompleto = `${alumno.nombre} ${pat} ${matApe}`.trim().toUpperCase();
         const mat = alumno.ncontrol || alumno.matricula || '';
-        const fotoSrc = obtenerUrlFotoAlumnoAltaResolucion(alumno);
+        const fotoSrcOriginal = obtenerUrlFotoAlumnoAltaResolucion(alumno);
+        const fotoSrc = await recortarFotoAspectoHD(fotoSrcOriginal, 26, 32);
         const vigencia = cfgSistema.vigencia_actual || 'AGOSTO 2026 - JULIO 2027';
         const logoEscuelaSrc = obtenerLogoAltaResolucion(cfgSistema.logo_plantel_url, 'plantel');
         const logoInicioSrc = obtenerLogoAltaResolucion(cfgSistema.logo_inicio_url, 'inicio');

@@ -1275,21 +1275,18 @@ async function generarImagenGafetePersonal(user) {
             ctx.textAlign = "center";
             ctx.fillText((user.nombre || '').toUpperCase(), 200, 122);
 
-            // Fotografía de la persona (Cuadrada con esquinas redondeadas igual al QR)
+            // Fotografía de la persona con ajuste Cover proporcional (sin estirar ni aplastar rostros)
             const fotoX = 50, fotoY = 173, fotoW = 130, fotoH = 130, fotoR = 8;
-            ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(fotoX, fotoY, fotoW, fotoH, fotoR);
-            } else {
-                ctx.rect(fotoX, fotoY, fotoW, fotoH);
-            }
-            ctx.closePath();
-            ctx.clip();
             try {
                 if (imgFoto && imgFoto.complete && imgFoto.naturalWidth > 0) {
-                    ctx.drawImage(imgFoto, fotoX, fotoY, fotoW, fotoH);
+                    dibujarFotoCoverCanvas(ctx, imgFoto, fotoX, fotoY, fotoW, fotoH, fotoR);
                 } else {
+                    ctx.save();
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(fotoX, fotoY, fotoW, fotoH, fotoR);
+                    else ctx.rect(fotoX, fotoY, fotoW, fotoH);
+                    ctx.closePath();
+                    ctx.clip();
                     ctx.fillStyle = "#f1f5f9";
                     ctx.fillRect(fotoX, fotoY, fotoW, fotoH);
                     ctx.fillStyle = "#94a3b8";
@@ -1299,9 +1296,9 @@ async function generarImagenGafetePersonal(user) {
                     ctx.beginPath();
                     ctx.arc(fotoX + fotoW / 2, fotoY + fotoH * 0.95, fotoW * 0.38, Math.PI, 0, false);
                     ctx.fill();
+                    ctx.restore();
                 }
             } catch (eFoto) {}
-            ctx.restore();
 
             // Marco cuadrado institucional
             ctx.save();
@@ -1457,6 +1454,98 @@ function obtenerLogoAltaResolucionPersonal(urlConfig, tipo) {
     }
 }
 
+/**
+ * Dibuja una imagen sobre un contexto 2D de canvas aplicando recorte inteligente proporcional (object-fit: cover)
+ * para evitar que las fotos de personal y alumnos se estiren, alarguen o deformen.
+ */
+function dibujarFotoCoverCanvas(ctx, img, x, y, w, h, r = 0) {
+    if (!img) return;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+
+    const targetAspect = w / h;
+    const imgAspect = iw / ih;
+
+    let sx = 0, sy = 0, sw = iw, sh = ih;
+    if (imgAspect > targetAspect) {
+        sw = ih * targetAspect;
+        sx = (iw - sw) / 2;
+    } else {
+        sh = iw / targetAspect;
+        sy = (ih - sh) * 0.25; // 25% superior para encuadrar adecuadamente cabeza y rostro
+        if (sy < 0) sy = 0;
+        if (sy + sh > ih) sy = ih - sh;
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    if (r > 0 && ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, r);
+    } else if (r > 0) {
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+    } else {
+        ctx.rect(x, y, w, h);
+    }
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    ctx.restore();
+}
+
+/**
+ * Recorta asíncronamente una fotografía al aspect ratio exacto requerido (por ej. 26mm x 32mm)
+ * generando un PNG en ultra alta resolución (600x738 px @ ~600 DPI). Al coincidir el aspect ratio
+ * de la imagen con el contenedor HTML, html2canvas no sufre de deformaciones ni rostros alargados.
+ */
+async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
+    return new Promise((resolve) => {
+        if (!url) return resolve('/img/default_avatar.png');
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            try {
+                const iw = img.naturalWidth || img.width;
+                const ih = img.naturalHeight || img.height;
+                if (!iw || !ih) return resolve(url);
+
+                const targetAspect = targetWmm / targetHmm;
+                const imgAspect = iw / ih;
+
+                let sx = 0, sy = 0, sw = iw, sh = ih;
+                if (imgAspect > targetAspect) {
+                    sw = ih * targetAspect;
+                    sx = (iw - sw) / 2;
+                } else {
+                    sh = iw / targetAspect;
+                    sy = (ih - sh) * 0.25;
+                    if (sy < 0) sy = 0;
+                    if (sy + sh > ih) sy = ih - sh;
+                }
+
+                const c = document.createElement('canvas');
+                c.width = 600;
+                c.height = Math.round(600 / targetAspect);
+                const ctx = c.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+
+                resolve(c.toDataURL('image/png'));
+            } catch (e) {
+                resolve(url);
+            }
+        };
+        img.onerror = () => resolve(url);
+        img.src = url;
+    });
+}
+
 async function generarCanvasCredencialPersonalFrente(user) {
     return new Promise(async (resolve) => {
         let container = document.getElementById('tempCardContainerPersonal');
@@ -1476,7 +1565,8 @@ async function generarCanvasCredencialPersonalFrente(user) {
         const rfc = (user.rfc || 'SIN RFC').toUpperCase();
         const rol = (user.rol || 'DOCENTE').toUpperCase();
         const turno = user.turno || 'Matutino';
-        const fotoSrc = obtenerUrlFotoPersonalAltaResolucion(user);
+        const fotoSrcOriginal = obtenerUrlFotoPersonalAltaResolucion(user);
+        const fotoSrc = await recortarFotoAspectoHD(fotoSrcOriginal, 26, 32);
         const colorRol = (rol === 'DOCENTE') ? '#6f42c1' : ((rol === 'ADMINISTRATIVO') ? '#0d6efd' : '#7b1b37');
 
         const logoEscuelaSrc = obtenerLogoAltaResolucionPersonal(cfgSistemaPersonal.logo_plantel_url, 'plantel');
