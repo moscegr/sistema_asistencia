@@ -57,13 +57,25 @@ function obtenerLogoAltaResolucion(urlConfig, tipo) {
 async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
     return new Promise((resolve) => {
         if (!url) return resolve('/img/default_avatar.png');
+        
+        let terminado = false;
+        const finalizar = (resVal) => {
+            if (terminado) return;
+            terminado = true;
+            resolve(resVal);
+        };
+
+        // Tiempo límite de seguridad de 2 segundos para evitar bloquear la generación masiva
+        const timerSeguridad = setTimeout(() => finalizar(url), 2000);
+
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
+            clearTimeout(timerSeguridad);
             try {
                 const iw = img.naturalWidth || img.width;
                 const ih = img.naturalHeight || img.height;
-                if (!iw || !ih) return resolve(url);
+                if (!iw || !ih) return finalizar(url);
 
                 const targetAspect = targetWmm / targetHmm;
                 const imgAspect = iw / ih;
@@ -80,19 +92,22 @@ async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
                 }
 
                 const c = document.createElement('canvas');
-                c.width = 600;
-                c.height = Math.round(600 / targetAspect);
+                c.width = 400;
+                c.height = Math.round(400 / targetAspect);
                 const ctx = c.getContext('2d');
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
 
-                resolve(c.toDataURL('image/png'));
+                finalizar(c.toDataURL('image/jpeg', 0.95));
             } catch (e) {
-                resolve(url);
+                finalizar(url);
             }
         };
-        img.onerror = () => resolve(url);
+        img.onerror = () => {
+            clearTimeout(timerSeguridad);
+            finalizar(url);
+        };
         img.src = url;
     });
 }
@@ -815,10 +830,12 @@ async function generarCanvasCredencialFrente(alumno) {
             container = document.createElement('div');
             container.id = 'tempCardContainer';
             container.style.position = 'fixed';
-            container.style.left = '0';
+            container.style.left = '-9999px';
             container.style.top = '0';
+            container.style.width = '54mm';
+            container.style.height = '85.6mm';
             container.style.zIndex = '-9999';
-            container.style.opacity = '0';
+            container.style.opacity = '1';
             container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
@@ -899,20 +916,28 @@ async function generarCanvasCredencialFrente(alumno) {
             return new Promise(res => {
                 img.onload = res;
                 img.onerror = res;
-                setTimeout(res, 2500);
+                setTimeout(res, 2000);
             });
         }));
 
-        const canvas = await html2canvas(targetEl, {
-            scale: 6,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            imageTimeout: 10000,
-            logging: false
-        });
+        try {
+            const canvas = await html2canvas(targetEl, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                imageTimeout: 5000,
+                logging: false
+            });
 
-        resolve(canvas.toDataURL("image/png"));
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+            container.innerHTML = "";
+            resolve(dataUrl);
+        } catch(errRender) {
+            console.warn("Fallo html2canvas frente:", errRender);
+            container.innerHTML = "";
+            resolve('/img/default_avatar.png');
+        }
     });
 }
 
@@ -923,10 +948,12 @@ async function generarCanvasCredencialReverso(alumno) {
             container = document.createElement('div');
             container.id = 'tempCardContainer';
             container.style.position = 'fixed';
-            container.style.left = '0';
+            container.style.left = '-9999px';
             container.style.top = '0';
+            container.style.width = '54mm';
+            container.style.height = '85.6mm';
             container.style.zIndex = '-9999';
-            container.style.opacity = '0';
+            container.style.opacity = '1';
             container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
@@ -982,29 +1009,45 @@ async function generarCanvasCredencialReverso(alumno) {
             return new Promise(res => {
                 img.onload = res;
                 img.onerror = res;
-                setTimeout(res, 2500);
+                setTimeout(res, 2000);
             });
         }));
 
-        const canvas = await html2canvas(targetEl, {
-            scale: 6,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            imageTimeout: 10000,
-            logging: false
-        });
+        try {
+            const canvas = await html2canvas(targetEl, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                imageTimeout: 5000,
+                logging: false
+            });
 
-        resolve(canvas.toDataURL("image/png"));
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
+            container.innerHTML = "";
+            resolve(dataUrl);
+        } catch(errRender) {
+            console.warn("Fallo html2canvas reverso:", errRender);
+            container.innerHTML = "";
+            resolve('/img/default_avatar.png');
+        }
     });
 }
 
 // 1. CREDENCIALES INDIVIDUAL / GRUPO - MODO TÉRMICO CR80 (54 x 85.6 mm por página)
 async function generarCredencialPDF(esMasivo) {
     const listaAlumnos = esMasivo ? alumnosDelGrupoSeleccionado : (alumnoSeleccionadoInd ? [alumnoSeleccionadoInd] : []);
-    if (listaAlumnos.length === 0) return Swal.fire("Aviso", "Seleccione al menos un alumno para generar la credencial.", "warning");
+    if (!listaAlumnos || listaAlumnos.length === 0) {
+        return Swal.fire("Aviso", "Seleccione al menos un alumno para generar la credencial.", "warning");
+    }
 
-    Swal.fire({ title: 'Generando Credenciales Térmicas...', text: 'Formato directo para impresoras PVC (CR-80 54 x 85.6 mm)', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({
+        title: 'Generando Credenciales Térmicas...',
+        html: `<div class="mb-2">Formato directo para impresoras PVC (CR-80 54 x 85.6 mm)</div>
+               <div class="small text-muted fw-bold" id="progresoTermicoTexto">Iniciando procesamiento de ${listaAlumnos.length} alumno(s)...</div>`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
         const { jsPDF } = window.jspdf;
@@ -1012,30 +1055,43 @@ async function generarCredencialPDF(esMasivo) {
 
         for (let i = 0; i < listaAlumnos.length; i++) {
             const al = listaAlumnos[i];
+            const elProg = document.getElementById('progresoTermicoTexto');
+            if (elProg) elProg.innerText = `Generando alumno ${i + 1} de ${listaAlumnos.length}...`;
+
             const imgFrente = await generarCanvasCredencialFrente(al);
             const imgReverso = await generarCanvasCredencialReverso(al);
 
             if (i > 0) pdf.addPage([54, 85.6], 'portrait');
-            pdf.addImage(imgFrente, 'PNG', 0, 0, 54, 85.6);
+            pdf.addImage(imgFrente, 'JPEG', 0, 0, 54, 85.6, undefined, 'FAST');
 
             pdf.addPage([54, 85.6], 'portrait');
-            pdf.addImage(imgReverso, 'PNG', 0, 0, 54, 85.6);
+            pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6, undefined, 'FAST');
         }
 
-        const matOrGpo = esMasivo ? `Grupo_${document.getElementById('filtroGpoCred').value}` : (listaAlumnos[0].ncontrol || listaAlumnos[0].matricula);
+        const matOrGpo = esMasivo ? `Grupo_${document.getElementById('filtroGpoCred')?.value || 'Masivo'}` : (listaAlumnos[0].ncontrol || listaAlumnos[0].matricula);
         pdf.save(`Credenciales_Termicas_CR80_${matOrGpo}.pdf`);
         Swal.close();
     } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudieron generar las credenciales térmicas.", "error");
+        console.error("Error generando credenciales térmicas:", e);
+        Swal.fire("Error", "No se pudieron generar las credenciales térmicas: " + (e.message || e), "error");
     }
 }
 window.generarCredencialPDF = generarCredencialPDF;
 
 // 2. CREDENCIALES GRUPO - PLANILLA HOJA CARTA DOBLE CARA (Vertical / Portrait con 3 columnas x 3 filas = 9 credenciales por hoja y alineación espejo exacta)
 async function generarCredencialesPlanillaCartaGrupo() {
-    if (alumnosDelGrupoSeleccionado.length === 0) return Swal.fire("Aviso", "Seleccione un grupo para generar la planilla.", "warning");
-    Swal.fire({ title: 'Generando Planilla Doble Cara...', text: 'Acomodando credenciales en Hoja Carta Vertical con alineación espejo para recorte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    if (!alumnosDelGrupoSeleccionado || alumnosDelGrupoSeleccionado.length === 0) {
+        return Swal.fire("Aviso", "Seleccione un grupo para generar la planilla.", "warning");
+    }
+
+    const totalAlumnos = alumnosDelGrupoSeleccionado.length;
+    Swal.fire({
+        title: 'Generando Planilla Doble Cara...',
+        html: `<div class="mb-2">Acomodando credenciales en Hoja Carta Vertical con alineación espejo para recorte.</div>
+               <div class="small text-muted fw-bold" id="progresoPlanillaTexto">Iniciando procesamiento de ${totalAlumnos} alumnos...</div>`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     try {
         const { jsPDF } = window.jspdf;
@@ -1046,22 +1102,26 @@ async function generarCredencialesPlanillaCartaGrupo() {
         const h = 85.6;
 
         // 3 columnas perfectamente simétricas en 215.9 mm de ancho
-        // Margen lateral de 13.95 mm y separación uniforme entre columnas de 13.0 mm
         const xCoords = [13.95, 80.95, 147.95];
 
         // 3 filas perfectamente simétricas en 279.4 mm de alto
-        // Margen superior/inferior de 8.0 mm y separación vertical de 3.3 mm
         const yCoords = [8.00, 96.90, 185.80];
 
         const alumnos = alumnosDelGrupoSeleccionado;
         const porPagina = 9; // 3 columnas x 3 filas = 9 credenciales por hoja
         const totalPaginasLote = Math.ceil(alumnos.length / porPagina);
 
+        const actualizarProgreso = (texto) => {
+            const el = document.getElementById('progresoPlanillaTexto');
+            if (el) el.innerText = texto;
+        };
+
         for (let p = 0; p < totalPaginasLote; p++) {
             const lote = alumnos.slice(p * porPagina, (p + 1) * porPagina);
             if (p > 0) pdf.addPage('letter', 'portrait');
 
             // PÁGINA 1: FRENTES (Hoja delantera)
+            actualizarProgreso(`Generando hoja ${p + 1} de ${totalPaginasLote} (Frentes)...`);
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
                 const col = i % 3;
@@ -1076,11 +1136,12 @@ async function generarCredencialesPlanillaCartaGrupo() {
                 pdf.setLineDashPattern([2, 2], 0);
                 pdf.rect(x - 0.3, y - 0.3, w + 0.6, h + 0.6);
 
-                pdf.addImage(imgFrente, 'PNG', x, y, w, h);
+                pdf.addImage(imgFrente, 'JPEG', x, y, w, h, undefined, 'FAST');
             }
 
             // PÁGINA 2: REVERSOS (Hoja trasera en posición espejo horizontal exacta para impresión dúplex / volteo)
             pdf.addPage('letter', 'portrait');
+            actualizarProgreso(`Generando hoja ${p + 1} de ${totalPaginasLote} (Reversos)...`);
             for (let i = 0; i < lote.length; i++) {
                 const al = lote[i];
                 const col = i % 3;
@@ -1096,17 +1157,17 @@ async function generarCredencialesPlanillaCartaGrupo() {
                 pdf.setLineDashPattern([2, 2], 0);
                 pdf.rect(x - 0.3, y - 0.3, w + 0.6, h + 0.6);
 
-                pdf.addImage(imgReverso, 'PNG', x, y, w, h);
+                pdf.addImage(imgReverso, 'JPEG', x, y, w, h, undefined, 'FAST');
             }
         }
 
-        const esp = document.getElementById('filtroEspCred').value || 'GRUPO';
-        const gpo = document.getElementById('filtroGpoCred').value || '';
+        const esp = document.getElementById('filtroEspCred')?.value || 'GRUPO';
+        const gpo = document.getElementById('filtroGpoCred')?.value || '';
         pdf.save(`Planilla_Credenciales_Vertical_DobleCara_${esp}_${gpo}.pdf`);
         Swal.close();
     } catch (e) {
-        console.error(e);
-        Swal.fire("Error", "No se pudo generar la planilla en PDF.", "error");
+        console.error("Error al generar planilla:", e);
+        Swal.fire("Error", "No se pudo generar la planilla en PDF: " + (e.message || e), "error");
     }
 }
 window.generarCredencialesPlanillaCartaGrupo = generarCredencialesPlanillaCartaGrupo;

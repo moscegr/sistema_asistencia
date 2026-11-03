@@ -1506,13 +1506,24 @@ function dibujarFotoCoverCanvas(ctx, img, x, y, w, h, r = 0) {
 async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
     return new Promise((resolve) => {
         if (!url) return resolve('/img/default_avatar.png');
+        
+        let terminado = false;
+        const finalizar = (resVal) => {
+            if (terminado) return;
+            terminado = true;
+            resolve(resVal);
+        };
+
+        const timerSeguridad = setTimeout(() => finalizar(url), 2000);
+
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
+            clearTimeout(timerSeguridad);
             try {
                 const iw = img.naturalWidth || img.width;
                 const ih = img.naturalHeight || img.height;
-                if (!iw || !ih) return resolve(url);
+                if (!iw || !ih) return finalizar(url);
 
                 const targetAspect = targetWmm / targetHmm;
                 const imgAspect = iw / ih;
@@ -1529,19 +1540,22 @@ async function recortarFotoAspectoHD(url, targetWmm, targetHmm) {
                 }
 
                 const c = document.createElement('canvas');
-                c.width = 600;
-                c.height = Math.round(600 / targetAspect);
+                c.width = 400;
+                c.height = Math.round(400 / targetAspect);
                 const ctx = c.getContext('2d');
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
 
-                resolve(c.toDataURL('image/png'));
+                finalizar(c.toDataURL('image/jpeg', 0.95));
             } catch (e) {
-                resolve(url);
+                finalizar(url);
             }
         };
-        img.onerror = () => resolve(url);
+        img.onerror = () => {
+            clearTimeout(timerSeguridad);
+            finalizar(url);
+        };
         img.src = url;
     });
 }
@@ -1553,10 +1567,10 @@ async function generarCanvasCredencialPersonalFrente(user) {
             container = document.createElement('div');
             container.id = 'tempCardContainerPersonal';
             container.style.position = 'fixed';
-            container.style.left = '0';
+            container.style.left = '-9999px';
             container.style.top = '0';
             container.style.zIndex = '-9999';
-            container.style.opacity = '0';
+            container.style.opacity = '1';
             container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
@@ -1635,16 +1649,23 @@ async function generarCanvasCredencialPersonalFrente(user) {
             });
         }));
 
-        const canvas = await html2canvas(targetEl, {
-            scale: 6,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            imageTimeout: 10000,
-            logging: false
-        });
+        try {
+            const canvas = await html2canvas(targetEl, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                imageTimeout: 5000,
+                logging: false
+            });
 
-        resolve(canvas.toDataURL("image/png"));
+            container.innerHTML = "";
+            resolve(canvas.toDataURL("image/jpeg", 0.95));
+        } catch (err) {
+            console.error("Error renderizando canvas credencial frente:", err);
+            container.innerHTML = "";
+            resolve(null);
+        }
     });
 }
 
@@ -1655,10 +1676,10 @@ async function generarCanvasCredencialPersonalReverso(user) {
             container = document.createElement('div');
             container.id = 'tempCardContainerPersonal';
             container.style.position = 'fixed';
-            container.style.left = '0';
+            container.style.left = '-9999px';
             container.style.top = '0';
             container.style.zIndex = '-9999';
-            container.style.opacity = '0';
+            container.style.opacity = '1';
             container.style.pointerEvents = 'none';
             document.body.appendChild(container);
         }
@@ -1716,16 +1737,23 @@ async function generarCanvasCredencialPersonalReverso(user) {
             });
         }));
 
-        const canvas = await html2canvas(targetEl, {
-            scale: 6,
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: '#ffffff',
-            imageTimeout: 10000,
-            logging: false
-        });
+        try {
+            const canvas = await html2canvas(targetEl, {
+                scale: 3,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                imageTimeout: 5000,
+                logging: false
+            });
 
-        resolve(canvas.toDataURL("image/png"));
+            container.innerHTML = "";
+            resolve(canvas.toDataURL("image/jpeg", 0.95));
+        } catch (err) {
+            console.error("Error renderizando canvas credencial reverso:", err);
+            container.innerHTML = "";
+            resolve(null);
+        }
     });
 }
 
@@ -1810,14 +1838,23 @@ async function descargarCredencialesTermicasMasivasPersonal() {
 
         for (let i = 0; i < usuariosCache.length; i++) {
             const u = usuariosCache[i];
+            if (Swal.isVisible()) {
+                Swal.update({
+                    text: `Procesando personal ${i + 1} de ${usuariosCache.length} (${(u.nombre || '').toUpperCase()})...`
+                });
+            }
             const imgFrente = await generarCanvasCredencialPersonalFrente(u);
             const imgReverso = await generarCanvasCredencialPersonalReverso(u);
 
-            if (i > 0) pdf.addPage([54, 85.6], 'portrait');
-            pdf.addImage(imgFrente, 'JPEG', 0, 0, 54, 85.6);
+            if (imgFrente) {
+                if (i > 0) pdf.addPage([54, 85.6], 'portrait');
+                pdf.addImage(imgFrente, 'JPEG', 0, 0, 54, 85.6, undefined, 'FAST');
+            }
 
-            pdf.addPage([54, 85.6], 'portrait');
-            pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6);
+            if (imgReverso) {
+                pdf.addPage([54, 85.6], 'portrait');
+                pdf.addImage(imgReverso, 'JPEG', 0, 0, 54, 85.6, undefined, 'FAST');
+            }
         }
 
         pdf.save(`Credenciales_Termicas_Personal_CR80.pdf`);

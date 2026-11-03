@@ -11,9 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -32,6 +34,7 @@ import java.util.Optional;
  */
 @Controller
 @RequestMapping("/uploads")
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.HEAD, RequestMethod.OPTIONS})
 public class UploadFallbackController {
 
     @Autowired
@@ -74,6 +77,7 @@ public class UploadFallbackController {
                 return ResponseEntity.ok()
                         .contentType(mt)
                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
+                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                         .body(data);
             } catch (Exception ignored) {}
         }
@@ -103,6 +107,7 @@ public class UploadFallbackController {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
                                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                                 .body(bytesImg);
                     }
                 }
@@ -131,6 +136,7 @@ public class UploadFallbackController {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
                                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                                 .body(bytesImg);
                     }
                 }
@@ -160,6 +166,7 @@ public class UploadFallbackController {
                 return ResponseEntity.ok()
                         .contentType(mediaType)
                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                         .body(data);
             }
         } catch (Exception ignored) {}
