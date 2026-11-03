@@ -85,9 +85,9 @@ async function previewLogoPlantel(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 1200, 0.92);
+    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
     const imgPrev = document.getElementById('imgPreviewLogoPlantel');
-    if (imgPrev && base64Opt) imgPrev.src = base64Opt;
+    if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
 }
 window.previewLogoPlantel = previewLogoPlantel;
 
@@ -95,9 +95,9 @@ async function previewLogoInicio(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 1200, 0.92);
+    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
     const imgPrev = document.getElementById('imgPreviewLogoInicio');
-    if (imgPrev && base64Opt) imgPrev.src = base64Opt;
+    if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
 }
 window.previewLogoInicio = previewLogoInicio;
 
@@ -163,23 +163,36 @@ if (formInst) {
 
         const inputLogoP = document.getElementById('inputLogoPlantelConfig');
         const imgPreview = document.getElementById('imgPreviewLogoPlantel');
-        if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
+        if (imgPreview && imgPreview.dataset.nuevaImagen && imgPreview.dataset.nuevaImagen.startsWith('data:image')) {
+            actualizaciones.logo_plantel_url = imgPreview.dataset.nuevaImagen;
+        } else if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
             actualizaciones.logo_plantel_url = imgPreview.src;
         }
 
         const inputLogoI = document.getElementById('inputLogoInicioConfig');
         const imgPreviewInicio = document.getElementById('imgPreviewLogoInicio');
-        if (imgPreviewInicio && imgPreviewInicio.src && imgPreviewInicio.src.startsWith('data:image')) {
+        if (imgPreviewInicio && imgPreviewInicio.dataset.nuevaImagen && imgPreviewInicio.dataset.nuevaImagen.startsWith('data:image')) {
+            actualizaciones.logo_inicio_url = imgPreviewInicio.dataset.nuevaImagen;
+        } else if (imgPreviewInicio && imgPreviewInicio.src && imgPreviewInicio.src.startsWith('data:image')) {
             actualizaciones.logo_inicio_url = imgPreviewInicio.src;
         }
 
         try {
-            await fetch('/api/configuracion/sistema', {
+            const res = await fetch('/api/configuracion/sistema', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(actualizaciones)
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || ('Error del servidor HTTP ' + res.status));
+            }
+
+            if (imgPreview) delete imgPreview.dataset.nuevaImagen;
+            if (imgPreviewInicio) delete imgPreviewInicio.dataset.nuevaImagen;
             try { sessionStorage.removeItem('cfg_sistema'); } catch(e) {}
+
             Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");
             
             // Refrescar en caliente componentes visuales
@@ -190,7 +203,8 @@ if (formInst) {
                 await cargarDatosInstitucionales();
             }
         } catch (error) {
-            Swal.fire("Error", "No se pudieron guardar los datos.", "error");
+            console.error("Error al guardar configuración:", error);
+            Swal.fire("Error", "No se pudieron guardar los datos: " + (error.message || error), "error");
         }
     });
 }

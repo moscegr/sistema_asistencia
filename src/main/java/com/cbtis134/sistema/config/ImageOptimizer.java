@@ -124,25 +124,34 @@ public class ImageOptimizer {
                 return optimizarLogo(dataUriOrUrl);
             }
 
-            String safeId = limpiarNombreArchivo(identificador);
-            if (safeId.isEmpty()) {
-                safeId = "logo_" + System.currentTimeMillis();
+            String tempId = limpiarNombreArchivo(identificador);
+            if (tempId.isEmpty()) {
+                tempId = "logo_" + System.currentTimeMillis();
             }
+            final String safeId = tempId;
 
             File folder = new File(getUploadDir(), "logos");
             if (!folder.exists() && !folder.mkdirs()) {
                 return optimizarLogo(dataUriOrUrl);
             }
 
+            // Limpiar archivos anteriores de este logo en la carpeta para no dejar versiones viejas
+            File[] oldFiles = folder.listFiles((d, name) -> name.startsWith(safeId));
+            if (oldFiles != null) {
+                for (File old : oldFiles) {
+                    try { old.delete(); } catch (Exception ignored) {}
+                }
+            }
+
             String ext = salioPng[0] ? ".png" : ".jpg";
-            String fileName = safeId + ext;
+            long version = System.currentTimeMillis();
+            String fileName = safeId + "_" + version + ext;
             File targetFile = new File(folder, fileName);
             try (FileOutputStream fos = new FileOutputStream(targetFile)) {
                 fos.write(imgBytes);
             }
 
-            long version = System.currentTimeMillis() / 1000;
-            return "/uploads/logos/" + fileName + "?v=" + version;
+            return "/uploads/logos/" + fileName;
         } catch (Exception e) {
             System.err.println("[IMAGE STORAGE] Fallback logo a Base64 comprimido: " + e.getMessage());
             return optimizarLogo(dataUriOrUrl);

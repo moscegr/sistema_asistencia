@@ -63,7 +63,7 @@ function aplicarConfiguracionInstitucionalUI(data) {
     }
 
     // Actualizar logotipos
-    document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo').forEach(img => {
+    document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo, .sb-logo').forEach(img => {
         if (img.tagName === 'IMG') {
             img.onerror = () => { img.onerror = null; img.src = '/img/logo_aniversario.jpg'; };
             if (img.src !== logoPlantel) img.src = logoPlantel;
