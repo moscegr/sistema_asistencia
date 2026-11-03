@@ -16,6 +16,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class ResidenciaCbtis134ApplicationTests {
 
     @Test
+    void testClasspathResource() {
+        UploadFallbackController ctrl = new UploadFallbackController();
+        ResponseEntity<byte[]> resp = ctrl.servirOReconstruirArchivo("logos", "logo_plantel.jpg");
+        System.out.println("Default fallback status: " + resp.getStatusCode());
+        assertNotNull(resp.getBody());
+        assertTrue(resp.getBody().length > 0);
+    }
+
+    @Test
     void testDecodificarBase64Seguro() {
         String original = "Hola Mundo";
         String b64 = Base64.getEncoder().encodeToString(original.getBytes());

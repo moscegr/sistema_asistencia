@@ -14,15 +14,10 @@ WORKDIR /app
 # Instalar curl para healthchecks de Docker y Coolify
 RUN apk add --no-cache curl
 
-# Crear usuario y grupo sin privilegios 'spring' para evitar ejecucion como root
-RUN addgroup -g 1001 -S spring && adduser -u 1001 -S spring -G spring
-
 # Crear directorio de subidas con permisos asignados
-RUN mkdir -p /app/uploads && chmod -R 777 /app/uploads && chown -R spring:spring /app
+RUN mkdir -p /app/uploads && chmod -R 777 /app/uploads
 
-COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
-
-USER spring:spring
+COPY --from=build /app/target/*.jar app.jar
 
 VOLUME ["/app/uploads"]
 

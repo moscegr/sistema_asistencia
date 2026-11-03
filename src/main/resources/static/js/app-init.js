@@ -68,12 +68,14 @@ function aplicarConfiguracionInstitucionalUI(data) {
 
     document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo, .sb-logo').forEach(img => {
         if (img.tagName === 'IMG') {
+            img.onerror = () => { if (!img.src.includes('logo_aniversario.jpg')) img.src = '/img/logo_aniversario.jpg'; };
             img.src = urlPlantelFinal;
         }
     });
 
     document.querySelectorAll('.img-logo-inicio, #headerMascotaLogo, img[src*="tigres.png"]').forEach(img => {
         if (img.tagName === 'IMG') {
+            img.onerror = () => { if (!img.src.includes('tigres.png')) img.src = '/img/tigres.png'; };
             img.src = urlInicioFinal;
         }
     });

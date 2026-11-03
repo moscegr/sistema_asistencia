@@ -17,36 +17,20 @@ public class FileStorageConfig implements WebMvcConfigurer {
     @PostConstruct
     public void init() {
         File dir = new File(uploadDir);
-        boolean dirOk = dir.exists();
-        if (!dirOk) {
-            try {
-                dirOk = dir.mkdirs();
-            } catch (Exception ignored) {}
-        }
-        if (!dirOk || !dir.canWrite()) {
-            File fallbackDir = new File(System.getProperty("user.dir"), "uploads");
-            fallbackDir.mkdirs();
-            if (fallbackDir.exists() && fallbackDir.canWrite()) {
-                dir = fallbackDir;
-                uploadDir = dir.getAbsolutePath();
-                System.out.println("=== [FILE STORAGE] Fallback de directorio de almacenamiento activado en: " + uploadDir + " ===");
-            } else {
-                File tmpDir = new File(System.getProperty("java.io.tmpdir"), "cbtis_uploads");
-                tmpDir.mkdirs();
-                if (tmpDir.exists()) {
-                    dir = tmpDir;
-                    uploadDir = dir.getAbsolutePath();
-                    System.out.println("=== [FILE STORAGE] Fallback temporal de almacenamiento activado en: " + uploadDir + " ===");
-                }
-            }
+        if (!dir.exists() && System.getProperty("os.name", "").toLowerCase().contains("win")) {
+            File localDir = new File(System.getProperty("user.dir"), "uploads");
+            localDir.mkdirs();
+            dir = localDir;
+            uploadDir = dir.getAbsolutePath();
         } else {
-            System.out.println("=== [FILE STORAGE] Directorio de almacenamiento detectado en: " + dir.getAbsolutePath() + " ===");
+            dir.mkdirs();
         }
 
-        ImageOptimizer.setUploadDir(uploadDir);
+        ImageOptimizer.setUploadDir(dir.getAbsolutePath());
         new File(dir, "alumnos").mkdirs();
         new File(dir, "usuarios").mkdirs();
         new File(dir, "logos").mkdirs();
+        System.out.println("=== [FILE STORAGE] Directorio activo de almacenamiento: " + dir.getAbsolutePath() + " (escribible: " + dir.canWrite() + ") ===");
     }
 
     @Override

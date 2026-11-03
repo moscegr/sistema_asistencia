@@ -120,6 +120,7 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             const imgP = document.getElementById('imgPreviewLogoPlantel');
             if (imgP) {
+                imgP.onerror = () => { if (!imgP.src.includes('logo_aniversario.jpg')) imgP.src = '/img/logo_aniversario.jpg'; };
                 if (data.logo_plantel_url && data.logo_plantel_url.trim() !== '') {
                     const sep = data.logo_plantel_url.includes('?') ? '&' : '?';
                     imgP.src = data.logo_plantel_url.startsWith('data:') ? data.logo_plantel_url : (data.logo_plantel_url + sep + 't=' + Date.now());
@@ -129,6 +130,7 @@ async function cargarDatosInstitucionales() {
             }
             const imgI = document.getElementById('imgPreviewLogoInicio');
             if (imgI) {
+                imgI.onerror = () => { if (!imgI.src.includes('tigres.png')) imgI.src = '/img/tigres.png'; };
                 if (data.logo_inicio_url && data.logo_inicio_url.trim() !== '') {
                     const sep = data.logo_inicio_url.includes('?') ? '&' : '?';
                     imgI.src = data.logo_inicio_url.startsWith('data:') ? data.logo_inicio_url : (data.logo_inicio_url + sep + 't=' + Date.now());

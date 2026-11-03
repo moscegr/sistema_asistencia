@@ -21,7 +21,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -94,25 +96,12 @@ public class UploadFallbackController {
             }
         }
 
-        // 2. Verificar si el archivo ya existe físicamente en disco (en su nombre exacto o con extensiones comunes)
-        File folder = new File(ImageOptimizer.getUploadDir(), safeCat);
-        File target = new File(folder, cleanNombre);
-        if (!target.exists() || !target.isFile() || target.length() == 0) {
-            String baseSinExt = cleanNombre.replaceAll("\\.[^.]+$", "");
-            for (String ext : new String[]{".jpg", ".png", ".jpeg", ".webp", ".JPG", ".PNG", ".JPEG"}) {
-                File alt = new File(folder, baseSinExt + ext);
-                if (alt.exists() && alt.isFile() && alt.length() > 0) {
-                    target = alt;
-                    cleanNombre = alt.getName();
-                    break;
-                }
-            }
-        }
-
-        if (target.exists() && target.isFile() && target.length() > 0) {
+        // 2. Verificar si el archivo ya existe físicamente en disco (en /app/uploads, getUploadDir o user.dir)
+        File target = buscarArchivoEnDisco(safeCat, cleanNombre);
+        if (target != null && target.exists() && target.isFile() && target.length() > 0) {
             try (FileInputStream fis = new FileInputStream(target)) {
                 byte[] data = fis.readAllBytes();
-                MediaType mt = inferirMediaType(cleanNombre);
+                MediaType mt = inferirMediaType(target.getName());
                 return ResponseEntity.ok()
                         .contentType(mt)
                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
@@ -210,6 +199,33 @@ public class UploadFallbackController {
             }
         } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    private File buscarArchivoEnDisco(String safeCat, String cleanNombre) {
+        List<File> baseDirs = new ArrayList<>();
+        baseDirs.add(new File(ImageOptimizer.getUploadDir()));
+        baseDirs.add(new File("/app/uploads"));
+        baseDirs.add(new File(System.getProperty("user.dir"), "uploads"));
+
+        for (File base : baseDirs) {
+            if (base == null || !base.exists()) continue;
+            File folder = new File(base, safeCat);
+            if (!folder.exists()) continue;
+
+            File target = new File(folder, cleanNombre);
+            if (target.exists() && target.isFile() && target.length() > 0) {
+                return target;
+            }
+
+            String baseSinExt = cleanNombre.replaceAll("\\.[^.]+$", "");
+            for (String ext : new String[]{".jpg", ".png", ".jpeg", ".webp", ".JPG", ".PNG", ".JPEG"}) {
+                File alt = new File(folder, baseSinExt + ext);
+                if (alt.exists() && alt.isFile() && alt.length() > 0) {
+                    return alt;
+                }
+            }
+        }
+        return null;
     }
 
     private MediaType inferirMediaType(String nombreArchivo) {
