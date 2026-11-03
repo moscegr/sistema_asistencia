@@ -58,6 +58,40 @@ class ResidenciaCbtis134ApplicationTests {
         System.out.println("Bytes length: " + (resp.getBody() != null ? resp.getBody().length : "null"));
         assertEquals(200, resp.getStatusCode().value());
         assertNotNull(resp.getBody());
+
+        new java.io.File(new java.io.File(ImageOptimizer.getUploadDir(), "logos"), fileName).delete();
+    }
+
+    @Test
+    void testSpringMvcDispatch() throws Exception {
+        org.springframework.web.context.support.AnnotationConfigWebApplicationContext ctx =
+                new org.springframework.web.context.support.AnnotationConfigWebApplicationContext();
+        ctx.register(
+                org.springframework.web.servlet.config.annotation.DelegatingWebMvcConfiguration.class,
+                com.cbtis134.sistema.config.FileStorageConfig.class,
+                UploadFallbackController.class
+        );
+        // register dummy mocks or allow optional autowire
+        org.springframework.mock.web.MockServletContext sc = new org.springframework.mock.web.MockServletContext();
+        ctx.setServletContext(sc);
+        ctx.refresh();
+
+        org.springframework.test.web.servlet.MockMvc mvc =
+                org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup(ctx).build();
+
+        org.springframework.test.web.servlet.MvcResult res = mvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/uploads/logos/logo_plantel.jpg")
+        ).andReturn();
+        System.out.println("MockMvc Status (no origin): " + res.getResponse().getStatus());
+        assertEquals(200, res.getResponse().getStatus());
+        assertTrue(res.getResponse().getContentAsByteArray().length > 0);
+
+        org.springframework.test.web.servlet.MvcResult resCors = mvc.perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/uploads/logos/logo_plantel.jpg")
+                        .header("Origin", "https://cetis135.edu.mx")
+        ).andReturn();
+        System.out.println("MockMvc Status (with origin): " + resCors.getResponse().getStatus());
+        assertEquals(200, resCors.getResponse().getStatus());
     }
 
 }

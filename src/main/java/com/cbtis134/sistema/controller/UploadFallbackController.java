@@ -11,18 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,13 +32,12 @@ import java.util.Optional;
  */
 @Controller
 @RequestMapping("/uploads")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.HEAD, RequestMethod.OPTIONS})
 public class UploadFallbackController {
 
-    @Autowired
+    @Autowired(required = false)
     private UsuarioRepository usuarioRepository;
 
-    @Autowired
+    @Autowired(required = false)
     private AlumnoRepository alumnoRepository;
 
     @Autowired(required = false)
@@ -50,8 +45,8 @@ public class UploadFallbackController {
 
     @GetMapping("/{categoria}/{nombreArchivo:.+}")
     public ResponseEntity<byte[]> servirOReconstruirArchivo(
-            @PathVariable String categoria,
-            @PathVariable String nombreArchivo) {
+            @PathVariable("categoria") String categoria,
+            @PathVariable("nombreArchivo") String nombreArchivo) {
 
         String safeCat = categoria != null ? categoria.trim().toLowerCase() : "general";
         String cleanNombre = nombreArchivo != null ? nombreArchivo.trim() : "";
@@ -87,7 +82,6 @@ public class UploadFallbackController {
                                 return ResponseEntity.ok()
                                         .contentType(mt)
                                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
-                                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                                         .body(bytesImg);
                             }
                         }
@@ -105,7 +99,6 @@ public class UploadFallbackController {
                 return ResponseEntity.ok()
                         .contentType(mt)
                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
-                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                         .body(data);
             } catch (Exception ignored) {}
         }
@@ -113,7 +106,7 @@ public class UploadFallbackController {
         // 3. Si no existe en disco, reconstruir o servir fallback según categoría
         String idKey = cleanNombre.replaceAll("\\.[^.]+$", "").trim();
 
-        if ("usuarios".equals(safeCat)) {
+        if ("usuarios".equals(safeCat) && usuarioRepository != null) {
             Optional<Usuario> optUser = usuarioRepository.findByRfc(idKey.toUpperCase())
                     .or(() -> usuarioRepository.findById(idKey))
                     .or(() -> usuarioRepository.findByUid(idKey));
@@ -135,7 +128,6 @@ public class UploadFallbackController {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
                                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
-                                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                                 .body(bytesImg);
                     }
                 }
@@ -143,7 +135,7 @@ public class UploadFallbackController {
             return servirDefaultAvatar();
         }
 
-        if ("alumnos".equals(safeCat)) {
+        if ("alumnos".equals(safeCat) && alumnoRepository != null) {
             Optional<Alumno> optAlumno = alumnoRepository.findFirstByNcontrolOrMatricula(idKey, idKey)
                     .or(() -> alumnoRepository.findById(idKey))
                     .or(() -> alumnoRepository.findFirstByCurp(idKey));
@@ -164,7 +156,6 @@ public class UploadFallbackController {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
                                 .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
-                                .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                                 .body(bytesImg);
                     }
                 }
@@ -194,7 +185,6 @@ public class UploadFallbackController {
                 return ResponseEntity.ok()
                         .contentType(mediaType)
                         .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
-                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                         .body(data);
             }
         } catch (Exception ignored) {}
