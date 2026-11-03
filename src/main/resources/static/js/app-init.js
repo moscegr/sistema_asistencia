@@ -63,17 +63,18 @@ function aplicarConfiguracionInstitucionalUI(data) {
     }
 
     // Actualizar logotipos
+    const urlPlantelFinal = (logoPlantel.startsWith('data:') || logoPlantel.startsWith('/img/')) ? logoPlantel : (logoPlantel + (logoPlantel.includes('?') ? '&' : '?') + 't=' + Date.now());
+    const urlInicioFinal = (logoInicio.startsWith('data:') || logoInicio.startsWith('/img/')) ? logoInicio : (logoInicio + (logoInicio.includes('?') ? '&' : '?') + 't=' + Date.now());
+
     document.querySelectorAll('.img-logo-plantel, #logoPlantelHeader, #sidebarLogo, .sidebar-logo, .navbar-logo, .sb-logo').forEach(img => {
         if (img.tagName === 'IMG') {
-            img.onerror = () => { img.onerror = null; img.src = '/img/logo_aniversario.jpg'; };
-            if (img.src !== logoPlantel) img.src = logoPlantel;
+            img.src = urlPlantelFinal;
         }
     });
 
     document.querySelectorAll('.img-logo-inicio, #headerMascotaLogo, img[src*="tigres.png"]').forEach(img => {
         if (img.tagName === 'IMG') {
-            img.onerror = () => { img.onerror = null; img.src = '/img/tigres.png'; };
-            if (img.src !== logoInicio) img.src = logoInicio;
+            img.src = urlInicioFinal;
         }
     });
 

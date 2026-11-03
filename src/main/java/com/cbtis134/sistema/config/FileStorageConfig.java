@@ -24,14 +24,20 @@ public class FileStorageConfig implements WebMvcConfigurer {
             } catch (Exception ignored) {}
         }
         if (!dirOk || !dir.canWrite()) {
-            // Si /app/uploads no se puede crear o carece de permisos de escritura (ej. Windows local),
-            // usar fallback relativo seguro en el directorio de ejecución para garantizar persistencia física
             File fallbackDir = new File(System.getProperty("user.dir"), "uploads");
             fallbackDir.mkdirs();
-            if (fallbackDir.exists()) {
+            if (fallbackDir.exists() && fallbackDir.canWrite()) {
                 dir = fallbackDir;
                 uploadDir = dir.getAbsolutePath();
                 System.out.println("=== [FILE STORAGE] Fallback de directorio de almacenamiento activado en: " + uploadDir + " ===");
+            } else {
+                File tmpDir = new File(System.getProperty("java.io.tmpdir"), "cbtis_uploads");
+                tmpDir.mkdirs();
+                if (tmpDir.exists()) {
+                    dir = tmpDir;
+                    uploadDir = dir.getAbsolutePath();
+                    System.out.println("=== [FILE STORAGE] Fallback temporal de almacenamiento activado en: " + uploadDir + " ===");
+                }
             }
         } else {
             System.out.println("=== [FILE STORAGE] Directorio de almacenamiento detectado en: " + dir.getAbsolutePath() + " ===");
@@ -40,24 +46,7 @@ public class FileStorageConfig implements WebMvcConfigurer {
         ImageOptimizer.setUploadDir(uploadDir);
         new File(dir, "alumnos").mkdirs();
         new File(dir, "usuarios").mkdirs();
-        File logosDir = new File(dir, "logos");
-        logosDir.mkdirs();
-
-        copiarLogoPorDefectoSiFalta(logosDir, "logo_plantel.jpg", "/static/img/logo_aniversario.jpg");
-        copiarLogoPorDefectoSiFalta(logosDir, "logo_plantel.png", "/static/img/logo-cbtis.png");
-        copiarLogoPorDefectoSiFalta(logosDir, "logo_inicio.png", "/static/img/tigres.png");
-        copiarLogoPorDefectoSiFalta(logosDir, "logo_inicio.jpg", "/static/img/tigres.png");
-    }
-
-    private void copiarLogoPorDefectoSiFalta(File logosDir, String nombreArchivo, String rutaClasspath) {
-        File destino = new File(logosDir, nombreArchivo);
-        if (!destino.exists() || destino.length() == 0) {
-            try (java.io.InputStream in = getClass().getResourceAsStream(rutaClasspath)) {
-                if (in != null) {
-                    java.nio.file.Files.copy(in, destino.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                }
-            } catch (Exception ignored) {}
-        }
+        new File(dir, "logos").mkdirs();
     }
 
     @Override

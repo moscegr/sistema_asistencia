@@ -108,6 +108,8 @@ public class ImageOptimizer {
     /**
      * Guarda un logotipo institucional en /app/uploads/logos/{identificador}.png (o .jpg)
      * preservando transparencia si es PNG/WebP, y devuelve su ruta pública (/uploads/logos/...).
+     * Si la escritura en disco no es posible de inmediato, asegura de todas formas una URL pública
+     * válida (/uploads/logos/...) para que UploadFallbackController sirva los bytes directamente desde MongoDB.
      */
     public static String guardarLogoEnDisco(String dataUriOrUrl, String identificador) {
         if (dataUriOrUrl == null || dataUriOrUrl.isBlank()) {
@@ -121,7 +123,7 @@ public class ImageOptimizer {
             boolean[] salioPng = new boolean[]{false};
             byte[] imgBytes = procesarImagenBytes(dataUriOrUrl, 1200, esPngOriginal, 0.95f, salioPng);
             if (imgBytes == null || imgBytes.length == 0) {
-                return optimizarLogo(dataUriOrUrl);
+                imgBytes = decodificarBase64Seguro(dataUriOrUrl);
             }
 
             String tempId = limpiarNombreArchivo(identificador);
@@ -130,31 +132,35 @@ public class ImageOptimizer {
             }
             final String safeId = tempId;
 
-            File folder = new File(getUploadDir(), "logos");
-            if (!folder.exists() && !folder.mkdirs()) {
-                return optimizarLogo(dataUriOrUrl);
-            }
-
-            // Limpiar archivos anteriores de este logo en la carpeta para no dejar versiones viejas
-            File[] oldFiles = folder.listFiles((d, name) -> name.startsWith(safeId));
-            if (oldFiles != null) {
-                for (File old : oldFiles) {
-                    try { old.delete(); } catch (Exception ignored) {}
-                }
-            }
-
-            String ext = salioPng[0] ? ".png" : ".jpg";
+            String ext = (salioPng != null && salioPng.length > 0 && salioPng[0]) ? ".png" : (esPngOriginal ? ".png" : ".jpg");
             long version = System.currentTimeMillis();
             String fileName = safeId + "_" + version + ext;
-            File targetFile = new File(folder, fileName);
-            try (FileOutputStream fos = new FileOutputStream(targetFile)) {
-                fos.write(imgBytes);
+
+            try {
+                File folder = new File(getUploadDir(), "logos");
+                if (folder.exists() || folder.mkdirs()) {
+                    // Limpiar versiones anteriores de este identificador
+                    File[] oldFiles = folder.listFiles((d, name) -> name.startsWith(safeId));
+                    if (oldFiles != null) {
+                        for (File old : oldFiles) {
+                            try { old.delete(); } catch (Exception ignored) {}
+                        }
+                    }
+                    if (imgBytes != null && imgBytes.length > 0) {
+                        File targetFile = new File(folder, fileName);
+                        try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                            fos.write(imgBytes);
+                        }
+                    }
+                }
+            } catch (Exception writeEx) {
+                System.err.println("[IMAGE STORAGE] Aviso al escribir logo en disco: " + writeEx.getMessage());
             }
 
             return "/uploads/logos/" + fileName;
         } catch (Exception e) {
-            System.err.println("[IMAGE STORAGE] Fallback logo a Base64 comprimido: " + e.getMessage());
-            return optimizarLogo(dataUriOrUrl);
+            System.err.println("[IMAGE STORAGE] Error en procesamiento de logo: " + e.getMessage());
+            return "/uploads/logos/" + limpiarNombreArchivo(identificador) + "_" + System.currentTimeMillis() + ".jpg";
         }
     }
 
@@ -207,6 +213,26 @@ public class ImageOptimizer {
     }
 
     /**
+     * Decodifica con máxima tolerancia cualquier cadena Base64 o Data URI,
+     * ignorando espacios en blanco, saltos de línea \r\n y aplicando MimeDecoder como contingencia.
+     */
+    public static byte[] decodificarBase64Seguro(String dataUriOrRaw) {
+        if (dataUriOrRaw == null || dataUriOrRaw.isBlank()) return null;
+        try {
+            int commaIdx = dataUriOrRaw.indexOf(',');
+            String raw = (commaIdx >= 0) ? dataUriOrRaw.substring(commaIdx + 1) : dataUriOrRaw;
+            raw = raw.replaceAll("\\s+", "");
+            try {
+                return Base64.getDecoder().decode(raw);
+            } catch (Exception e) {
+                return Base64.getMimeDecoder().decode(raw);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Reconstruye físicamente en disco (/app/uploads/{subcarpeta}/{nombreArchivo}) un archivo a partir de su
      * cadena Base64 preservada en MongoDB. Devuelve true si se pudo restaurar exitosamente.
      */
@@ -218,6 +244,9 @@ public class ImageOptimizer {
             boolean esPng = dataUri.startsWith("data:image/png") || dataUri.startsWith("data:image/webp");
             boolean[] outPng = new boolean[]{false};
             byte[] bytes = procesarImagenBytes(dataUri, 1200, esPng, 0.95f, outPng);
+            if (bytes == null || bytes.length == 0) {
+                bytes = decodificarBase64Seguro(dataUri);
+            }
             if (bytes == null || bytes.length == 0) return false;
 
             File folder = new File(getUploadDir(), limpiarNombreArchivo(subcarpeta));
@@ -271,8 +300,8 @@ public class ImageOptimizer {
             int commaIdx = dataUri.indexOf(',');
             if (commaIdx < 0) return null;
 
-            String base64Part = dataUri.substring(commaIdx + 1).trim();
-            byte[] rawBytes = Base64.getDecoder().decode(base64Part);
+            byte[] rawBytes = decodificarBase64Seguro(dataUri);
+            if (rawBytes == null || rawBytes.length == 0) return null;
 
             BufferedImage src = ImageIO.read(new ByteArrayInputStream(rawBytes));
             if (src == null) return rawBytes;

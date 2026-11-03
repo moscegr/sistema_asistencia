@@ -120,18 +120,18 @@ async function cargarDatosInstitucionales() {
             if (document.getElementById('switchNotifWhatsapp')) document.getElementById('switchNotifWhatsapp').checked = (data.notificaciones_whatsapp_activas !== false);
             const imgP = document.getElementById('imgPreviewLogoPlantel');
             if (imgP) {
-                imgP.onerror = () => { imgP.onerror = null; imgP.src = '/img/logo_aniversario.jpg'; };
                 if (data.logo_plantel_url && data.logo_plantel_url.trim() !== '') {
-                    imgP.src = data.logo_plantel_url;
+                    const sep = data.logo_plantel_url.includes('?') ? '&' : '?';
+                    imgP.src = data.logo_plantel_url.startsWith('data:') ? data.logo_plantel_url : (data.logo_plantel_url + sep + 't=' + Date.now());
                 } else {
                     imgP.src = '/img/logo_aniversario.jpg';
                 }
             }
             const imgI = document.getElementById('imgPreviewLogoInicio');
             if (imgI) {
-                imgI.onerror = () => { imgI.onerror = null; imgI.src = '/img/tigres.png'; };
                 if (data.logo_inicio_url && data.logo_inicio_url.trim() !== '') {
-                    imgI.src = data.logo_inicio_url;
+                    const sep = data.logo_inicio_url.includes('?') ? '&' : '?';
+                    imgI.src = data.logo_inicio_url.startsWith('data:') ? data.logo_inicio_url : (data.logo_inicio_url + sep + 't=' + Date.now());
                 } else {
                     imgI.src = '/img/tigres.png';
                 }
@@ -163,18 +163,30 @@ if (formInst) {
 
         const inputLogoP = document.getElementById('inputLogoPlantelConfig');
         const imgPreview = document.getElementById('imgPreviewLogoPlantel');
+        let logoPBase64 = null;
         if (imgPreview && imgPreview.dataset.nuevaImagen && imgPreview.dataset.nuevaImagen.startsWith('data:image')) {
-            actualizaciones.logo_plantel_url = imgPreview.dataset.nuevaImagen;
+            logoPBase64 = imgPreview.dataset.nuevaImagen;
+        } else if (inputLogoP && inputLogoP.files && inputLogoP.files[0]) {
+            logoPBase64 = await comprimirLogoClientSide(inputLogoP.files[0], 800, 0.90);
         } else if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
-            actualizaciones.logo_plantel_url = imgPreview.src;
+            logoPBase64 = imgPreview.src;
+        }
+        if (logoPBase64) {
+            actualizaciones.logo_plantel_url = logoPBase64;
         }
 
         const inputLogoI = document.getElementById('inputLogoInicioConfig');
         const imgPreviewInicio = document.getElementById('imgPreviewLogoInicio');
+        let logoIBase64 = null;
         if (imgPreviewInicio && imgPreviewInicio.dataset.nuevaImagen && imgPreviewInicio.dataset.nuevaImagen.startsWith('data:image')) {
-            actualizaciones.logo_inicio_url = imgPreviewInicio.dataset.nuevaImagen;
+            logoIBase64 = imgPreviewInicio.dataset.nuevaImagen;
+        } else if (inputLogoI && inputLogoI.files && inputLogoI.files[0]) {
+            logoIBase64 = await comprimirLogoClientSide(inputLogoI.files[0], 800, 0.90);
         } else if (imgPreviewInicio && imgPreviewInicio.src && imgPreviewInicio.src.startsWith('data:image')) {
-            actualizaciones.logo_inicio_url = imgPreviewInicio.src;
+            logoIBase64 = imgPreviewInicio.src;
+        }
+        if (logoIBase64) {
+            actualizaciones.logo_inicio_url = logoIBase64;
         }
 
         try {
@@ -189,9 +201,28 @@ if (formInst) {
                 throw new Error(errText || ('Error del servidor HTTP ' + res.status));
             }
 
+            const respData = await res.json();
+
             if (imgPreview) delete imgPreview.dataset.nuevaImagen;
             if (imgPreviewInicio) delete imgPreviewInicio.dataset.nuevaImagen;
             try { sessionStorage.removeItem('cfg_sistema'); } catch(e) {}
+
+            // Actualizar vistas locales de inmediato con lo que respondió el servidor
+            const bust = '?t=' + Date.now();
+            if (respData.logo_plantel_url) {
+                const nuevaUrlP = respData.logo_plantel_url.startsWith('data:') ? respData.logo_plantel_url : (respData.logo_plantel_url + bust);
+                if (imgPreview) imgPreview.src = nuevaUrlP;
+                document.querySelectorAll('.img-logo-plantel, #sidebarLogo, .sidebar-logo, .sb-logo').forEach(img => {
+                    if (img.tagName === 'IMG') img.src = nuevaUrlP;
+                });
+            }
+            if (respData.logo_inicio_url) {
+                const nuevaUrlI = respData.logo_inicio_url.startsWith('data:') ? respData.logo_inicio_url : (respData.logo_inicio_url + bust);
+                if (imgPreviewInicio) imgPreviewInicio.src = nuevaUrlI;
+                document.querySelectorAll('.img-logo-inicio, #headerMascotaLogo').forEach(img => {
+                    if (img.tagName === 'IMG') img.src = nuevaUrlI;
+                });
+            }
 
             Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");
             

@@ -58,7 +58,43 @@ public class UploadFallbackController {
             cleanNombre = cleanNombre.substring(0, qIdx);
         }
 
-        // 1. Verificar si el archivo ya existe físicamente en disco (en su nombre exacto o con extensiones comunes)
+        // 1. Para logotipos institucionales, MongoDB es siempre la fuente primaria de la verdad
+        if ("logos".equals(safeCat)) {
+            if (mongoTemplate != null) {
+                try {
+                    org.bson.Document doc = mongoTemplate.findById("sistema", org.bson.Document.class, "configuracion");
+                    if (doc != null) {
+                        boolean esInicio = cleanNombre.contains("inicio") || cleanNombre.contains("tigre");
+                        String campoB64 = esInicio ? "logo_inicio_base64" : "logo_plantel_base64";
+                        String campoUrl = esInicio ? "logo_inicio_url" : "logo_plantel_url";
+
+                        String base64 = doc.getString(campoB64);
+                        if (base64 == null || !ImageOptimizer.esBase64Imagen(base64)) {
+                            String urlVal = doc.getString(campoUrl);
+                            if (urlVal != null && ImageOptimizer.esBase64Imagen(urlVal)) {
+                                base64 = urlVal;
+                            }
+                        }
+
+                        if (base64 != null && ImageOptimizer.esBase64Imagen(base64)) {
+                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanNombre, base64);
+                            byte[] bytesImg = ImageOptimizer.decodificarBase64Seguro(base64);
+                            if (bytesImg != null && bytesImg.length > 0) {
+                                MediaType mt = (base64.startsWith("data:image/png") || cleanNombre.toLowerCase().endsWith(".png"))
+                                        ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
+                                return ResponseEntity.ok()
+                                        .contentType(mt)
+                                        .header(HttpHeaders.CACHE_CONTROL, "public, max-age=60, must-revalidate")
+                                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                                        .body(bytesImg);
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 2. Verificar si el archivo ya existe físicamente en disco (en su nombre exacto o con extensiones comunes)
         File folder = new File(ImageOptimizer.getUploadDir(), safeCat);
         File target = new File(folder, cleanNombre);
         if (!target.exists() || !target.isFile() || target.length() == 0) {
@@ -85,7 +121,7 @@ public class UploadFallbackController {
             } catch (Exception ignored) {}
         }
 
-        // 2. Si no existe, manejar por categoría
+        // 3. Si no existe en disco, reconstruir o servir fallback según categoría
         String idKey = cleanNombre.replaceAll("\\.[^.]+$", "").trim();
 
         if ("usuarios".equals(safeCat)) {
@@ -105,7 +141,7 @@ public class UploadFallbackController {
                 if (base64 != null) {
                     // Reconstruir en disco para futuras peticiones estáticas
                     ImageOptimizer.restaurarArchivoEnDisco("usuarios", cleanNombre, base64);
-                    byte[] bytesImg = decodificarDataUri(base64);
+                    byte[] bytesImg = ImageOptimizer.decodificarBase64Seguro(base64);
                     if (bytesImg != null && bytesImg.length > 0) {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
@@ -134,7 +170,7 @@ public class UploadFallbackController {
 
                 if (base64 != null) {
                     ImageOptimizer.restaurarArchivoEnDisco("alumnos", cleanNombre, base64);
-                    byte[] bytesImg = decodificarDataUri(base64);
+                    byte[] bytesImg = ImageOptimizer.decodificarBase64Seguro(base64);
                     if (bytesImg != null && bytesImg.length > 0) {
                         return ResponseEntity.ok()
                                 .contentType(MediaType.IMAGE_JPEG)
@@ -148,38 +184,6 @@ public class UploadFallbackController {
         }
 
         if ("logos".equals(safeCat)) {
-            if (mongoTemplate != null) {
-                try {
-                    org.bson.Document doc = mongoTemplate.findById("sistema", org.bson.Document.class, "configuracion");
-                    if (doc != null) {
-                        boolean esInicio = cleanNombre.contains("inicio") || cleanNombre.contains("tigre");
-                        String campoB64 = esInicio ? "logo_inicio_base64" : "logo_plantel_base64";
-                        String campoUrl = esInicio ? "logo_inicio_url" : "logo_plantel_url";
-
-                        String base64 = doc.getString(campoB64);
-                        if (base64 == null || !ImageOptimizer.esBase64Imagen(base64)) {
-                            String urlVal = doc.getString(campoUrl);
-                            if (urlVal != null && ImageOptimizer.esBase64Imagen(urlVal)) {
-                                base64 = urlVal;
-                            }
-                        }
-
-                        if (base64 != null && ImageOptimizer.esBase64Imagen(base64)) {
-                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanNombre, base64);
-                            byte[] bytesImg = decodificarDataUri(base64);
-                            if (bytesImg != null && bytesImg.length > 0) {
-                                MediaType mt = cleanNombre.toLowerCase().endsWith(".png") ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
-                                return ResponseEntity.ok()
-                                        .contentType(mt)
-                                        .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
-                                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-                                        .body(bytesImg);
-                            }
-                        }
-                    }
-                } catch (Exception ignored) {}
-            }
-
             if (cleanNombre.contains("inicio") || cleanNombre.contains("tigre")) {
                 return servirRecursoClasspath("/static/img/tigres.png", MediaType.IMAGE_PNG);
             } else {
@@ -206,17 +210,6 @@ public class UploadFallbackController {
             }
         } catch (Exception ignored) {}
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-    }
-
-    private byte[] decodificarDataUri(String dataUri) {
-        try {
-            int commaIdx = dataUri.indexOf(',');
-            if (commaIdx >= 0) {
-                String raw = dataUri.substring(commaIdx + 1).trim();
-                return Base64.getDecoder().decode(raw);
-            }
-        } catch (Exception ignored) {}
-        return null;
     }
 
     private MediaType inferirMediaType(String nombreArchivo) {
