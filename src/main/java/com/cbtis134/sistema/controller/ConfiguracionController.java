@@ -72,25 +72,31 @@ public class ConfiguracionController {
             boolean modificado = false;
             String logoP = doc.getString("logo_plantel_url");
             if (ImageOptimizer.esBase64Imagen(logoP)) {
+                doc.put("logo_plantel_base64", logoP);
                 doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                 modificado = true;
-            } else {
-                String logoPSanitizado = ImageOptimizer.sanitizarUrlOExistente(logoP, "/img/logo_aniversario.jpg");
-                if (!logoPSanitizado.equals(logoP)) {
-                    doc.put("logo_plantel_url", logoPSanitizado);
-                    modificado = true;
+            } else if (doc.containsKey("logo_plantel_base64") && ImageOptimizer.esBase64Imagen(doc.getString("logo_plantel_base64"))) {
+                String urlP = doc.getString("logo_plantel_url");
+                if (urlP != null && urlP.startsWith("/uploads/")) {
+                    String cleanName = urlP.substring(urlP.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("logo_plantel_base64"));
                 }
             }
 
             String logoI = doc.getString("logo_inicio_url");
             if (ImageOptimizer.esBase64Imagen(logoI)) {
+                doc.put("logo_inicio_base64", logoI);
                 doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                 modificado = true;
-            } else {
-                String logoISanitizado = ImageOptimizer.sanitizarUrlOExistente(logoI, "/img/tigres.png");
-                if (!logoISanitizado.equals(logoI)) {
-                    doc.put("logo_inicio_url", logoISanitizado);
-                    modificado = true;
+            } else if (doc.containsKey("logo_inicio_base64") && ImageOptimizer.esBase64Imagen(doc.getString("logo_inicio_base64"))) {
+                String urlI = doc.getString("logo_inicio_url");
+                if (urlI != null && urlI.startsWith("/uploads/")) {
+                    String cleanName = urlI.substring(urlI.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("logo_inicio_base64"));
                 }
             }
 
@@ -193,27 +199,31 @@ public class ConfiguracionController {
         if ("sistema".equals(id)) {
             if (body.containsKey("logo_plantel_url") && body.get("logo_plantel_url") != null) {
                 String logoP = body.get("logo_plantel_url").toString();
-                if (logoP.contains("/uploads/")) {
-                    logoP = logoP.substring(logoP.indexOf("/uploads/"));
-                } else if (logoP.contains("/img/")) {
-                    logoP = logoP.substring(logoP.indexOf("/img/"));
-                }
                 if (ImageOptimizer.esBase64Imagen(logoP)) {
-                    body.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
+                    body.put("logo_plantel_base64", logoP);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel");
+                    body.put("logo_plantel_url", urlDisco);
                 } else {
+                    if (logoP.contains("/uploads/")) {
+                        logoP = logoP.substring(logoP.indexOf("/uploads/"));
+                    } else if (logoP.contains("/img/")) {
+                        logoP = logoP.substring(logoP.indexOf("/img/"));
+                    }
                     body.put("logo_plantel_url", logoP);
                 }
             }
             if (body.containsKey("logo_inicio_url") && body.get("logo_inicio_url") != null) {
                 String logoI = body.get("logo_inicio_url").toString();
-                if (logoI.contains("/uploads/")) {
-                    logoI = logoI.substring(logoI.indexOf("/uploads/"));
-                } else if (logoI.contains("/img/")) {
-                    logoI = logoI.substring(logoI.indexOf("/img/"));
-                }
                 if (ImageOptimizer.esBase64Imagen(logoI)) {
-                    body.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
+                    body.put("logo_inicio_base64", logoI);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio");
+                    body.put("logo_inicio_url", urlDisco);
                 } else {
+                    if (logoI.contains("/uploads/")) {
+                        logoI = logoI.substring(logoI.indexOf("/uploads/"));
+                    } else if (logoI.contains("/img/")) {
+                        logoI = logoI.substring(logoI.indexOf("/img/"));
+                    }
                     body.put("logo_inicio_url", logoI);
                 }
             }

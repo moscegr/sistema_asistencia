@@ -341,26 +341,32 @@ public class AdminSeeder implements ApplicationRunner {
                 mod = true;
             }
             if (ImageOptimizer.esBase64Imagen(docSistema.getString("logo_plantel_url"))) {
-                docSistema.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(docSistema.getString("logo_plantel_url"), "logo_plantel"));
+                String b64 = docSistema.getString("logo_plantel_url");
+                docSistema.put("logo_plantel_base64", b64);
+                docSistema.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(b64, "logo_plantel"));
                 mod = true;
-            } else {
-                String logoP = docSistema.getString("logo_plantel_url");
-                String logoPSanitizado = ImageOptimizer.sanitizarUrlOExistente(logoP, "/img/logo_aniversario.jpg");
-                if (!logoPSanitizado.equals(logoP)) {
-                    docSistema.put("logo_plantel_url", logoPSanitizado);
-                    mod = true;
+            } else if (docSistema.containsKey("logo_plantel_base64") && ImageOptimizer.esBase64Imagen(docSistema.getString("logo_plantel_base64"))) {
+                String urlP = docSistema.getString("logo_plantel_url");
+                if (urlP != null && urlP.startsWith("/uploads/")) {
+                    String cleanName = urlP.substring(urlP.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, docSistema.getString("logo_plantel_base64"));
                 }
             }
 
             if (ImageOptimizer.esBase64Imagen(docSistema.getString("logo_inicio_url"))) {
-                docSistema.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(docSistema.getString("logo_inicio_url"), "logo_inicio"));
+                String b64 = docSistema.getString("logo_inicio_url");
+                docSistema.put("logo_inicio_base64", b64);
+                docSistema.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(b64, "logo_inicio"));
                 mod = true;
-            } else {
-                String logoI = docSistema.getString("logo_inicio_url");
-                String logoISanitizado = ImageOptimizer.sanitizarUrlOExistente(logoI, "/img/tigres.png");
-                if (!logoISanitizado.equals(logoI)) {
-                    docSistema.put("logo_inicio_url", logoISanitizado);
-                    mod = true;
+            } else if (docSistema.containsKey("logo_inicio_base64") && ImageOptimizer.esBase64Imagen(docSistema.getString("logo_inicio_base64"))) {
+                String urlI = docSistema.getString("logo_inicio_url");
+                if (urlI != null && urlI.startsWith("/uploads/")) {
+                    String cleanName = urlI.substring(urlI.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, docSistema.getString("logo_inicio_base64"));
                 }
             }
             if (mod) {

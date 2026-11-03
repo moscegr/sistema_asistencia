@@ -85,7 +85,7 @@ async function previewLogoPlantel(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 280, 0.85);
+    const base64Opt = await comprimirLogoClientSide(file, 1200, 0.92);
     const imgPrev = document.getElementById('imgPreviewLogoPlantel');
     if (imgPrev && base64Opt) imgPrev.src = base64Opt;
 }
@@ -95,7 +95,7 @@ async function previewLogoInicio(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 280, 0.85);
+    const base64Opt = await comprimirLogoClientSide(file, 1200, 0.92);
     const imgPrev = document.getElementById('imgPreviewLogoInicio');
     if (imgPrev && base64Opt) imgPrev.src = base64Opt;
 }
@@ -163,13 +163,13 @@ if (formInst) {
 
         const inputLogoP = document.getElementById('inputLogoPlantelConfig');
         const imgPreview = document.getElementById('imgPreviewLogoPlantel');
-        if (inputLogoP && inputLogoP.files && inputLogoP.files.length > 0 && imgPreview && imgPreview.src.startsWith('data:image')) {
+        if (imgPreview && imgPreview.src && imgPreview.src.startsWith('data:image')) {
             actualizaciones.logo_plantel_url = imgPreview.src;
         }
 
         const inputLogoI = document.getElementById('inputLogoInicioConfig');
         const imgPreviewInicio = document.getElementById('imgPreviewLogoInicio');
-        if (inputLogoI && inputLogoI.files && inputLogoI.files.length > 0 && imgPreviewInicio && imgPreviewInicio.src.startsWith('data:image')) {
+        if (imgPreviewInicio && imgPreviewInicio.src && imgPreviewInicio.src.startsWith('data:image')) {
             actualizaciones.logo_inicio_url = imgPreviewInicio.src;
         }
 
@@ -184,7 +184,10 @@ if (formInst) {
             
             // Refrescar en caliente componentes visuales
             if (window.sincronizarDatosInstitucionalesGlobal) {
-                window.sincronizarDatosInstitucionalesGlobal();
+                await window.sincronizarDatosInstitucionalesGlobal();
+            }
+            if (typeof cargarDatosInstitucionales === 'function') {
+                await cargarDatosInstitucionales();
             }
         } catch (error) {
             Swal.fire("Error", "No se pudieron guardar los datos.", "error");

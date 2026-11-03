@@ -54,25 +54,31 @@ public class VistaController {
                     boolean modificado = false;
                     String logoP = doc.getString("logo_plantel_url");
                     if (ImageOptimizer.esBase64Imagen(logoP)) {
+                        doc.put("logo_plantel_base64", logoP);
                         doc.put("logo_plantel_url", ImageOptimizer.guardarLogoEnDisco(logoP, "logo_plantel"));
                         modificado = true;
-                    } else {
-                        String logoPSanitizado = ImageOptimizer.sanitizarUrlOExistente(logoP, "/img/logo_aniversario.jpg");
-                        if (!logoPSanitizado.equals(logoP)) {
-                            doc.put("logo_plantel_url", logoPSanitizado);
-                            modificado = true;
+                    } else if (doc.containsKey("logo_plantel_base64") && ImageOptimizer.esBase64Imagen(doc.getString("logo_plantel_base64"))) {
+                        String urlP = doc.getString("logo_plantel_url");
+                        if (urlP != null && urlP.startsWith("/uploads/")) {
+                            String cleanName = urlP.substring(urlP.lastIndexOf('/') + 1);
+                            int qIdx = cleanName.indexOf('?');
+                            if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("logo_plantel_base64"));
                         }
                     }
 
                     String logoI = doc.getString("logo_inicio_url");
                     if (ImageOptimizer.esBase64Imagen(logoI)) {
+                        doc.put("logo_inicio_base64", logoI);
                         doc.put("logo_inicio_url", ImageOptimizer.guardarLogoEnDisco(logoI, "logo_inicio"));
                         modificado = true;
-                    } else {
-                        String logoISanitizado = ImageOptimizer.sanitizarUrlOExistente(logoI, "/img/tigres.png");
-                        if (!logoISanitizado.equals(logoI)) {
-                            doc.put("logo_inicio_url", logoISanitizado);
-                            modificado = true;
+                    } else if (doc.containsKey("logo_inicio_base64") && ImageOptimizer.esBase64Imagen(doc.getString("logo_inicio_base64"))) {
+                        String urlI = doc.getString("logo_inicio_url");
+                        if (urlI != null && urlI.startsWith("/uploads/")) {
+                            String cleanName = urlI.substring(urlI.lastIndexOf('/') + 1);
+                            int qIdx = cleanName.indexOf('?');
+                            if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("logo_inicio_base64"));
                         }
                     }
                     if (modificado) {

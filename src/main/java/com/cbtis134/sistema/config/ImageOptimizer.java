@@ -42,7 +42,11 @@ public class ImageOptimizer {
         if (envDir != null && !envDir.isBlank()) {
             return envDir.trim();
         }
-        return "/app/uploads";
+        File defaultApp = new File("/app/uploads");
+        if (defaultApp.exists() || (!System.getProperty("os.name", "").toLowerCase().contains("win") && defaultApp.mkdirs())) {
+            return "/app/uploads";
+        }
+        return new File(System.getProperty("user.dir"), "uploads").getAbsolutePath();
     }
 
     /**
@@ -223,11 +227,6 @@ public class ImageOptimizer {
     public static String sanitizarUrlOExistente(String url, String fallbackDefault) {
         if (url == null || url.isBlank()) {
             return fallbackDefault;
-        }
-        if (url.startsWith("/uploads/")) {
-            if (!existeArchivoEnDisco(url)) {
-                return fallbackDefault;
-            }
         }
         return url;
     }

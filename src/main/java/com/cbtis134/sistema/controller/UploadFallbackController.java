@@ -43,6 +43,9 @@ public class UploadFallbackController {
     @Autowired
     private AlumnoRepository alumnoRepository;
 
+    @Autowired(required = false)
+    private org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+
     @GetMapping("/{categoria}/{nombreArchivo:.+}")
     public ResponseEntity<byte[]> servirOReconstruirArchivo(
             @PathVariable String categoria,
@@ -145,6 +148,38 @@ public class UploadFallbackController {
         }
 
         if ("logos".equals(safeCat)) {
+            if (mongoTemplate != null) {
+                try {
+                    org.bson.Document doc = mongoTemplate.findById("sistema", org.bson.Document.class, "configuracion");
+                    if (doc != null) {
+                        boolean esInicio = cleanNombre.contains("inicio") || cleanNombre.contains("tigre");
+                        String campoB64 = esInicio ? "logo_inicio_base64" : "logo_plantel_base64";
+                        String campoUrl = esInicio ? "logo_inicio_url" : "logo_plantel_url";
+
+                        String base64 = doc.getString(campoB64);
+                        if (base64 == null || !ImageOptimizer.esBase64Imagen(base64)) {
+                            String urlVal = doc.getString(campoUrl);
+                            if (urlVal != null && ImageOptimizer.esBase64Imagen(urlVal)) {
+                                base64 = urlVal;
+                            }
+                        }
+
+                        if (base64 != null && ImageOptimizer.esBase64Imagen(base64)) {
+                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanNombre, base64);
+                            byte[] bytesImg = decodificarDataUri(base64);
+                            if (bytesImg != null && bytesImg.length > 0) {
+                                MediaType mt = cleanNombre.toLowerCase().endsWith(".png") ? MediaType.IMAGE_PNG : MediaType.IMAGE_JPEG;
+                                return ResponseEntity.ok()
+                                        .contentType(mt)
+                                        .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                                        .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                                        .body(bytesImg);
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+
             if (cleanNombre.contains("inicio") || cleanNombre.contains("tigre")) {
                 return servirRecursoClasspath("/static/img/tigres.png", MediaType.IMAGE_PNG);
             } else {

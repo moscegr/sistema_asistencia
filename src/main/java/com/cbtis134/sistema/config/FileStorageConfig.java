@@ -16,16 +16,28 @@ public class FileStorageConfig implements WebMvcConfigurer {
 
     @PostConstruct
     public void init() {
-        ImageOptimizer.setUploadDir(uploadDir);
         File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            boolean created = dir.mkdirs();
-            if (created) {
-                System.out.println("=== [FILE STORAGE] Directorio de almacenamiento creado en: " + dir.getAbsolutePath() + " ===");
+        boolean dirOk = dir.exists();
+        if (!dirOk) {
+            try {
+                dirOk = dir.mkdirs();
+            } catch (Exception ignored) {}
+        }
+        if (!dirOk || !dir.canWrite()) {
+            // Si /app/uploads no se puede crear o carece de permisos de escritura (ej. Windows local),
+            // usar fallback relativo seguro en el directorio de ejecución para garantizar persistencia física
+            File fallbackDir = new File(System.getProperty("user.dir"), "uploads");
+            fallbackDir.mkdirs();
+            if (fallbackDir.exists()) {
+                dir = fallbackDir;
+                uploadDir = dir.getAbsolutePath();
+                System.out.println("=== [FILE STORAGE] Fallback de directorio de almacenamiento activado en: " + uploadDir + " ===");
             }
         } else {
             System.out.println("=== [FILE STORAGE] Directorio de almacenamiento detectado en: " + dir.getAbsolutePath() + " ===");
         }
+
+        ImageOptimizer.setUploadDir(uploadDir);
         new File(dir, "alumnos").mkdirs();
         new File(dir, "usuarios").mkdirs();
         File logosDir = new File(dir, "logos");
