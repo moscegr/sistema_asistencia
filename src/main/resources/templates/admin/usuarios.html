@@ -439,12 +439,12 @@
     </div>
 
     <!-- Modal Carga Masiva Excel -->
-    <div class="modal fade" id="modalCargaMasiva" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal fade" id="modalCargaMasiva" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg rounded-4">
                 <div class="modal-header bg-guinda text-white">
                     <h5 class="modal-title fw-bold">
-                        <i class="bi bi-file-earmark-excel-fill me-2"></i>Carga Masiva de Personal y Docentes
+                        <i class="bi bi-file-earmark-excel-fill me-2"></i>Análisis e Importación Masiva de Personal y Docentes
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -458,14 +458,21 @@
                     </div>
 
                     <div id="resumenExcelMasivo" style="display: none;"></div>
+
+                    <div id="progresoModalPersonal" class="mt-3 d-none">
+                        <div class="progress mb-1" style="height: 12px;">
+                            <div id="barraProgresoModalPersonal" class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 0%;"></div>
+                        </div>
+                        <small id="textoProgresoModalPersonal" class="text-muted fw-bold">Importando registros de personal...</small>
+                    </div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary" onclick="descargarPlantillaLayoutExcel()">
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" onclick="descargarPlantillaLayoutExcel()">
                         <i class="bi bi-download me-1"></i>Descargar Plantilla
                     </button>
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-guinda px-4" id="btnEjecutarCargaMasiva" style="display: none;" onclick="ejecutarImportacionMasiva()">
-                        <i class="bi bi-check-circle-fill me-2"></i>Importar a Base de Datos
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-guinda rounded-pill px-4 fw-bold shadow-sm" id="btnEjecutarCargaMasiva" style="display: none;" onclick="ejecutarImportacionMasiva()">
+                        <i class="bi bi-cloud-arrow-up-fill me-2"></i>Confirmar e Importar Nuevos
                     </button>
                 </div>
             </div>

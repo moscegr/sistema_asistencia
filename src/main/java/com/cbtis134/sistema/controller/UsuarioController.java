@@ -208,7 +208,7 @@ public class UsuarioController {
     @PostMapping("/bulk")
     public ResponseEntity<?> guardarMasivo(@RequestBody List<Usuario> lista) {
         int insertados = 0;
-        int actualizados = 0;
+        int omitidos = 0;
 
         for (Usuario u : lista) {
             if (u.getNombre() == null || u.getNombre().trim().isEmpty()) continue;
@@ -226,25 +226,8 @@ public class UsuarioController {
             }
 
             if (existente != null) {
-                existente.setNombre(nombreLimpio);
-                if (rfc != null) existente.setRfc(rfc);
-                if (correo != null) existente.setCorreo(correo);
-                if (u.getRol() != null) existente.setRol(sanitizarTexto(u.getRol()));
-                if (u.getTurno() != null) existente.setTurno(u.getTurno());
-                if (u.getTelefono() != null) existente.setTelefono(sanitizarTelefono(u.getTelefono()));
-                if (u.getFotoUrl() != null) {
-                    String foto = u.getFotoUrl();
-                    if (ImageOptimizer.esBase64Imagen(foto)) {
-                        String base64Opt = ImageOptimizer.optimizarFotoPerfil(foto);
-                        foto = ImageOptimizer.guardarFotoPerfilEnDisco(base64Opt, "usuarios", obtenerIdentificadorArchivoUsuario(existente));
-                        existente.setFotoBase64(base64Opt);
-                    }
-                    existente.setFotoUrl(foto);
-                }
-                if (u.getDescriptor_facial() != null) existente.setDescriptor_facial(u.getDescriptor_facial());
-                if (u.getEstatus() != null) existente.setEstatus(u.getEstatus());
-                usuarioRepository.save(existente);
-                actualizados++;
+                // Si el registro ya existe en la BD, NO se actualiza ni sobrescribe
+                omitidos++;
             } else {
                 if (u.getUid() == null || u.getUid().isEmpty()) {
                     u.setUid(UUID.randomUUID().toString());
@@ -277,8 +260,9 @@ public class UsuarioController {
 
         return ResponseEntity.ok(java.util.Map.of(
             "insertados", insertados,
-            "actualizados", actualizados,
-            "total", insertados + actualizados
+            "omitidos", omitidos,
+            "actualizados", 0,
+            "total", insertados
         ));
     }
 

@@ -83,10 +83,21 @@ function normalizarDatosCBTis(valorExcel) {
     return { grado: "", grupo: "", especialidad: limpiarSinAcentos(valorExcel), color: "#6c757d", turno: "Matutino" }; 
 }
 
+let alumnosNuevosPendientes = [];
+let alumnosExistentesAnalisis = [];
+let alumnosInvalidosAnalisis = [];
+
 async function procesarCargaMasiva() {
     const input = document.getElementById('excelInput');
     const file = input.files[0];
     if (!file) return Swal.fire("Aviso", "Selecciona un archivo .xlsx", "warning");
+
+    Swal.fire({
+        title: 'Analizando archivo Excel...',
+        text: 'Verificando matrículas y comprobando alumnos ya existentes en la base de datos...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -95,195 +106,408 @@ async function procesarCargaMasiva() {
             const workbook = XLSX.read(data, { type: 'array' });
             jsonDatosPendientes = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false, defval: "" });
 
-            let posiblesExitos = 0;
-            let descartadosPreviamente = 0;
+            if (!jsonDatosPendientes || jsonDatosPendientes.length === 0) {
+                Swal.close();
+                return Swal.fire("Archivo vacío", "El archivo Excel no contiene filas de datos.", "warning");
+            }
+
+            // Consultar alumnos actuales en la base de datos para detectar cuáles ya existen
+            const resAlumnos = await fetch('/api/alumnos');
+            const alumnosExistentesBD = resAlumnos.ok ? await resAlumnos.json() : [];
+            const mapaExistentesPorMatricula = new Map();
+            const mapaExistentesPorCurp = new Map();
+
+            alumnosExistentesBD.forEach(a => {
+                const matBD = limpiarSinAcentos(a.ncontrol || a.matricula || "").replace(/[^A-Z0-9]/g, "");
+                const curpBD = limpiarSinAcentos(a.curp || "").replace(/[^A-Z0-9]/g, "");
+                if (matBD) mapaExistentesPorMatricula.set(matBD, a);
+                if (curpBD && curpBD.length >= 10) mapaExistentesPorCurp.set(curpBD, a);
+            });
+
+            alumnosNuevosPendientes = [];
+            alumnosExistentesAnalisis = [];
+            alumnosInvalidosAnalisis = [];
+            const matriculasVistasEnArchivo = new Set();
             const regexMatricula = /^\d{14}$/;
 
-            for (let row of jsonDatosPendientes) {
+            for (let i = 0; i < jsonDatosPendientes.length; i++) {
+                const row = jsonDatosPendientes[i];
                 const r = Object.keys(row).reduce((acc, key) => { 
                     const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
                     acc[cleanKey] = row[key]; 
                     return acc; 
                 }, {});
-                const matricula = String(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").trim();
-                
-                if (regexMatricula.test(matricula)) posiblesExitos++;
-                else descartadosPreviamente++;
+
+                const matricula = limpiarSinAcentos(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").replace(/[^A-Z0-9]/g, "");
+                const curp = limpiarSinAcentos(r.curp || "").replace(/[^A-Z0-9]/g, "");
+                const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").replace(/[^0-9]/g, "");
+
+                let nombre = limpiarSinAcentos(r.nombre || "");
+                let apepat = limpiarSinAcentos(r.apepat || r.apellido_paterno || "");
+                let apemat = limpiarSinAcentos(r.apemat || r.apellido_materno || "");
+
+                if (nombre && !apepat) {
+                    const partes = nombre.split(" ");
+                    if (partes.length >= 3) {
+                        apepat = partes[0];
+                        apemat = partes[1];
+                        nombre = partes.slice(2).join(" ");
+                    } else if (partes.length === 2) {
+                        apepat = partes[0];
+                        nombre = partes[1];
+                    }
+                }
+
+                const nombreCompleto = `${nombre} ${apepat} ${apemat}`.replace(/\s+/g, " ").trim();
+
+                let especialidadFinal = "POR ASIGNAR";
+                let gradoFinal = limpiarSinAcentos(r.grado || "").replace(/[^0-9]/g, "");
+                let grupoFinal = limpiarSinAcentos(r.grupo || "").replace(/[^A-Z0-9]/g, "");
+                let turnoFinal = "Matutino";
+
+                const gpoCod = r.gpo || r.grupo_oficial || r.grupo_redis;
+                if (gpoCod) {
+                    const infoEscolar = normalizarDatosCBTis(gpoCod);
+                    especialidadFinal = limpiarSinAcentos(infoEscolar.especialidad);
+                    gradoFinal = infoEscolar.grado || gradoFinal;
+                    grupoFinal = infoEscolar.grupo || grupoFinal;
+                    turnoFinal = infoEscolar.turno;
+                } else {
+                    const excelEsp = limpiarSinAcentos(r.especialidad || r.carrera || "");
+                    const configEsp = especialidadesCache.find(e => 
+                        limpiarSinAcentos(e.nombre) === excelEsp || limpiarSinAcentos(e.alias) === excelEsp
+                    );
+
+                    if (configEsp) {
+                        especialidadFinal = limpiarSinAcentos(configEsp.nombre);
+                        turnoFinal = configEsp.turno || "Matutino";
+                    } else if (excelEsp !== "") {
+                        especialidadFinal = excelEsp;
+                    }
+                }
+
+                const rawTurnoExcel = limpiarSinAcentos(r.turno || r.Turno || r.TURNO || "");
+                if (rawTurnoExcel) {
+                    const tLower = rawTurnoExcel.toLowerCase();
+                    if (tLower.startsWith('mat')) turnoFinal = "Matutino";
+                    else if (tLower.startsWith('ves')) turnoFinal = "Vespertino";
+                    else if (tLower.startsWith('mix')) turnoFinal = "Mixto";
+                    else turnoFinal = rawTurnoExcel;
+                }
+
+                if (!regexMatricula.test(matricula)) {
+                    alumnosInvalidosAnalisis.push({
+                        fila: i + 2,
+                        matricula: matricula || '(Vacía)',
+                        nombre: nombreCompleto || '(Sin nombre)',
+                        motivo: 'Matrícula inválida (debe tener 14 dígitos numéricos)'
+                    });
+                    continue;
+                }
+
+                if (!nombre) {
+                    alumnosInvalidosAnalisis.push({
+                        fila: i + 2,
+                        matricula: matricula,
+                        nombre: '(Sin nombre)',
+                        motivo: 'Falta el nombre del estudiante'
+                    });
+                    continue;
+                }
+
+                const existenteBD = mapaExistentesPorMatricula.get(matricula) || (curp.length >= 18 ? mapaExistentesPorCurp.get(curp) : null);
+                if (existenteBD) {
+                    const nomBD = `${existenteBD.nombre || ''} ${existenteBD.apepat || existenteBD.primerApellido || ''} ${existenteBD.apemat || existenteBD.segundoApellido || ''}`.replace(/\s+/g, ' ').trim();
+                    alumnosExistentesAnalisis.push({
+                        fila: i + 2,
+                        matricula: matricula,
+                        curp: curp || existenteBD.curp || '-',
+                        nombreExcel: nombreCompleto,
+                        nombreBD: nomBD || nombreCompleto,
+                        especialidad: existenteBD.especialidad || especialidadFinal,
+                        gradoGrupo: `${existenteBD.grado || gradoFinal}° ${existenteBD.grupo || grupoFinal}`,
+                        motivo: 'Ya existe en BD (No se actualizará)'
+                    });
+                    continue;
+                }
+
+                if (matriculasVistasEnArchivo.has(matricula)) {
+                    alumnosExistentesAnalisis.push({
+                        fila: i + 2,
+                        matricula: matricula,
+                        curp: curp || '-',
+                        nombreExcel: nombreCompleto,
+                        nombreBD: nombreCompleto,
+                        especialidad: especialidadFinal,
+                        gradoGrupo: `${gradoFinal}° ${grupoFinal}`,
+                        motivo: 'Duplicado en el mismo Excel (Se omitirá)'
+                    });
+                    continue;
+                }
+
+                matriculasVistasEnArchivo.add(matricula);
+                const textoUnicoQR = `${matricula}|${nombreCompleto}`.substring(0, 48).trim();
+
+                alumnosNuevosPendientes.push({
+                    ncontrol: matricula,
+                    matricula: matricula,
+                    curp: curp,
+                    nombre: nombre,
+                    apepat: apepat,
+                    apemat: apemat,
+                    primerApellido: apepat,
+                    segundoApellido: apemat,
+                    genero: limpiarSinAcentos(r.genero || r.sexo || "N/A").substring(0,1), 
+                    email: String(r.email || r.correo_electronico || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase(),
+                    celular: String(r.celular || r.telefono_celular_alumno || r.numero_celular || "").replace(/[^0-9]/g, ""),
+                    direccion: limpiarSinAcentos(r.direccion || "N/A"),
+                    especialidad: especialidadFinal,
+                    grado: gradoFinal,
+                    grupo: grupoFinal,
+                    turno: turnoFinal,
+                    estatus_escolar: "Activo",
+                    estatus: "Activo",
+                    color_semaforo: "Verde",
+                    nombretutor: limpiarSinAcentos(r.tutor || r.nombre_tutor || r.nombre_del_tutor || r.nombre_tutor_ || "PENDIENTE"),
+                    teltutor: teltutor,
+                    ocupaciontutor: limpiarSinAcentos(r.ocupacion || r.ocupacion_del_tutor || "N/A"),
+                    qrCode: textoUnicoQR,
+                    qr_texto: textoUnicoQR,
+                    fecharegistro: new Date().toISOString()
+                });
             }
 
-            const result = await Swal.fire({
-                title: '¿Iniciar importación?',
-                html: `
-                    <div class="text-start p-3 bg-light rounded border">
-                        <p class="mb-1"><strong>Archivo:</strong> ${file.name}</p>
-                        <p class="mb-1"><strong>Total de filas leídas:</strong> ${jsonDatosPendientes.length}</p>
-                        <hr class="my-2">
-                        <p class="mb-1 text-success"><i class="bi bi-check-circle"></i> <strong>Matrículas válidas:</strong> ${posiblesExitos}</p>
-                        <p class="mb-0 text-danger"><i class="bi bi-exclamation-triangle"></i> <strong>Sin matrícula de 14 dígitos:</strong> ${descartadosPreviamente}</p>
-                    </div>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#7b1b37',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Sí, iniciar carga',
-                cancelButtonText: 'Cancelar'
-            });
+            Swal.close();
+            mostrarVentanaFlotanteAnalisisAlumnos(file.name, jsonDatosPendientes.length);
 
-            if (result.isConfirmed) {
-                ejecutarCargaReal();
-            } else {
-                jsonDatosPendientes = null;
-                input.value = "";
-            }
-
-        } catch (err) { Swal.fire("Error en lectura", err.message, "error"); }
+        } catch (err) {
+            Swal.close();
+            Swal.fire("Error en lectura", err.message, "error");
+        }
     };
     reader.readAsArrayBuffer(file);
 }
 
-async function ejecutarCargaReal() {
-    const json = jsonDatosPendientes;
-    if (!json) return;
+function mostrarVentanaFlotanteAnalisisAlumnos(nombreArchivo, totalLeidos) {
+    const contenedor = document.getElementById('contenidoAnalisisAlumnos');
+    const btnConfirmar = document.getElementById('btnConfirmarImportacionAlumnos');
+    const progresoModal = document.getElementById('progresoModalAlumnos');
 
+    if (progresoModal) progresoModal.classList.add('d-none');
+
+    const cantNuevos = alumnosNuevosPendientes.length;
+    const cantExistentes = alumnosExistentesAnalisis.length;
+    const cantInvalidos = alumnosInvalidosAnalisis.length;
+
+    const tabActivaNuevos = cantNuevos > 0;
+    const tabActivaExistentes = !tabActivaNuevos && cantExistentes > 0;
+    const tabActivaInvalidos = !tabActivaNuevos && !tabActivaExistentes && cantInvalidos > 0;
+
+    const filasNuevosHtml = cantNuevos > 0
+        ? alumnosNuevosPendientes.map((a, idx) => `
+            <tr>
+                <td class="text-muted small">${idx + 1}</td>
+                <td class="font-monospace fw-bold text-dark small">${a.matricula}</td>
+                <td class="fw-bold text-dark small">${a.nombre} ${a.apepat} ${a.apemat}</td>
+                <td class="small text-muted">${a.curp || '-'}</td>
+                <td class="small">${a.especialidad}</td>
+                <td class="small text-center">${a.grado || '-'}° ${a.grupo || '-'}</td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle">Nuevo a importar</span></td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="7" class="text-center text-muted py-4">No hay registros nuevos para importar en este archivo.</td></tr>`;
+
+    const filasExistentesHtml = cantExistentes > 0
+        ? alumnosExistentesAnalisis.map((ex, idx) => `
+            <tr class="table-warning">
+                <td class="text-muted small">${idx + 1}</td>
+                <td class="font-monospace fw-bold text-dark small">${ex.matricula}</td>
+                <td class="fw-bold text-dark small">${ex.nombreBD}</td>
+                <td class="small text-muted">${ex.curp}</td>
+                <td class="small">${ex.especialidad} (${ex.gradoGrupo})</td>
+                <td class="text-center"><span class="badge bg-warning text-dark"><i class="bi bi-shield-lock-fill me-1"></i>${ex.motivo}</span></td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="6" class="text-center text-muted py-4">Ningún registro del archivo coincide con alumnos ya registrados.</td></tr>`;
+
+    const filasInvalidosHtml = cantInvalidos > 0
+        ? alumnosInvalidosAnalisis.map((inv) => `
+            <tr class="table-danger">
+                <td class="small fw-bold">Fila ${inv.fila}</td>
+                <td class="font-monospace small">${inv.matricula}</td>
+                <td class="small">${inv.nombre}</td>
+                <td class="small text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>${inv.motivo}</td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="4" class="text-center text-muted py-4">No se detectaron filas con formato inválido.</td></tr>`;
+
+    if (contenedor) {
+        contenedor.innerHTML = `
+            <div class="alert alert-light border shadow-sm mb-3 py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <i class="bi bi-file-earmark-spreadsheet-fill text-guinda me-2 fs-5"></i>
+                    <strong>Archivo analizado:</strong> <span class="text-dark">${nombreArchivo}</span>
+                </div>
+                <span class="badge bg-dark rounded-pill px-3 py-2">Total filas en Excel: ${totalLeidos}</span>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-success-subtle border-success-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-success text-uppercase">Nuevos a Importar</div>
+                                <div class="fs-3 fw-bold text-success">${cantNuevos}</div>
+                            </div>
+                            <i class="bi bi-person-plus-fill fs-1 text-success opacity-75"></i>
+                        </div>
+                        <small class="text-muted d-block mt-1">Se registrarán en la base de datos.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-warning-subtle border-warning-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-dark text-uppercase">Ya Existentes (Omitidos)</div>
+                                <div class="fs-3 fw-bold text-dark">${cantExistentes}</div>
+                            </div>
+                            <i class="bi bi-person-check-fill fs-1 text-warning opacity-75"></i>
+                        </div>
+                        <small class="text-dark d-block mt-1"><strong>No se actualizarán</strong> ni modificarán.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-danger-subtle border-danger-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-danger text-uppercase">Filas Inválidas</div>
+                                <div class="fs-3 fw-bold text-danger">${cantInvalidos}</div>
+                            </div>
+                            <i class="bi bi-exclamation-octagon-fill fs-1 text-danger opacity-75"></i>
+                        </div>
+                        <small class="text-muted d-block mt-1">Sin matrícula válida de 14 dígitos.</small>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="nav nav-pills mb-3 bg-light p-1 rounded border" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaNuevos ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabNuevosAlumnos" type="button" role="tab">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>Nuevos a Importar (${cantNuevos})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaExistentes ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabExistentesAlumnos" type="button" role="tab">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Ya Existentes - No se actualizarán (${cantExistentes})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaInvalidos ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabInvalidosAlumnos" type="button" role="tab">
+                        <i class="bi bi-x-circle-fill text-danger me-1"></i>Inválidos (${cantInvalidos})
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content border rounded-3 bg-white">
+                <div class="tab-pane fade ${tabActivaNuevos ? 'show active' : ''}" id="tabNuevosAlumnos" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 310px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Matrícula</th>
+                                    <th>Nombre del Estudiante</th>
+                                    <th>CURP</th>
+                                    <th>Especialidad</th>
+                                    <th class="text-center">Gdo/Gpo</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasNuevosHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade ${tabActivaExistentes ? 'show active' : ''}" id="tabExistentesAlumnos" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 310px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Matrícula</th>
+                                    <th>Alumno Registrado</th>
+                                    <th>CURP</th>
+                                    <th>Carrera / Grupo</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasExistentesHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade ${tabActivaInvalidos ? 'show active' : ''}" id="tabInvalidosAlumnos" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 310px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Fila</th>
+                                    <th>Matrícula Leída</th>
+                                    <th>Nombre</th>
+                                    <th>Motivo</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasInvalidosHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    if (btnConfirmar) {
+        if (cantNuevos > 0) {
+            btnConfirmar.style.display = 'inline-block';
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-2"></i>Confirmar e Importar (${cantNuevos} Nuevos)`;
+        } else {
+            btnConfirmar.style.display = 'none';
+        }
+    }
+
+    const modalEl = document.getElementById('modalAnalisisCargaAlumnos');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+
+async function ejecutarCargaReal() {
+    if (!alumnosNuevosPendientes || alumnosNuevosPendientes.length === 0) {
+        return Swal.fire("Aviso", "No hay registros nuevos para importar.", "info");
+    }
+
+    const btnConfirmar = document.getElementById('btnConfirmarImportacionAlumnos');
+    const btnCancelar = document.getElementById('btnCancelarModalAlumnos');
+    const progresoModal = document.getElementById('progresoModalAlumnos');
+    const barraModal = document.getElementById('barraProgresoModalAlumnos');
+    const textoModal = document.getElementById('textoProgresoModalAlumnos');
+
+    if (btnConfirmar) btnConfirmar.disabled = true;
+    if (btnCancelar) btnCancelar.disabled = true;
+    if (progresoModal) progresoModal.classList.remove('d-none');
     if (document.getElementById('statusCarga')) document.getElementById('statusCarga').classList.remove('d-none');
     if (document.getElementById('btnIniciarCarga')) document.getElementById('btnIniciarCarga').disabled = true;
     if (document.getElementById('excelInput')) document.getElementById('excelInput').disabled = true;
-    
-    Swal.fire({ title: 'Procesando lista...', text: 'Importando en bloques para evitar congelamiento...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    let exitosos = 0, fallos = 0, duplicados = 0;
-    const regexMatricula = /^\d{14}$/;
+    let exitosos = 0, fallos = 0;
+    const duplicados = alumnosExistentesAnalisis.length;
+    const invalidos = alumnosInvalidosAnalisis.length;
 
     try {
-        const resAlumnos = await fetch('/api/alumnos');
-        const alumnosExistentes = resAlumnos.ok ? await resAlumnos.json() : [];
-        const setMatriculas = new Set(alumnosExistentes.map(a => a.ncontrol || a.matricula));
-
         const lotes = [];
-        let loteActual = [];
-
-        for (let i = 0; i < json.length; i++) {
-            const row = json[i];
-            const r = Object.keys(row).reduce((acc, key) => { 
-                const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
-                acc[cleanKey] = row[key]; 
-                return acc; 
-            }, {});
-            
-            const matricula = limpiarSinAcentos(r.matricula || r.no_control || r.no__control || r.control || r.ncontrol || "").replace(/[^A-Z0-9]/g, "");
-            const teltutor = String(r.teltutor || r.telefono_del_tutor || r.telefono_tutor || "").replace(/[^0-9]/g, "");
-
-            let nombre = limpiarSinAcentos(r.nombre || "");
-            let apepat = limpiarSinAcentos(r.apepat || r.apellido_paterno || "");
-            let apemat = limpiarSinAcentos(r.apemat || r.apellido_materno || "");
-
-            if (nombre && !apepat) {
-                const partes = nombre.split(" ");
-                if (partes.length >= 3) {
-                    apepat = partes[0];
-                    apemat = partes[1];
-                    nombre = partes.slice(2).join(" ");
-                } else if (partes.length === 2) {
-                    apepat = partes[0];
-                    nombre = partes[1];
-                }
-            }
-
-            if (!regexMatricula.test(matricula)) { 
-                fallos++; 
-                continue; 
-            }
-
-            if (setMatriculas.has(matricula)) { 
-                duplicados++; 
-                continue; 
-            }
-
-            const nombreCompletoQR = `${nombre} ${apepat} ${apemat}`.replace(/\s+/g, " ").trim();
-            const textoUnicoQR = `${matricula}|${nombreCompletoQR}`.substring(0, 48).trim();
-
-            let especialidadFinal = "POR ASIGNAR";
-            let gradoFinal = limpiarSinAcentos(r.grado || "").replace(/[^0-9]/g, "");
-            let grupoFinal = limpiarSinAcentos(r.grupo || "").replace(/[^A-Z0-9]/g, "");
-            let turnoFinal = "Matutino";
-
-            const gpoCod = r.gpo || r.grupo_oficial || r.grupo_redis;
-            if (gpoCod) {
-                const infoEscolar = normalizarDatosCBTis(gpoCod);
-                especialidadFinal = limpiarSinAcentos(infoEscolar.especialidad);
-                gradoFinal = infoEscolar.grado || gradoFinal;
-                grupoFinal = infoEscolar.grupo || grupoFinal;
-                turnoFinal = infoEscolar.turno;
-            } else {
-                const excelEsp = limpiarSinAcentos(r.especialidad || r.carrera || "");
-                const configEsp = especialidadesCache.find(e => 
-                    limpiarSinAcentos(e.nombre) === excelEsp || limpiarSinAcentos(e.alias) === excelEsp
-                );
-
-                if (configEsp) {
-                    especialidadFinal = limpiarSinAcentos(configEsp.nombre);
-                    turnoFinal = configEsp.turno || "Matutino";
-                } else if (excelEsp !== "") {
-                    especialidadFinal = excelEsp;
-                }
-            }
-
-            const rawTurnoExcel = limpiarSinAcentos(r.turno || r.Turno || r.TURNO || "");
-            if (rawTurnoExcel) {
-                const tLower = rawTurnoExcel.toLowerCase();
-                if (tLower.startsWith('mat')) turnoFinal = "Matutino";
-                else if (tLower.startsWith('ves')) turnoFinal = "Vespertino";
-                else if (tLower.startsWith('mix')) turnoFinal = "Mixto";
-                else turnoFinal = rawTurnoExcel;
-            }
-
-            const alumno = {
-                ncontrol: matricula,
-                matricula: matricula,
-                curp: limpiarSinAcentos(r.curp || "").replace(/[^A-Z0-9]/g, ""),
-                nombre: nombre,
-                apepat: apepat,
-                apemat: apemat,
-                primerApellido: apepat,
-                segundoApellido: apemat,
-                genero: limpiarSinAcentos(r.genero || r.sexo || "N/A").substring(0,1), 
-                email: String(r.email || r.correo_electronico || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase(),
-                celular: String(r.celular || r.telefono_celular_alumno || r.numero_celular || "").replace(/[^0-9]/g, ""),
-                direccion: limpiarSinAcentos(r.direccion || "N/A"),
-                
-                especialidad: especialidadFinal,
-                grado: gradoFinal,
-                grupo: grupoFinal,
-                turno: turnoFinal,
-                
-                estatus_escolar: "Activo",
-                estatus: "Activo",
-                color_semaforo: "Verde",
-                
-                nombretutor: limpiarSinAcentos(r.tutor || r.nombre_tutor || r.nombre_del_tutor || r.nombre_tutor_ || "PENDIENTE"),
-                teltutor: teltutor,
-                ocupaciontutor: limpiarSinAcentos(r.ocupacion || r.ocupacion_del_tutor || "N/A"),
-                
-                qrCode: textoUnicoQR,
-                qr_texto: textoUnicoQR,
-                fecharegistro: new Date().toISOString()
-            };
-
-            setMatriculas.add(matricula);
-            loteActual.push(alumno);
-
-            if (loteActual.length >= 50) {
-                lotes.push(loteActual);
-                loteActual = [];
-            }
+        for (let i = 0; i < alumnosNuevosPendientes.length; i += 50) {
+            lotes.push(alumnosNuevosPendientes.slice(i, i + 50));
         }
 
-        if (loteActual.length > 0) {
-            lotes.push(loteActual);
-        }
-
-        // Procesar lotes asíncronamente cediendo el hilo de ejecución a la interfaz gráfica
         for (let idx = 0; idx < lotes.length; idx++) {
             const lote = lotes[idx];
             try {
@@ -294,7 +518,8 @@ async function ejecutarCargaReal() {
                 });
 
                 if (res.ok) {
-                    exitosos += lote.length;
+                    const guardados = await res.json();
+                    exitosos += Array.isArray(guardados) ? guardados.length : lote.length;
                 } else {
                     fallos += lote.length;
                 }
@@ -302,13 +527,14 @@ async function ejecutarCargaReal() {
                 fallos += lote.length;
             }
 
-            const totalProcesados = exitosos + fallos + duplicados;
-            const pct = Math.min(100, Math.round((totalProcesados / json.length) * 100));
+            const procesados = Math.min(alumnosNuevosPendientes.length, (idx + 1) * 50);
+            const pct = Math.min(100, Math.round((procesados / alumnosNuevosPendientes.length) * 100));
 
+            if (barraModal) barraModal.style.width = pct + "%";
+            if (textoModal) textoModal.innerText = `Importando lote ${idx + 1} de ${lotes.length}... (${pct}%)`;
             if (document.getElementById('barraProgreso')) document.getElementById('barraProgreso').style.width = pct + "%";
-            if (document.getElementById('textoProgreso')) document.getElementById('textoProgreso').innerText = `Procesando batch ${idx + 1}/${lotes.length}... ${pct}%`;
+            if (document.getElementById('textoProgreso')) document.getElementById('textoProgreso').innerText = `Importando lote ${idx + 1}/${lotes.length}... ${pct}%`;
 
-            // Ceder control al event loop del navegador para repintar la UI
             await new Promise(resolve => setTimeout(resolve, 20));
         }
 
@@ -316,13 +542,19 @@ async function ejecutarCargaReal() {
         console.error("Error en importación masiva:", e);
     }
 
+    const modalEl = document.getElementById('modalAnalisisCargaAlumnos');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    }
+
     Swal.fire({
         icon: 'success',
-        title: 'Carga Masiva Completa',
-        html: `<div class="text-start p-2 bg-light rounded border">
-            <p class="mb-1 text-success"><strong>✅ Exitosos:</strong> ${exitosos}</p>
-            <p class="mb-1 text-warning"><strong>⚠️ Duplicados omitidos:</strong> ${duplicados}</p>
-            <p class="mb-0 text-danger"><strong>❌ Errores/Filas inválidas:</strong> ${fallos}</p>
+        title: 'Carga Masiva Finalizada',
+        html: `<div class="text-start p-3 bg-light rounded border">
+            <p class="mb-1 text-success"><strong>✅ Nuevos importados:</strong> ${exitosos}</p>
+            <p class="mb-1 text-warning"><strong>⚠️ Ya existentes (omitidos sin actualizar):</strong> ${duplicados}</p>
+            <p class="mb-0 text-danger"><strong>❌ Filas inválidas descartadas:</strong> ${invalidos + fallos}</p>
         </div>`,
         confirmButtonColor: '#7b1b37'
     }).then(() => location.reload());

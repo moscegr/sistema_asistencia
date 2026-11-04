@@ -187,15 +187,24 @@ public class AlumnoController {
         if (alumnos == null || alumnos.isEmpty()) {
             return ResponseEntity.ok(List.of());
         }
+        List<Alumno> nuevosParaGuardar = new java.util.ArrayList<>();
+        java.util.Set<String> matriculasEnLote = new java.util.HashSet<>();
         for (Alumno a : alumnos) {
             sanitizarAlumno(a);
             String searchKey = a.getNcontrol() != null ? a.getNcontrol() : a.getMatricula();
-            if (a.getId() == null && searchKey != null) {
-                alumnoRepository.findFirstByNcontrolOrMatricula(searchKey, searchKey)
-                        .ifPresent(existente -> a.setId(existente.getId()));
+            if (searchKey == null || searchKey.isBlank()) {
+                continue;
             }
+            if (!matriculasEnLote.add(searchKey)) {
+                continue;
+            }
+            // Si ya existe en base de datos, NO actualizar ni modificar el registro existente
+            if (alumnoRepository.findFirstByNcontrolOrMatricula(searchKey, searchKey).isPresent()) {
+                continue;
+            }
+            nuevosParaGuardar.add(a);
         }
-        List<Alumno> guardados = alumnoRepository.saveAll(alumnos);
+        List<Alumno> guardados = nuevosParaGuardar.isEmpty() ? List.of() : alumnoRepository.saveAll(nuevosParaGuardar);
         return ResponseEntity.ok(guardados);
     }
 

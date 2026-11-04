@@ -918,28 +918,71 @@ async function descargarListaPersonalPDF() {
     }
 }
 
-// 9. ANALIZAR ARCHIVO EXCEL PARA CARGA MASIVA
-function analizarArchivoExcelMasivo(input) {
+// 9. ANALIZAR ARCHIVO EXCEL PARA CARGA MASIVA DE PERSONAL
+let personalNuevoPendiente = [];
+let personalExistenteAnalisis = [];
+let personalInvalidoAnalisis = [];
+
+async function analizarArchivoExcelMasivo(input) {
     const file = input.files[0];
     if (!file) return;
 
+    const resumenDiv = document.getElementById('resumenExcelMasivo');
+    const btnEjecutar = document.getElementById('btnEjecutarCargaMasiva');
+    const progresoModal = document.getElementById('progresoModalPersonal');
+
+    if (progresoModal) progresoModal.classList.add('d-none');
+    if (resumenDiv) {
+        resumenDiv.style.display = 'block';
+        resumenDiv.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-guinda me-2" role="status"></div>
+                <span class="text-muted fw-bold">Analizando archivo y consultando personal registrado en la base de datos...</span>
+            </div>
+        `;
+    }
+
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const rawRows = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
 
-            if (rawRows.length === 0) {
+            if (!rawRows || rawRows.length === 0) {
+                if (resumenDiv) resumenDiv.style.display = 'none';
                 return Swal.fire("Archivo Vacío", "No se encontraron filas de datos en el archivo.", "warning");
             }
 
-            datosExcelMasivoPendientes = [];
-            let validos = 0;
-            let descartados = 0;
+            // Consultar personal existente en la base de datos
+            let usuariosBD = usuariosCache;
+            if (!usuariosBD || usuariosBD.length === 0) {
+                try {
+                    const resUsers = await fetch('/api/usuarios');
+                    if (resUsers.ok) usuariosBD = await resUsers.json();
+                } catch(errFetch) {
+                    console.warn("Error obteniendo usuarios:", errFetch);
+                }
+            }
 
-            rawRows.forEach((row) => {
+            const mapaExistentesPorRfc = new Map();
+            const mapaExistentesPorCorreo = new Map();
+
+            (usuariosBD || []).forEach(u => {
+                const rfcBD = limpiarSinAcentosPersonal(u.rfc || '').replace(/[^A-Z0-9]/g, '');
+                const correoBD = String(u.correo || '').trim().toLowerCase();
+                if (rfcBD) mapaExistentesPorRfc.set(rfcBD, u);
+                if (correoBD && correoBD.includes('@')) mapaExistentesPorCorreo.set(correoBD, u);
+            });
+
+            personalNuevoPendiente = [];
+            personalExistenteAnalisis = [];
+            personalInvalidoAnalisis = [];
+            const rfcsVistosEnExcel = new Set();
+            const correosVistosEnExcel = new Set();
+
+            rawRows.forEach((row, idx) => {
                 const keys = Object.keys(row);
                 const r = {};
                 keys.forEach(k => {
@@ -954,100 +997,354 @@ function analizarArchivoExcelMasivo(input) {
                 const correo = String(r.CORREO_INSTITUCIONAL || r.CORREO || r.EMAIL || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "").toLowerCase();
                 const telefono = String(r.TELEFONO || r.CELULAR || r.TEL || '').replace(/[^0-9]/g, '');
 
-                if (nombre && (rfc || correo)) {
-                    datosExcelMasivoPendientes.push({
+                if (!nombre) {
+                    personalInvalidoAnalisis.push({
+                        fila: idx + 2,
+                        nombre: '(Sin nombre)',
+                        rfc: rfc || '-',
+                        correo: correo || '-',
+                        motivo: 'Falta el nombre completo del personal/docente'
+                    });
+                    return;
+                }
+
+                if (!rfc && !correo) {
+                    personalInvalidoAnalisis.push({
+                        fila: idx + 2,
                         nombre: nombre,
-                        rfc: rfc || null,
+                        rfc: '-',
+                        correo: '-',
+                        motivo: 'No incluye RFC ni Correo Electrónico para identificación'
+                    });
+                    return;
+                }
+
+                // Verificar si ya existe en la base de datos
+                const existenteBD = (rfc ? mapaExistentesPorRfc.get(rfc) : null) || (correo ? mapaExistentesPorCorreo.get(correo) : null);
+                if (existenteBD) {
+                    personalExistenteAnalisis.push({
+                        fila: idx + 2,
+                        nombreExcel: nombre,
+                        nombreBD: existenteBD.nombre || nombre,
+                        rfc: rfc || existenteBD.rfc || '-',
+                        correo: correo || existenteBD.correo || '-',
+                        rol: existenteBD.rol || rol,
+                        turno: existenteBD.turno || turno,
+                        motivo: 'Ya registrado en la BD (No se modificará ni sobrescribirá)'
+                    });
+                    return;
+                }
+
+                // Verificar si está repetido dentro del mismo archivo Excel
+                if ((rfc && rfcsVistosEnExcel.has(rfc)) || (correo && correosVistosEnExcel.has(correo))) {
+                    personalExistenteAnalisis.push({
+                        fila: idx + 2,
+                        nombreExcel: nombre,
+                        nombreBD: nombre,
+                        rfc: rfc || '-',
+                        correo: correo || '-',
                         rol: rol,
                         turno: turno,
-                        correo: correo || null,
-                        telefono: telefono || null,
-                        qrCode: rfc || correo,
-                        estatus: 'Activo'
+                        motivo: 'Fila duplicada en el mismo Excel (Omitida)'
                     });
-                    validos++;
-                } else {
-                    descartados++;
+                    return;
                 }
+
+                if (rfc) rfcsVistosEnExcel.add(rfc);
+                if (correo) correosVistosEnExcel.add(correo);
+
+                personalNuevoPendiente.push({
+                    nombre: nombre,
+                    rfc: rfc || null,
+                    rol: rol,
+                    turno: turno,
+                    correo: correo || null,
+                    telefono: telefono || null,
+                    qrCode: rfc || correo,
+                    estatus: 'Activo'
+                });
             });
 
-            const resumenDiv = document.getElementById('resumenExcelMasivo');
-            const btnEjecutar = document.getElementById('btnEjecutarCargaMasiva');
-
-            if (resumenDiv) {
-                resumenDiv.style.display = 'block';
-                resumenDiv.innerHTML = `
-                    <div class="card bg-light border p-3 rounded-3 text-start">
-                        <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-file-earmark-check-fill text-success me-1"></i> Resumen de Archivo</h6>
-                        <div class="row g-2 small">
-                            <div class="col-6"><strong>Archivo:</strong> ${file.name}</div>
-                            <div class="col-6"><strong>Filas Leídas:</strong> ${rawRows.length}</div>
-                            <div class="col-6 text-success"><i class="bi bi-check-circle-fill me-1"></i><strong>Listos para importar:</strong> ${validos}</div>
-                            <div class="col-6 text-danger"><i class="bi bi-exclamation-circle-fill me-1"></i><strong>Descartados (sin nombre/RFC):</strong> ${descartados}</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            if (btnEjecutar) {
-                btnEjecutar.style.display = (validos > 0) ? 'inline-block' : 'none';
-            }
+            // Renderizar la ventana de análisis con tabs y tarjetas resumen
+            mostrarResumenAnalisisPersonal(file.name, rawRows.length);
 
         } catch(err) {
             console.error("Error al leer Excel masivo:", err);
+            if (resumenDiv) resumenDiv.style.display = 'none';
             Swal.fire("Error", "No se pudo procesar el archivo Excel. Verifica el formato.", "error");
         }
     };
     reader.readAsArrayBuffer(file);
 }
 
-// 10. EJECUTAR IMPORTACIÓN MASIVA A BASE DE DATOS
-async function ejecutarImportacionMasiva() {
-    if (!datosExcelMasivoPendientes || datosExcelMasivoPendientes.length === 0) {
-        return Swal.fire("Aviso", "No hay datos válidos para importar.", "warning");
+function mostrarResumenAnalisisPersonal(nombreArchivo, totalLeidos) {
+    const resumenDiv = document.getElementById('resumenExcelMasivo');
+    const btnEjecutar = document.getElementById('btnEjecutarCargaMasiva');
+
+    const cantNuevos = personalNuevoPendiente.length;
+    const cantExistentes = personalExistenteAnalisis.length;
+    const cantInvalidos = personalInvalidoAnalisis.length;
+
+    const tabActivaNuevos = cantNuevos > 0;
+    const tabActivaExistentes = !tabActivaNuevos && cantExistentes > 0;
+    const tabActivaInvalidos = !tabActivaNuevos && !tabActivaExistentes && cantInvalidos > 0;
+
+    const filasNuevosHtml = cantNuevos > 0
+        ? personalNuevoPendiente.map((u, idx) => `
+            <tr>
+                <td class="text-muted small">${idx + 1}</td>
+                <td class="fw-bold text-dark small">${u.nombre}</td>
+                <td class="font-monospace small">${u.rfc || '<span class="text-muted fst-italic">Sin RFC</span>'}</td>
+                <td><span class="badge bg-light text-dark border small">${u.rol}</span></td>
+                <td class="small">${u.turno}</td>
+                <td class="small text-muted">${u.correo || '-'}</td>
+                <td class="small">${u.telefono || '-'}</td>
+                <td class="text-center"><span class="badge bg-success-subtle text-success border border-success-subtle">Nuevo a registrar</span></td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="8" class="text-center text-muted py-4">No hay nuevos registros de personal para importar en este archivo.</td></tr>`;
+
+    const filasExistentesHtml = cantExistentes > 0
+        ? personalExistenteAnalisis.map((ex, idx) => `
+            <tr class="table-warning">
+                <td class="text-muted small">${idx + 1}</td>
+                <td class="fw-bold text-dark small">${ex.nombreBD}</td>
+                <td class="font-monospace small">${ex.rfc}</td>
+                <td><span class="badge bg-light text-dark border small">${ex.rol}</span></td>
+                <td class="small text-muted">${ex.correo}</td>
+                <td class="text-center"><span class="badge bg-warning text-dark"><i class="bi bi-shield-lock-fill me-1"></i>${ex.motivo}</span></td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="6" class="text-center text-muted py-4">Ningún registro del archivo coincide con personal ya registrado.</td></tr>`;
+
+    const filasInvalidosHtml = cantInvalidos > 0
+        ? personalInvalidoAnalisis.map((inv) => `
+            <tr class="table-danger">
+                <td class="small fw-bold">Fila ${inv.fila}</td>
+                <td class="small fw-bold">${inv.nombre}</td>
+                <td class="font-monospace small">${inv.rfc}</td>
+                <td class="small text-muted">${inv.correo}</td>
+                <td class="small text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>${inv.motivo}</td>
+            </tr>
+        `).join('')
+        : `<tr><td colspan="5" class="text-center text-muted py-4">No se detectaron filas con datos incompletos.</td></tr>`;
+
+    if (resumenDiv) {
+        resumenDiv.style.display = 'block';
+        resumenDiv.innerHTML = `
+            <div class="alert alert-light border shadow-sm mb-3 py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <i class="bi bi-file-earmark-spreadsheet-fill text-guinda me-2 fs-5"></i>
+                    <strong>Archivo:</strong> <span class="text-dark">${nombreArchivo}</span>
+                </div>
+                <span class="badge bg-dark rounded-pill px-3 py-2">Total filas en Excel: ${totalLeidos}</span>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-success-subtle border-success-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-success text-uppercase">Nuevos a Importar</div>
+                                <div class="fs-3 fw-bold text-success">${cantNuevos}</div>
+                            </div>
+                            <i class="bi bi-person-plus-fill fs-1 text-success opacity-75"></i>
+                        </div>
+                        <small class="text-muted d-block mt-1">Se crearán en la base de datos.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-warning-subtle border-warning-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-dark text-uppercase">Ya Existentes (Omitidos)</div>
+                                <div class="fs-3 fw-bold text-dark">${cantExistentes}</div>
+                            </div>
+                            <i class="bi bi-person-check-fill fs-1 text-warning opacity-75"></i>
+                        </div>
+                        <small class="text-dark d-block mt-1"><strong>No se actualizarán</strong> ni modificarán.</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded-3 border bg-danger-subtle border-danger-subtle h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="small fw-bold text-danger text-uppercase">Descartados / Inválidos</div>
+                                <div class="fs-3 fw-bold text-danger">${cantInvalidos}</div>
+                            </div>
+                            <i class="bi bi-exclamation-octagon-fill fs-1 text-danger opacity-75"></i>
+                        </div>
+                        <small class="text-muted d-block mt-1">Sin nombre o sin RFC/Correo.</small>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="nav nav-pills mb-3 bg-light p-1 rounded border" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaNuevos ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabNuevosPersonal" type="button" role="tab">
+                        <i class="bi bi-check-circle-fill text-success me-1"></i>Nuevos a Importar (${cantNuevos})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaExistentes ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabExistentesPersonal" type="button" role="tab">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Ya Existentes - No se actualizarán (${cantExistentes})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${tabActivaInvalidos ? 'active' : ''} fw-bold small" data-bs-toggle="pill" data-bs-target="#tabInvalidosPersonal" type="button" role="tab">
+                        <i class="bi bi-x-circle-fill text-danger me-1"></i>Inválidos (${cantInvalidos})
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content border rounded-3 bg-white">
+                <div class="tab-pane fade ${tabActivaNuevos ? 'show active' : ''}" id="tabNuevosPersonal" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 280px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nombre Completo</th>
+                                    <th>RFC</th>
+                                    <th>Rol</th>
+                                    <th>Turno</th>
+                                    <th>Correo</th>
+                                    <th>Teléfono</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasNuevosHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade ${tabActivaExistentes ? 'show active' : ''}" id="tabExistentesPersonal" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 280px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Personal Registrado en BD</th>
+                                    <th>RFC</th>
+                                    <th>Rol Actual</th>
+                                    <th>Correo</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasExistentesHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade ${tabActivaInvalidos ? 'show active' : ''}" id="tabInvalidosPersonal" role="tabpanel">
+                    <div class="table-responsive" style="max-height: 280px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Fila</th>
+                                    <th>Nombre Leído</th>
+                                    <th>RFC</th>
+                                    <th>Correo</th>
+                                    <th>Motivo</th>
+                                </tr>
+                            </thead>
+                            <tbody>${filasInvalidosHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
+    if (btnEjecutar) {
+        if (cantNuevos > 0) {
+            btnEjecutar.style.display = 'inline-block';
+            btnEjecutar.disabled = false;
+            btnEjecutar.innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-2"></i>Confirmar e Importar (${cantNuevos} Nuevos)`;
+        } else {
+            btnEjecutar.style.display = 'none';
+        }
+    }
+}
+
+// 10. EJECUTAR IMPORTACIÓN MASIVA A BASE DE DATOS
+async function ejecutarImportacionMasiva() {
+    if (!personalNuevoPendiente || personalNuevoPendiente.length === 0) {
+        return Swal.fire("Aviso", "No hay registros nuevos de personal para importar.", "warning");
+    }
+
+    const btnEjecutar = document.getElementById('btnEjecutarCargaMasiva');
+    const progresoModal = document.getElementById('progresoModalPersonal');
+    const barraModal = document.getElementById('barraProgresoModalPersonal');
+    const textoModal = document.getElementById('textoProgresoModalPersonal');
+
+    if (btnEjecutar) btnEjecutar.disabled = true;
+    if (progresoModal) progresoModal.classList.remove('d-none');
+
+    let exitosos = 0;
+    let fallos = 0;
+    const duplicados = personalExistenteAnalisis.length;
+    const invalidos = personalInvalidoAnalisis.length;
+
     try {
-        Swal.fire({
-            title: 'Importando personal...',
-            text: `Guardando ${datosExcelMasivoPendientes.length} registros en MongoDB...`,
-            didOpen: () => Swal.showLoading()
-        });
-
-        const res = await fetch('/api/usuarios/bulk', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datosExcelMasivoPendientes)
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(errText || "Error al procesar carga masiva.");
+        const lotes = [];
+        for (let i = 0; i < personalNuevoPendiente.length; i += 50) {
+            lotes.push(personalNuevoPendiente.slice(i, i + 50));
         }
 
-        const data = await res.json();
-        const total = data.total || datosExcelMasivoPendientes.length;
+        for (let idx = 0; idx < lotes.length; idx++) {
+            const lote = lotes[idx];
+            try {
+                const res = await fetch('/api/usuarios/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lote)
+                });
 
-        Swal.fire({
-            icon: 'success',
-            title: '¡Carga Masiva Exitosa!',
-            html: `Se procesaron <strong>${total}</strong> registros correctamente.<br>
-                   <span class="text-success small">Nuevos: ${data.insertados || 0} | Actualizados: ${data.actualizados || 0}</span>`,
-            confirmButtonColor: '#7b1b37'
-        });
+                if (res.ok) {
+                    const data = await res.json();
+                    exitosos += data.insertados || lote.length;
+                } else {
+                    fallos += lote.length;
+                }
+            } catch (errBatch) {
+                fallos += lote.length;
+            }
+
+            const procesados = Math.min(personalNuevoPendiente.length, (idx + 1) * 50);
+            const pct = Math.min(100, Math.round((procesados / personalNuevoPendiente.length) * 100));
+
+            if (barraModal) barraModal.style.width = pct + "%";
+            if (textoModal) textoModal.innerText = `Importando lote ${idx + 1} de ${lotes.length}... (${pct}%)`;
+
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
 
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalCargaMasiva'));
         if (modal) modal.hide();
 
-        datosExcelMasivoPendientes = [];
+        Swal.fire({
+            icon: 'success',
+            title: '¡Carga Masiva Exitosa!',
+            html: `<div class="text-start p-3 bg-light rounded border">
+                <p class="mb-1 text-success"><strong>✅ Nuevos importados:</strong> ${exitosos}</p>
+                <p class="mb-1 text-warning"><strong>⚠️ Ya existentes (omitidos sin actualizar):</strong> ${duplicados}</p>
+                <p class="mb-0 text-danger"><strong>❌ Descartados / Inválidos:</strong> ${invalidos + fallos}</p>
+            </div>`,
+            confirmButtonColor: '#7b1b37'
+        });
+
+        personalNuevoPendiente = [];
+        personalExistenteAnalisis = [];
+        personalInvalidoAnalisis = [];
         document.getElementById('excelMasivoInput').value = '';
-        document.getElementById('resumenExcelMasivo').style.display = 'none';
-        document.getElementById('btnEjecutarCargaMasiva').style.display = 'none';
+        if (document.getElementById('resumenExcelMasivo')) document.getElementById('resumenExcelMasivo').style.display = 'none';
+        if (btnEjecutar) btnEjecutar.style.display = 'none';
 
         listarUsuarios();
 
     } catch (e) {
         Swal.fire("Error", "Ocurrió un error en la carga masiva: " + e.message, "error");
+        if (btnEjecutar) btnEjecutar.disabled = false;
+        if (progresoModal) progresoModal.classList.add('d-none');
     }
 }
 
