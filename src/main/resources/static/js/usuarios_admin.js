@@ -3,7 +3,7 @@
  */
 
 // Pre-fetch inmediato de la lista de usuarios al interpretar el script para 0 latencia
-const prefetchUsuariosPromise = fetch('/api/usuarios')
+let prefetchUsuariosPromise = fetch('/api/usuarios?_t=' + Date.now(), { cache: 'no-store' })
     .then(r => r.ok ? r.json() : [])
     .catch(() => []);
 
@@ -90,13 +90,15 @@ async function inicializarModelosFacialesSilencioso() {
 }
 
 // 1. LEER (READ): Cargar lista desde /api/usuarios
-async function listarUsuarios() {
+async function listarUsuarios(forzar = false) {
     try {
         let raw = [];
-        if (prefetchUsuariosPromise) {
+        if (prefetchUsuariosPromise && !forzar) {
             raw = await prefetchUsuariosPromise;
+            prefetchUsuariosPromise = null;
         } else {
-            const response = await fetch('/api/usuarios');
+            prefetchUsuariosPromise = null;
+            const response = await fetch('/api/usuarios?_t=' + Date.now(), { cache: 'no-store' });
             if (response.ok) raw = await response.json();
         }
         usuariosCache = (Array.isArray(raw) ? raw : []).map(u => {
@@ -383,7 +385,7 @@ async function eliminarFotoPersonal(confirmarBD = true) {
                 showConfirmButton: false
             });
 
-            listarUsuarios();
+            await listarUsuarios(true);
             return;
         } catch (err) {
             console.error(err);
@@ -590,7 +592,7 @@ async function guardarUsuarioFormulario() {
         eliminarFotoPersonal(false);
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevoUsuario'));
         if (modal) modal.hide();
-        listarUsuarios();
+        await listarUsuarios(true);
 
     } catch (error) {
         console.error(error);
@@ -657,7 +659,7 @@ async function toggleEstatusUsuario(id, activo) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estatus: nuevoEstatus })
         });
-        listarUsuarios();
+        await listarUsuarios(true);
     } catch (e) {
         Swal.fire("Error", "No se pudo cambiar el estatus del usuario.", "error");
     }
@@ -677,12 +679,17 @@ function eliminarUsuario(id) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
+                // Actualización optimista de UI inmediata
+                usuariosCache = usuariosCache.filter(u => (u.id || u.uid || u.correo) !== id && u.rfc !== id);
+                renderizarTablaUsuarios();
+
                 const res = await fetch(`/api/usuarios/${encodeURIComponent(id)}`, { method: 'DELETE' });
                 if (!res.ok) throw new Error("Error al eliminar");
                 Swal.fire("Eliminado", "El usuario ha sido removido del sistema.", "success");
-                listarUsuarios();
+                await listarUsuarios(true);
             } catch (e) {
                 Swal.fire("Error", "No se pudo eliminar el registro.", "error");
+                await listarUsuarios(true);
             }
         }
     });
@@ -1339,7 +1346,7 @@ async function ejecutarImportacionMasiva() {
         if (document.getElementById('resumenExcelMasivo')) document.getElementById('resumenExcelMasivo').style.display = 'none';
         if (btnEjecutar) btnEjecutar.style.display = 'none';
 
-        listarUsuarios();
+        await listarUsuarios(true);
 
     } catch (e) {
         Swal.fire("Error", "Ocurrió un error en la carga masiva: " + e.message, "error");
@@ -2322,3 +2329,10 @@ window.descargarPlantillaLayoutExcel = descargarPlantillaLayoutExcel;
 window.descargarListaPersonalExcel = descargarListaPersonalExcel;
 window.descargarListaPersonalPDF = descargarListaPersonalPDF;
 window.enviarWhatsappPersonalPersonalizado = enviarWhatsappPersonalPersonalizado;
+
+// Refrescar automáticamente al regresar a la vista (evita datos obsoletos por BFCache o navegación hacia atrás)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        listarUsuarios(true);
+    }
+});

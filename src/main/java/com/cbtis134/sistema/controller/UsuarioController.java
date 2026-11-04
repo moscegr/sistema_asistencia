@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -61,7 +62,7 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public List<Usuario> obtenerTodos() {
+    public ResponseEntity<List<Usuario>> obtenerTodos() {
         List<Usuario> lista = usuarioRepository.findAll();
         for (Usuario u : lista) {
             if (u.getNombre() != null) {
@@ -73,7 +74,11 @@ public class UsuarioController {
             }
             u.setFotoBase64(null);
         }
-        return lista;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .body(lista);
     }
 
     private static String obtenerIdentificadorArchivoUsuario(Usuario u) {

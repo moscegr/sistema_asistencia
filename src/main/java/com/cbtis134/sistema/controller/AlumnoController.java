@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,12 +24,16 @@ public class AlumnoController {
     private MongoTemplate mongoTemplate;
 
     @GetMapping
-    public List<Alumno> obtenerTodos() {
+    public ResponseEntity<List<Alumno>> obtenerTodos() {
         List<Alumno> lista = alumnoRepository.findAll();
         for (Alumno a : lista) {
             sanitizarFotoUrlParaUploads(a);
         }
-        return lista;
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .body(lista);
     }
 
     private void sanitizarFotoUrlParaUploads(Alumno a) {

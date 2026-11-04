@@ -1,5 +1,5 @@
 // Pre-fetch inmediato al interpretar el script para evitar retardos
-const prefetchAlumnosPromise = fetch('/api/alumnos')
+let prefetchAlumnosPromise = fetch('/api/alumnos?_t=' + Date.now(), { cache: 'no-store' })
     .then(r => r.ok ? r.json() : [])
     .catch(() => []);
 
@@ -62,13 +62,15 @@ async function cargarConfiguracionEscolar() {
     } catch (e) { console.error("Error al cargar especialidades:", e); }
 }
 
-async function cargarAlumnos() {
+async function cargarAlumnos(forzar = false) {
     try {
         let raw = [];
-        if (prefetchAlumnosPromise) {
+        if (prefetchAlumnosPromise && !forzar) {
             raw = await prefetchAlumnosPromise;
+            prefetchAlumnosPromise = null;
         } else {
-            const res = await fetch('/api/alumnos');
+            prefetchAlumnosPromise = null;
+            const res = await fetch('/api/alumnos?_t=' + Date.now(), { cache: 'no-store' });
             if (res.ok) raw = await res.json();
         }
         if (raw) {
@@ -256,13 +258,25 @@ async function eliminarAlumno(docId, matricula) {
 
     if (result.isConfirmed) {
         try {
-            await fetch(`/api/alumnos/${docId}`, {
+            // Actualización optimista de UI inmediata
+            alumnosCache = alumnosCache.filter(a => {
+                const mat = a.ncontrol || a.matricula || '';
+                const idVal = a.id || mat;
+                return idVal !== docId && mat !== matricula;
+            });
+            filtrarAlumnos();
+
+            const res = await fetch(`/api/alumnos/${docId}`, {
                 method: 'DELETE'
             });
+            if (!res.ok) {
+                throw new Error("El servidor respondió con código " + res.status);
+            }
             Swal.fire('Eliminado', 'El estudiante y todos sus datos multimedia han sido removidos en cascada.', 'success');
-            await cargarAlumnos();
+            await cargarAlumnos(true);
         } catch (error) {
             Swal.fire('Error', 'No se pudo procesar la eliminación: ' + error.message, 'error');
+            await cargarAlumnos(true);
         }
     }
 }
@@ -353,3 +367,10 @@ async function enviarWhatsappPersonalizado(matricula) {
     }
 }
 window.enviarWhatsappPersonalizado = enviarWhatsappPersonalizado;
+
+// Refrescar automáticamente al regresar a la vista (evita datos obsoletos por BFCache o navegación hacia atrás)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        cargarAlumnos(true);
+    }
+});
