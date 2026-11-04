@@ -88,9 +88,18 @@
                                 <div class="col-md-12 mt-4 pt-3 border-top">
                                     <label class="form-label small fw-bold"><i class="bi bi-person-bounding-box me-2 text-guinda"></i>Fotografía del Alumno (FaceID y Credenciales)</label>
                                     <div class="d-flex align-items-center gap-3 bg-light p-3 rounded border">
-                                        <img id="imgFotoPerfilPreview" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png'" class="rounded-circle border shadow-sm" style="width: 85px; height: 85px; object-fit: cover;">
+                                        <div class="position-relative d-inline-block" style="width: 85px; height: 85px; flex-shrink: 0;">
+                                            <img id="imgFotoPerfilPreview" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png'" class="rounded-circle border shadow-sm w-100 h-100" style="object-fit: cover;">
+                                            <div id="spinnerFotoAlumno" class="position-absolute top-0 start-0 w-100 h-100 rounded-circle d-none flex-column align-items-center justify-content-center" style="background: rgba(255,255,255,0.85); z-index: 5;">
+                                                <div class="spinner-border spinner-border-sm" style="color: #7b1b37;" role="status"></div>
+                                            </div>
+                                        </div>
                                         <div class="flex-grow-1">
                                             <input type="file" id="inputFotoArchivo" class="form-control form-control-sm" accept="image/*" onchange="cargarFotoDesdeArchivo(event)">
+                                            <div id="estadoCargaFotoAlumno" class="small fw-bold mt-1 d-none" style="color: #7b1b37;">
+                                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                                <span id="textoEstadoCargaFotoAlumno">Cargando fotografía...</span>
+                                            </div>
                                             <div class="d-flex gap-2 mt-2">
                                                 <button type="button" class="btn btn-sm btn-outline-guinda rounded-pill" onclick="abrirCamaraWebcamAlumno()">
                                                     <i class="bi bi-camera-video-fill me-1"></i>Tomar Foto con Webcam

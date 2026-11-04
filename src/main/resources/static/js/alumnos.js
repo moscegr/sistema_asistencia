@@ -122,16 +122,9 @@ async function verificarEdicion() {
 }
 
 async function cargarModelosIABackground() {
-    try {
-        await Promise.all([
-            faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-        ]);
-        iaCargada = true;
-    } catch (e) {
-        console.warn("Extracción vectorial omitida:", e);
-    }
+    // La extracción vectorial FaceID se realiza de forma diferida en Punto de Control (escaneo.js)
+    // para evitar bloquear el hilo principal de interfaz durante el registro o selección de fotografía.
+    iaCargada = true;
 }
 
 let streamWebcamAlumno = null;
@@ -200,25 +193,6 @@ async function capturarFotoWebcamAlumno() {
     mostrarFotoPreview(fotoPerfilGlobal);
     cerrarCamaraWebcamAlumno();
 
-    // Extracción de descriptor facial FaceID
-    if (typeof faceapi !== 'undefined') {
-        try {
-            if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
-                await Promise.all([
-                    faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-                    faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-                    faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-                ]);
-            }
-            const deteccion = await faceapi.detectSingleFace(canvas).withFaceLandmarks().withFaceDescriptor();
-            if (deteccion) {
-                descriptorFacialGlobal = Array.from(deteccion.descriptor);
-            }
-        } catch(e) {
-            console.warn("Extracción facial webcam diferida:", e);
-        }
-    }
-
     Swal.fire({
         icon: 'success',
         title: 'Foto Capturada',
@@ -228,16 +202,61 @@ async function capturarFotoWebcamAlumno() {
     });
 }
 
-function cargarFotoDesdeArchivo(event) {
+function toggleSpinnerFotoAlumno(mostrar, mensaje = 'Cargando y optimizando fotografía...', exito = false) {
+    const spinnerOverlay = document.getElementById('spinnerFotoAlumno');
+    const estadoBox = document.getElementById('estadoCargaFotoAlumno');
+    const inputArchivo = document.getElementById('inputFotoArchivo');
+
+    if (mostrar) {
+        if (spinnerOverlay) {
+            spinnerOverlay.classList.remove('d-none');
+            spinnerOverlay.classList.add('d-flex');
+        }
+        if (estadoBox) {
+            estadoBox.classList.remove('d-none');
+            estadoBox.style.color = '#7b1b37';
+            estadoBox.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span><span>${mensaje}</span>`;
+        }
+        if (inputArchivo) inputArchivo.disabled = true;
+    } else {
+        if (spinnerOverlay) {
+            spinnerOverlay.classList.add('d-none');
+            spinnerOverlay.classList.remove('d-flex');
+        }
+        if (inputArchivo) inputArchivo.disabled = false;
+        if (estadoBox) {
+            if (exito) {
+                estadoBox.classList.remove('d-none');
+                estadoBox.style.color = '#198754';
+                estadoBox.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i><span>Fotografía lista en alta resolución</span>`;
+                setTimeout(() => {
+                    if (estadoBox) estadoBox.classList.add('d-none');
+                }, 2500);
+            } else {
+                estadoBox.classList.add('d-none');
+            }
+        }
+    }
+}
+
+async function cargarFotoDesdeArchivo(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = () => {
-            // 1. Redimensionar preservando alta resolución (hasta 1200px y 95% de calidad para impresión nítida en PVC/Gafetes)
-            const maxDim = 1200;
+    // 1. Mostrar spinner de inmediato y ceder un frame al navegador para que se dibuje sin congelarse
+    toggleSpinnerFotoAlumno(true, 'Cargando y optimizando fotografía...');
+    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 25)));
+
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = async () => {
+        try {
+            if (typeof img.decode === 'function') {
+                try { await img.decode(); } catch (e) {}
+            }
+
+            const maxDim = 1000;
             const w = img.width || 400;
             const h = img.height || 400;
             const scale = Math.min(1.0, maxDim / Math.max(w, h));
@@ -251,42 +270,43 @@ function cargarFotoDesdeArchivo(event) {
             ctxSnap.fillStyle = '#ffffff';
             ctxSnap.fillRect(0, 0, nw, nh);
             ctxSnap.drawImage(img, 0, 0, nw, nh);
-            
-            fotoPerfilGlobal = canvasSnap.toDataURL('image/jpeg', 0.95);
-            mostrarFotoPreview(fotoPerfilGlobal);
 
-            // 2. Extracción facial FaceID en segundo plano sin congelar la interfaz
-            setTimeout(async () => {
-                if (typeof faceapi !== 'undefined') {
-                    try {
-                        if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
-                            await Promise.all([
-                                faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-                                faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-                                faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-                            ]);
+            // Codificar JPEG de manera asíncrona (toBlob) para no bloquear el hilo principal
+            const dataUrl = await new Promise((resolve) => {
+                if (typeof canvasSnap.toBlob === 'function') {
+                    canvasSnap.toBlob((blob) => {
+                        if (!blob) {
+                            resolve(canvasSnap.toDataURL('image/jpeg', 0.92));
+                            return;
                         }
-                        // Usar canvas pequeño optimizado (320px) para cálculo instantáneo sin sobrecargar CPU
-                        const faceCanvas = document.createElement('canvas');
-                        const fScale = Math.min(1.0, 320 / Math.max(w, h));
-                        faceCanvas.width = Math.max(1, Math.round(w * fScale));
-                        faceCanvas.height = Math.max(1, Math.round(h * fScale));
-                        const fCtx = faceCanvas.getContext('2d');
-                        fCtx.drawImage(img, 0, 0, faceCanvas.width, faceCanvas.height);
-
-                        const deteccion = await faceapi.detectSingleFace(faceCanvas).withFaceLandmarks().withFaceDescriptor();
-                        if (deteccion) {
-                            descriptorFacialGlobal = Array.from(deteccion.descriptor);
-                        }
-                    } catch(err) {
-                        console.warn("Extracción vectorial facial en segundo plano omitida:", err);
-                    }
+                        const fr = new FileReader();
+                        fr.onloadend = () => resolve(fr.result);
+                        fr.onerror = () => resolve(canvasSnap.toDataURL('image/jpeg', 0.92));
+                        fr.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.92);
+                } else {
+                    resolve(canvasSnap.toDataURL('image/jpeg', 0.92));
                 }
-            }, 50);
-        };
-        img.src = e.target.result;
+            });
+
+            fotoPerfilGlobal = dataUrl;
+            mostrarFotoPreview(fotoPerfilGlobal);
+            toggleSpinnerFotoAlumno(false, '', true);
+        } catch (err) {
+            console.error("Error procesando foto:", err);
+            toggleSpinnerFotoAlumno(false);
+        } finally {
+            URL.revokeObjectURL(objectUrl);
+        }
     };
-    reader.readAsDataURL(file);
+
+    img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        toggleSpinnerFotoAlumno(false);
+        Swal.fire("Aviso", "No se pudo leer el archivo de imagen seleccionado.", "warning");
+    };
+
+    img.src = objectUrl;
 }
 
 function mostrarFotoPreview(srcFoto) {

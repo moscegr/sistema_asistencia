@@ -84,19 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Inicializar modelos face-api para auto-vectorizar al subir foto
+// Inicializar modelos face-api (diferido a Punto de Control para evitar bloqueo de UI)
 async function inicializarModelosFacialesSilencioso() {
-    try {
-        if (typeof faceapi !== 'undefined' && !faceapi.nets.ssdMobilenetv1.isLoaded) {
-            await Promise.all([
-                faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
-                faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-                faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-            ]);
-        }
-    } catch(e) {
-        console.warn("FaceAPI en carga silenciosa:", e);
-    }
+    // Los descriptores faciales se extraen en segundo plano en escaneo.js cuando se usa FaceID
 }
 
 // 1. LEER (READ): Cargar lista desde /api/usuarios
@@ -339,19 +329,6 @@ async function capturarFotoWebcamPersonal() {
 
     cerrarCamaraWebcamPersonal();
 
-    // Extraer vector biométrico FaceID en segundo plano
-    try {
-        if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
-            const img = await faceapi.fetchImage(fotoBase64Temporal);
-            const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-            if (deteccion) {
-                descriptorFacialTemporal = Array.from(deteccion.descriptor);
-            }
-        }
-    } catch(e) {
-        console.warn("Extracción facial webcam diferida:", e);
-    }
-
     Swal.fire({
         icon: 'success',
         title: 'Foto Capturada',
@@ -423,14 +400,54 @@ async function eliminarFotoPersonal(confirmarBD = true) {
 }
 window.eliminarFotoPersonal = eliminarFotoPersonal;
 
-function comprimirFotoClientSide(file, maxDim = 1200, calidad = 0.95) {
+function toggleSpinnerFotoPersonal(mostrar, mensaje = 'Cargando y optimizando fotografía...', exito = false) {
+    const spinnerOverlay = document.getElementById('spinnerFotoPersonal');
+    const estadoBox = document.getElementById('estadoCargaFotoPersonal');
+    const inputArchivo = document.getElementById('inputFotoUsuario');
+
+    if (mostrar) {
+        if (spinnerOverlay) {
+            spinnerOverlay.classList.remove('d-none');
+            spinnerOverlay.classList.add('d-flex');
+        }
+        if (estadoBox) {
+            estadoBox.classList.remove('d-none');
+            estadoBox.style.color = '#7b1b37';
+            estadoBox.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span><span>${mensaje}</span>`;
+        }
+        if (inputArchivo) inputArchivo.disabled = true;
+    } else {
+        if (spinnerOverlay) {
+            spinnerOverlay.classList.add('d-none');
+            spinnerOverlay.classList.remove('d-flex');
+        }
+        if (inputArchivo) inputArchivo.disabled = false;
+        if (estadoBox) {
+            if (exito) {
+                estadoBox.classList.remove('d-none');
+                estadoBox.style.color = '#198754';
+                estadoBox.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i><span>Fotografía lista en alta resolución</span>`;
+                setTimeout(() => {
+                    if (estadoBox) estadoBox.classList.add('d-none');
+                }, 2500);
+            } else {
+                estadoBox.classList.add('d-none');
+            }
+        }
+    }
+}
+
+function comprimirFotoClientSide(file, maxDim = 1000, calidad = 0.92) {
     return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const w = img.width;
-                const h = img.height;
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = async () => {
+            try {
+                if (typeof img.decode === 'function') {
+                    try { await img.decode(); } catch (e) {}
+                }
+                const w = img.width || 400;
+                const h = img.height || 400;
                 const scale = Math.min(1.0, maxDim / Math.max(w, h));
                 const nw = Math.max(1, Math.round(w * scale));
                 const nh = Math.max(1, Math.round(h * scale));
@@ -441,13 +458,33 @@ function comprimirFotoClientSide(file, maxDim = 1200, calidad = 0.95) {
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, nw, nh);
                 ctx.drawImage(img, 0, 0, nw, nh);
-                resolve(canvas.toDataURL('image/jpeg', calidad));
-            };
-            img.onerror = () => resolve(e.target.result);
-            img.src = e.target.result;
+
+                if (typeof canvas.toBlob === 'function') {
+                    canvas.toBlob((blob) => {
+                        URL.revokeObjectURL(objectUrl);
+                        if (!blob) {
+                            resolve(canvas.toDataURL('image/jpeg', calidad));
+                            return;
+                        }
+                        const fr = new FileReader();
+                        fr.onloadend = () => resolve(fr.result);
+                        fr.onerror = () => resolve(canvas.toDataURL('image/jpeg', calidad));
+                        fr.readAsDataURL(blob);
+                    }, 'image/jpeg', calidad);
+                } else {
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(canvas.toDataURL('image/jpeg', calidad));
+                }
+            } catch (e) {
+                URL.revokeObjectURL(objectUrl);
+                resolve(null);
+            }
         };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(null);
+        };
+        img.src = objectUrl;
     });
 }
 
@@ -456,31 +493,24 @@ async function procesarFotoUsuario(input) {
     if (!file) return;
 
     try {
-        fotoBase64Temporal = await comprimirFotoClientSide(file, 1200, 0.95);
-        if (!fotoBase64Temporal) return;
+        toggleSpinnerFotoPersonal(true, 'Cargando y optimizando fotografía...');
+        await new Promise(r => requestAnimationFrame(() => setTimeout(r, 25)));
+
+        fotoBase64Temporal = await comprimirFotoClientSide(file, 1000, 0.92);
+        if (!fotoBase64Temporal) {
+            toggleSpinnerFotoPersonal(false);
+            return;
+        }
 
         document.getElementById('prevFotoUsuario').src = fotoBase64Temporal;
         
         const btnQuitar = document.getElementById('btnQuitarFotoPersonal');
         if (btnQuitar) btnQuitar.style.display = 'inline-block';
 
-        // Extracción facial FaceID diferida en segundo plano sin bloquear la UI
-        setTimeout(async () => {
-            if (typeof faceapi !== 'undefined' && faceapi.nets.ssdMobilenetv1.isLoaded) {
-                try {
-                    const smallImg = await comprimirFotoClientSide(file, 320, 0.80);
-                    const img = await faceapi.fetchImage(smallImg);
-                    const deteccion = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    if (deteccion) {
-                        descriptorFacialTemporal = Array.from(deteccion.descriptor);
-                    }
-                } catch(e) {
-                    console.warn("FaceAPI diferido personal:", e);
-                }
-            }
-        }, 50);
+        toggleSpinnerFotoPersonal(false, '', true);
     } catch(err) {
         console.warn("No se pudo procesar la foto de perfil:", err);
+        toggleSpinnerFotoPersonal(false);
     }
 }
 
