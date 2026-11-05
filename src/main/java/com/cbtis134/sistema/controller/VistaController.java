@@ -96,6 +96,21 @@ public class VistaController {
                             ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("firma_director_base64"));
                         }
                     }
+
+                    String selloI = doc.getString("sello_institucional_url");
+                    if (ImageOptimizer.esBase64Imagen(selloI)) {
+                        doc.put("sello_institucional_base64", selloI);
+                        doc.put("sello_institucional_url", ImageOptimizer.guardarLogoEnDisco(selloI, "sello_institucional"));
+                        modificado = true;
+                    } else if (doc.containsKey("sello_institucional_base64") && ImageOptimizer.esBase64Imagen(doc.getString("sello_institucional_base64"))) {
+                        String urlS = doc.getString("sello_institucional_url");
+                        if (urlS != null && urlS.startsWith("/uploads/")) {
+                            String cleanName = urlS.substring(urlS.lastIndexOf('/') + 1);
+                            int qIdx = cleanName.indexOf('?');
+                            if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                            ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("sello_institucional_base64"));
+                        }
+                    }
                     if (modificado) {
                         try {
                             mongoTemplate.save(doc, "configuracion");

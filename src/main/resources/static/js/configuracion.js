@@ -111,6 +111,16 @@ async function previewFirmaDirector(event) {
 }
 window.previewFirmaDirector = previewFirmaDirector;
 
+async function previewSelloInstitucional(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
+    const imgPrev = document.getElementById('imgPreviewSelloInstitucional');
+    if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
+}
+window.previewSelloInstitucional = previewSelloInstitucional;
+
 async function cargarDatosInstitucionales() {
     try {
         const res = await fetch('/api/configuracion/sistema');
@@ -156,6 +166,16 @@ async function cargarDatosInstitucionales() {
                     imgF.src = data.firma_director_url.startsWith('data:') ? data.firma_director_url : (data.firma_director_url + sep + 't=' + Date.now());
                 } else {
                     imgF.src = '/img/default_avatar.png';
+                }
+            }
+            const imgS = document.getElementById('imgPreviewSelloInstitucional');
+            if (imgS) {
+                imgS.onerror = () => { imgS.src = '/img/default_avatar.png'; };
+                if (data.sello_institucional_url && data.sello_institucional_url.trim() !== '') {
+                    const sep = data.sello_institucional_url.includes('?') ? '&' : '?';
+                    imgS.src = data.sello_institucional_url.startsWith('data:') ? data.sello_institucional_url : (data.sello_institucional_url + sep + 't=' + Date.now());
+                } else {
+                    imgS.src = '/img/default_avatar.png';
                 }
             }
         }
@@ -225,6 +245,20 @@ if (formInst) {
             actualizaciones.firma_director_url = firmaDBase64;
         }
 
+        const inputSello = document.getElementById('inputSelloInstitucionalConfig');
+        const imgPreviewSello = document.getElementById('imgPreviewSelloInstitucional');
+        let selloBase64 = null;
+        if (imgPreviewSello && imgPreviewSello.dataset.nuevaImagen && imgPreviewSello.dataset.nuevaImagen.startsWith('data:image')) {
+            selloBase64 = imgPreviewSello.dataset.nuevaImagen;
+        } else if (inputSello && inputSello.files && inputSello.files[0]) {
+            selloBase64 = await comprimirLogoClientSide(inputSello.files[0], 800, 0.90);
+        } else if (imgPreviewSello && imgPreviewSello.src && imgPreviewSello.src.startsWith('data:image')) {
+            selloBase64 = imgPreviewSello.src;
+        }
+        if (selloBase64) {
+            actualizaciones.sello_institucional_url = selloBase64;
+        }
+
         try {
             const res = await fetch('/api/configuracion/sistema', {
                 method: 'POST',
@@ -242,6 +276,7 @@ if (formInst) {
             if (imgPreview) delete imgPreview.dataset.nuevaImagen;
             if (imgPreviewInicio) delete imgPreviewInicio.dataset.nuevaImagen;
             if (imgPreviewFirma) delete imgPreviewFirma.dataset.nuevaImagen;
+            if (imgPreviewSello) delete imgPreviewSello.dataset.nuevaImagen;
             try { sessionStorage.removeItem('cfg_sistema'); } catch(e) {}
 
             // Actualizar vistas locales de inmediato con lo que respondió el servidor
@@ -263,6 +298,10 @@ if (formInst) {
             if (respData.firma_director_url) {
                 const nuevaUrlF = respData.firma_director_url.startsWith('data:') ? respData.firma_director_url : (respData.firma_director_url + bust);
                 if (imgPreviewFirma) imgPreviewFirma.src = nuevaUrlF;
+            }
+            if (respData.sello_institucional_url) {
+                const nuevaUrlS = respData.sello_institucional_url.startsWith('data:') ? respData.sello_institucional_url : (respData.sello_institucional_url + bust);
+                if (imgPreviewSello) imgPreviewSello.src = nuevaUrlS;
             }
 
             Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");

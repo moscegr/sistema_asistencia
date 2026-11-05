@@ -2052,7 +2052,7 @@ async function generarCanvasCredencialPersonalReverso(user) {
 
         container.innerHTML = `
             <div id="cardPersReversoTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 6px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); padding: 7px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
                     <div style="font-size: 8px; font-weight: 900; letter-spacing: 0.5px; flex: 1; text-transform: uppercase;">CONTROL Y ACCESO VIGILANTE</div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
@@ -2060,7 +2060,7 @@ async function generarCanvasCredencialPersonalReverso(user) {
                 
                 <div style="padding: 3px 6px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
                     <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; padding: 3px; box-shadow: 0 2px 6px rgba(123, 27, 55, 0.15);">
-                        <div style="width: 27mm; height: 27mm; margin: 0 auto;">
+                        <div style="width: 24mm; height: 24mm; margin: 0 auto;">
                             <img src="${qrImgData}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
                         </div>
                         <div style="font-size: 5.2px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 1px;">ESCANEAME PARA ACCESO</div>
@@ -2071,16 +2071,16 @@ async function generarCanvasCredencialPersonalReverso(user) {
                     </div>
                     
                     <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
-                        <div style="height: 11mm; width: 34mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
-                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 11mm; max-width: 34mm; object-fit: contain; display: block;" onerror="this.style.display='none';">` : ''}
+                        <div style="height: 15mm; width: 40mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
+                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 15mm; max-width: 40mm; object-fit: contain; display: block;" onerror="this.style.display='none';">` : ''}
                         </div>
-                        <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                        <div style="width: 40mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
                         <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>
                         <div style="font-size: 5.6px; color: #64748b; font-weight: 700;">Director del Plantel ${nomPlantel}</div>
                     </div>
                 </div>
                 
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 3px 5px; border-top: 2px solid #d4af37; border-radius: 10px 10px 0 0;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 5px 6px; border-top: 2px solid #d4af37; border-radius: 10px 10px 0 0;">
                     <div style="display: flex; justify-content: space-between; font-size: 5.2px; font-weight: 800; letter-spacing: 0.3px; margin-bottom: 1px;">
                         <span>CLAVE CCT: ${cct}</span>
                         ${telPlantel ? `<span>TEL: ${telPlantel}</span>` : ''}

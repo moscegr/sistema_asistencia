@@ -115,6 +115,21 @@ public class ConfiguracionController {
                 }
             }
 
+            String selloI = doc.getString("sello_institucional_url");
+            if (ImageOptimizer.esBase64Imagen(selloI)) {
+                doc.put("sello_institucional_base64", selloI);
+                doc.put("sello_institucional_url", ImageOptimizer.guardarLogoEnDisco(selloI, "sello_institucional"));
+                modificado = true;
+            } else if (doc.containsKey("sello_institucional_base64") && ImageOptimizer.esBase64Imagen(doc.getString("sello_institucional_base64"))) {
+                String urlS = doc.getString("sello_institucional_url");
+                if (urlS != null && urlS.startsWith("/uploads/")) {
+                    String cleanName = urlS.substring(urlS.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("sello_institucional_base64"));
+                }
+            }
+
             if (modificado) {
                 try {
                     mongoTemplate.save(doc, "configuracion");
@@ -255,6 +270,21 @@ public class ConfiguracionController {
                         firmaD = firmaD.substring(firmaD.indexOf("/img/"));
                     }
                     body.put("firma_director_url", firmaD);
+                }
+            }
+            if (body.containsKey("sello_institucional_url") && body.get("sello_institucional_url") != null) {
+                String selloI = body.get("sello_institucional_url").toString();
+                if (ImageOptimizer.esBase64Imagen(selloI)) {
+                    body.put("sello_institucional_base64", selloI);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(selloI, "sello_institucional");
+                    body.put("sello_institucional_url", urlDisco);
+                } else {
+                    if (selloI.contains("/uploads/")) {
+                        selloI = selloI.substring(selloI.indexOf("/uploads/"));
+                    } else if (selloI.contains("/img/")) {
+                        selloI = selloI.substring(selloI.indexOf("/img/"));
+                    }
+                    body.put("sello_institucional_url", selloI);
                 }
             }
             VistaController.invalidarCacheConfig();

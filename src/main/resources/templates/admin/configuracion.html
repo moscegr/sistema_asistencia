@@ -166,19 +166,37 @@
 				                        </div>
 				                    </div>
 
-				                    <div class="col-md-12 mt-3">
-				                        <div class="p-3 bg-light rounded border shadow-sm">
+				                    <div class="col-md-6 mt-3">
+				                        <div class="p-3 bg-light rounded border shadow-sm h-100">
 				                            <div class="d-flex align-items-center justify-content-between mb-2">
 				                                <label class="form-label small fw-bold text-guinda mb-0"><i class="bi bi-pen-fill me-2"></i>Firma Digitalizada del Director(a)</label>
-				                                <span class="badge bg-light text-dark border">Credenciales PVC y Documentos</span>
+				                                <span class="badge bg-light text-dark border">Reverso Credenciales</span>
 				                            </div>
 				                            <div class="d-flex align-items-center gap-3">
-				                                <div class="border rounded bg-white p-1 shadow-sm d-flex align-items-center justify-content-center" style="width: 140px; height: 70px; overflow: hidden;">
+				                                <div class="border rounded bg-white p-1 shadow-sm d-flex align-items-center justify-content-center" style="width: 120px; height: 65px; overflow: hidden;">
 				                                    <img id="imgPreviewFirmaDirector" th:src="${configSistema != null and configSistema['firma_director_url'] != null and configSistema['firma_director_url'] != '' ? configSistema['firma_director_url'] : '/img/default_avatar.png'}" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png';" style="max-width: 100%; max-height: 100%; object-fit: contain;">
 				                                </div>
 				                                <div class="flex-grow-1">
 				                                    <input type="file" id="inputFirmaDirectorConfig" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp" onchange="previewFirmaDirector(event)">
-				                                    <small class="text-muted x-small">Se imprimirá en la parte trasera de las credenciales, arriba de la línea de firma del Director(a). Se recomienda subir una imagen con firma nítida (PNG transparente o JPG sobre fondo blanco).</small>
+				                                    <small class="text-muted x-small">Se imprimirá arriba de la línea de firma en el reverso.</small>
+				                                </div>
+				                            </div>
+				                        </div>
+				                    </div>
+
+				                    <div class="col-md-6 mt-3">
+				                        <div class="p-3 bg-light rounded border shadow-sm h-100">
+				                            <div class="d-flex align-items-center justify-content-between mb-2">
+				                                <label class="form-label small fw-bold text-guinda mb-0"><i class="bi bi-patch-check-fill me-2"></i>Sello Institucional / Oficial del Plantel</label>
+				                                <span class="badge bg-light text-dark border">Frente Credenciales</span>
+				                            </div>
+				                            <div class="d-flex align-items-center gap-3">
+				                                <div class="border rounded bg-white p-1 shadow-sm d-flex align-items-center justify-content-center" style="width: 65px; height: 65px; border-radius: 50% !important; overflow: hidden;">
+				                                    <img id="imgPreviewSelloInstitucional" th:src="${configSistema != null and configSistema['sello_institucional_url'] != null and configSistema['sello_institucional_url'] != '' ? configSistema['sello_institucional_url'] : '/img/default_avatar.png'}" src="/img/default_avatar.png" onerror="this.src='/img/default_avatar.png';" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+				                                </div>
+				                                <div class="flex-grow-1">
+				                                    <input type="file" id="inputSelloInstitucionalConfig" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp" onchange="previewSelloInstitucional(event)">
+				                                    <small class="text-muted x-small">Se estampará sobre la foto al final del nombre del alumno (PNG transparente recomendado).</small>
 				                                </div>
 				                            </div>
 				                        </div>

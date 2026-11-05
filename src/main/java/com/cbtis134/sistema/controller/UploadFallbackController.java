@@ -62,9 +62,10 @@ public class UploadFallbackController {
                     org.bson.Document doc = mongoTemplate.findById("sistema", org.bson.Document.class, "configuracion");
                     if (doc != null) {
                         boolean esFirma = cleanNombre.contains("firma");
+                        boolean esSello = cleanNombre.contains("sello");
                         boolean esInicio = cleanNombre.contains("inicio") || cleanNombre.contains("tigre");
-                        String campoB64 = esFirma ? "firma_director_base64" : (esInicio ? "logo_inicio_base64" : "logo_plantel_base64");
-                        String campoUrl = esFirma ? "firma_director_url" : (esInicio ? "logo_inicio_url" : "logo_plantel_url");
+                        String campoB64 = esFirma ? "firma_director_base64" : (esSello ? "sello_institucional_base64" : (esInicio ? "logo_inicio_base64" : "logo_plantel_base64"));
+                        String campoUrl = esFirma ? "firma_director_url" : (esSello ? "sello_institucional_url" : (esInicio ? "logo_inicio_url" : "logo_plantel_url"));
 
                         String base64 = doc.getString(campoB64);
                         if (base64 == null || !ImageOptimizer.esBase64Imagen(base64)) {
@@ -165,7 +166,9 @@ public class UploadFallbackController {
         }
 
         if ("logos".equals(safeCat)) {
-            if (cleanNombre.contains("inicio") || cleanNombre.contains("tigre")) {
+            if (cleanNombre.contains("firma") || cleanNombre.contains("sello")) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            } else if (cleanNombre.contains("inicio") || cleanNombre.contains("tigre")) {
                 return servirRecursoClasspath("/static/img/tigres.png", MediaType.IMAGE_PNG);
             } else {
                 return servirRecursoClasspath("/static/img/logo_aniversario.jpg", MediaType.IMAGE_JPEG);
