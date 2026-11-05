@@ -155,11 +155,14 @@ function comprimirYLimpiarFondoPng(file, maxDim = 800) {
                         } else if (distToBg < 80 && lum > 165 && sat < 0.25) {
                             const factor = (distToBg - 28) / (80 - 28);
                             data[i + 3] = Math.round(Math.min(a, factor * 255));
+                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.70)));
+                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.70)));
+                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.70)));
                         } else {
-                            // Tinta nítida
-                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.95)));
-                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.95)));
-                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.95)));
+                            // Tinta nítida y profunda (más negrita y realista)
+                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.65)));
+                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.65)));
+                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.65)));
                         }
                     }
 

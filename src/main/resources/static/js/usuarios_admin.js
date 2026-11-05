@@ -1971,7 +1971,7 @@ async function generarCanvasCredencialPersonalFrente(user) {
                             <img src="${fotoSrc}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';" />
                         </div>
                         ${selloInstitucionalSrc ? `
-                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -7mm; bottom: -11mm; width: 19mm; height: 19mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));" onerror="this.style.display='none';">
+                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -6mm; bottom: -8mm; width: 22mm; height: 22mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: contrast(140%) brightness(75%) drop-shadow(0 1px 1px rgba(0,0,0,0.12));" onerror="this.style.display='none';">
                         ` : ''}
                     </div>
                     
@@ -2089,10 +2089,10 @@ async function generarCanvasCredencialPersonalReverso(user) {
                     </div>
                     
                     <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
-                        <div style="height: 15mm; width: 40mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
-                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 15mm; max-width: 40mm; object-fit: contain; display: block;" onerror="this.style.display='none';">` : ''}
+                        <div style="height: 17mm; width: 44mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
+                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; filter: contrast(140%) brightness(75%);" onerror="this.style.display='none';">` : ''}
                         </div>
-                        <div style="width: 40mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                        <div style="width: 44mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
                         <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>
                         <div style="font-size: 5.6px; color: #64748b; font-weight: 700;">Director del Plantel ${nomPlantel}</div>
                     </div>

@@ -351,7 +351,7 @@
                                             <div style="padding: 2px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;">
                                                 <div style="margin: 0 auto; position: relative; display: inline-block;">
                                                     <div id="persPvcFoto" style="width: 26mm; height: 32mm; background: #f1f5f9; border: 2.5px solid var(--guinda); border-radius: 8px; background-size: cover; background-repeat: no-repeat; background-position: center; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.25);"></div>
-                                                    <img id="persPvcSelloInstitucionalImg" th:src="${configSistema != null and configSistema['sello_institucional_url'] != null and configSistema['sello_institucional_url'] != '' ? configSistema['sello_institucional_url'] : ''}" src="" style="position: absolute; right: -7mm; bottom: -11mm; width: 19mm; height: 19mm; z-index: 10; pointer-events: none; object-fit: contain; display: none; mix-blend-mode: multiply; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));" onerror="this.style.display='none';">
+                                                    <img id="persPvcSelloInstitucionalImg" th:src="${configSistema != null and configSistema['sello_institucional_url'] != null and configSistema['sello_institucional_url'] != '' ? configSistema['sello_institucional_url'] : ''}" src="" style="position: absolute; right: -6mm; bottom: -8mm; width: 22mm; height: 22mm; z-index: 10; pointer-events: none; object-fit: contain; display: none; mix-blend-mode: multiply; filter: contrast(140%) brightness(75%) drop-shadow(0 1px 1px rgba(0,0,0,0.12));" onerror="this.style.display='none';">
                                                 </div>
                                                 
                                                 <div style="margin: 1px 0;">
@@ -409,10 +409,10 @@
                                                 </div>
                                                 
                                                 <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
-                                                    <div id="persPvcFirmaContainer" style="height: 15mm; width: 40mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
-                                                        <img id="persPvcFirmaDirectorImg" th:src="${configSistema != null and configSistema['firma_director_url'] != null and configSistema['firma_director_url'] != '' ? configSistema['firma_director_url'] : ''}" src="" style="max-height: 15mm; max-width: 40mm; object-fit: contain; display: block;" onerror="this.style.display='none';">
+                                                    <div id="persPvcFirmaContainer" style="height: 17mm; width: 44mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
+                                                        <img id="persPvcFirmaDirectorImg" th:src="${configSistema != null and configSistema['firma_director_url'] != null and configSistema['firma_director_url'] != '' ? configSistema['firma_director_url'] : ''}" src="" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; filter: contrast(140%) brightness(75%);" onerror="this.style.display='none';">
                                                     </div>
-                                                    <div style="width: 40mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
+                                                    <div style="width: 44mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
                                                     <div id="persPvcDirector" class="director-plantel" style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;" th:text="${configSistema != null and configSistema['nombre_director'] != null ? configSistema['nombre_director'] : 'Dirección del Plantel'}">JOSE MARTÍN RODEA ZUÑIGA</div>
                                                     <div style="font-size: 5.6px; color: #64748b; font-weight: 700;">Director del Plantel <span class="nombre-plantel" th:text="${configSistema != null and configSistema['nombre_plantel'] != null ? configSistema['nombre_plantel'] : 'Control Escolar'}">Control Escolar</span></div>
                                                 </div>

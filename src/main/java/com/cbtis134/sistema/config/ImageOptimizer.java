@@ -348,12 +348,15 @@ public class ImageOptimizer {
                         // Transición suave en bordes anti-aliasing
                         double factor = (dist - 28) / (80 - 28);
                         int newA = (int) Math.min(a, factor * 255);
-                        transparentDst.setRGB(x, y, (newA << 24) | (r << 16) | (g << 8) | b);
+                        int nr = (int) Math.max(0, Math.min(255, Math.round(r * 0.70)));
+                        int ng = (int) Math.max(0, Math.min(255, Math.round(g * 0.70)));
+                        int nb = (int) Math.max(0, Math.min(255, Math.round(b * 0.70)));
+                        transparentDst.setRGB(x, y, (newA << 24) | (nr << 16) | (ng << 8) | nb);
                     } else {
-                        // Tinta nítida: preservar y acentuar ligeramente contraste
-                        int nr = (int)Math.max(0, Math.min(255, Math.round(r * 0.95)));
-                        int ng = (int)Math.max(0, Math.min(255, Math.round(g * 0.95)));
-                        int nb = (int)Math.max(0, Math.min(255, Math.round(b * 0.95)));
+                        // Tinta nítida y profunda (más negrita y realista)
+                        int nr = (int) Math.max(0, Math.min(255, Math.round(r * 0.65)));
+                        int ng = (int) Math.max(0, Math.min(255, Math.round(g * 0.65)));
+                        int nb = (int) Math.max(0, Math.min(255, Math.round(b * 0.65)));
                         transparentDst.setRGB(x, y, (a << 24) | (nr << 16) | (ng << 8) | nb);
                     }
                 }
