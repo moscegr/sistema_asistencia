@@ -81,6 +81,103 @@ function comprimirLogoClientSide(file, maxDim = 280, calidad = 0.85) {
     });
 }
 
+/**
+ * Procesa una imagen de firma o sello oficial eliminando el fondo blanco/grisáceo del papel
+ * y convirtiéndola en PNG transparente con bordes suaves anti-aliasing.
+ */
+function comprimirYLimpiarFondoPng(file, maxDim = 800) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const w = img.width;
+                const h = img.height;
+                const scale = Math.min(1.0, maxDim / Math.max(w, h));
+                const nw = Math.max(1, Math.round(w * scale));
+                const nh = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = nw;
+                canvas.height = nh;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, nw, nh);
+
+                try {
+                    const imgData = ctx.getImageData(0, 0, nw, nh);
+                    const data = imgData.data;
+
+                    // Muestrear las esquinas y bordes para calibrar el tono del papel
+                    const samplePts = [
+                        [2, 2], [nw - 3, 2], [2, nh - 3], [nw - 3, nh - 3],
+                        [Math.floor(nw / 2), 2], [2, Math.floor(nh / 2)],
+                        [nw - 3, Math.floor(nh / 2)], [Math.floor(nw / 2), nh - 3]
+                    ];
+                    let bgR = 0, bgG = 0, bgB = 0, countBg = 0;
+                    for (const [px, py] of samplePts) {
+                        if (px >= 0 && px < nw && py >= 0 && py < nh) {
+                            const idx = (py * nw + px) * 4;
+                            const r = data[idx];
+                            const g = data[idx + 1];
+                            const b = data[idx + 2];
+                            const a = data[idx + 3];
+                            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                            if (a > 50 && lum > 140) {
+                                bgR += r;
+                                bgG += g;
+                                bgB += b;
+                                countBg++;
+                            }
+                        }
+                    }
+                    if (countBg > 0) {
+                        bgR = Math.round(bgR / countBg);
+                        bgG = Math.round(bgG / countBg);
+                        bgB = Math.round(bgB / countBg);
+                    } else {
+                        bgR = 250; bgG = 250; bgB = 250;
+                    }
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const a = data[i + 3];
+                        if (a === 0) continue;
+
+                        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                        const maxVal = Math.max(r, g, b);
+                        const minVal = Math.min(r, g, b);
+                        const sat = maxVal === 0 ? 0 : (maxVal - minVal) / maxVal;
+                        const distToBg = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
+
+                        if ((lum > 215 && sat < 0.18) || distToBg < 28) {
+                            data[i + 3] = 0; // Transparente total
+                        } else if (distToBg < 80 && lum > 165 && sat < 0.25) {
+                            const factor = (distToBg - 28) / (80 - 28);
+                            data[i + 3] = Math.round(Math.min(a, factor * 255));
+                        } else {
+                            // Tinta nítida
+                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.95)));
+                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.95)));
+                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.95)));
+                        }
+                    }
+
+                    ctx.putImageData(imgData, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                } catch(err) {
+                    resolve(canvas.toDataURL('image/png'));
+                }
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+window.comprimirYLimpiarFondoPng = comprimirYLimpiarFondoPng;
+
 async function previewLogoPlantel(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -105,7 +202,7 @@ async function previewFirmaDirector(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
+    const base64Opt = await comprimirYLimpiarFondoPng(file, 800);
     const imgPrev = document.getElementById('imgPreviewFirmaDirector');
     if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
 }
@@ -115,7 +212,7 @@ async function previewSelloInstitucional(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
+    const base64Opt = await comprimirYLimpiarFondoPng(file, 800);
     const imgPrev = document.getElementById('imgPreviewSelloInstitucional');
     if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
 }
@@ -237,7 +334,7 @@ if (formInst) {
         if (imgPreviewFirma && imgPreviewFirma.dataset.nuevaImagen && imgPreviewFirma.dataset.nuevaImagen.startsWith('data:image')) {
             firmaDBase64 = imgPreviewFirma.dataset.nuevaImagen;
         } else if (inputFirmaD && inputFirmaD.files && inputFirmaD.files[0]) {
-            firmaDBase64 = await comprimirLogoClientSide(inputFirmaD.files[0], 800, 0.90);
+            firmaDBase64 = await comprimirYLimpiarFondoPng(inputFirmaD.files[0], 800);
         } else if (imgPreviewFirma && imgPreviewFirma.src && imgPreviewFirma.src.startsWith('data:image')) {
             firmaDBase64 = imgPreviewFirma.src;
         }
@@ -251,7 +348,7 @@ if (formInst) {
         if (imgPreviewSello && imgPreviewSello.dataset.nuevaImagen && imgPreviewSello.dataset.nuevaImagen.startsWith('data:image')) {
             selloBase64 = imgPreviewSello.dataset.nuevaImagen;
         } else if (inputSello && inputSello.files && inputSello.files[0]) {
-            selloBase64 = await comprimirLogoClientSide(inputSello.files[0], 800, 0.90);
+            selloBase64 = await comprimirYLimpiarFondoPng(inputSello.files[0], 800);
         } else if (imgPreviewSello && imgPreviewSello.src && imgPreviewSello.src.startsWith('data:image')) {
             selloBase64 = imgPreviewSello.src;
         }

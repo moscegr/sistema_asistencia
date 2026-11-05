@@ -119,9 +119,12 @@ public class ImageOptimizer {
             return dataUriOrUrl;
         }
         try {
-            boolean esPngOriginal = dataUriOrUrl.startsWith("data:image/png") || dataUriOrUrl.startsWith("data:image/webp");
+            boolean esFirmaOSello = identificador != null && (identificador.contains("firma") || identificador.contains("sello"));
+            boolean esPngOriginal = esFirmaOSello || dataUriOrUrl.startsWith("data:image/png") || dataUriOrUrl.startsWith("data:image/webp");
             boolean[] salioPng = new boolean[]{false};
-            byte[] imgBytes = procesarImagenBytes(dataUriOrUrl, 1200, esPngOriginal, 0.95f, salioPng);
+            byte[] imgBytes = esFirmaOSello
+                    ? procesarFirmaOSelloTransparenteBytes(dataUriOrUrl, 1000)
+                    : procesarImagenBytes(dataUriOrUrl, 1200, esPngOriginal, 0.95f, salioPng);
             if (imgBytes == null || imgBytes.length == 0) {
                 imgBytes = decodificarBase64Seguro(dataUriOrUrl);
             }
@@ -132,7 +135,7 @@ public class ImageOptimizer {
             }
             final String safeId = tempId;
 
-            String ext = (salioPng != null && salioPng.length > 0 && salioPng[0]) ? ".png" : (esPngOriginal ? ".png" : ".jpg");
+            String ext = esFirmaOSello ? ".png" : ((salioPng != null && salioPng.length > 0 && salioPng[0]) ? ".png" : (esPngOriginal ? ".png" : ".jpg"));
             long version = System.currentTimeMillis();
             String fileName = safeId + "_" + version + ext;
 
@@ -241,9 +244,12 @@ public class ImageOptimizer {
             return false;
         }
         try {
-            boolean esPng = dataUri.startsWith("data:image/png") || dataUri.startsWith("data:image/webp");
+            boolean esFirmaOSello = nombreArchivoConExt.contains("firma") || nombreArchivoConExt.contains("sello");
+            boolean esPng = esFirmaOSello || dataUri.startsWith("data:image/png") || dataUri.startsWith("data:image/webp");
             boolean[] outPng = new boolean[]{false};
-            byte[] bytes = procesarImagenBytes(dataUri, 1200, esPng, 0.95f, outPng);
+            byte[] bytes = esFirmaOSello
+                    ? procesarFirmaOSelloTransparenteBytes(dataUri, 1000)
+                    : procesarImagenBytes(dataUri, 1200, esPng, 0.95f, outPng);
             if (bytes == null || bytes.length == 0) {
                 bytes = decodificarBase64Seguro(dataUri);
             }
@@ -260,6 +266,119 @@ public class ImageOptimizer {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Procesa una fotografía de firma o sello oficial eliminando automáticamente el fondo
+     * blanco/gris del papel y convirtiendo los píxeles claros en transparencia alfa,
+     * devolviendo los bytes en formato PNG nítido.
+     */
+    public static byte[] procesarFirmaOSelloTransparenteBytes(String dataUri, int maxDim) {
+        try {
+            byte[] rawBytes = decodificarBase64Seguro(dataUri);
+            if (rawBytes == null || rawBytes.length == 0) return null;
+
+            BufferedImage src = ImageIO.read(new ByteArrayInputStream(rawBytes));
+            if (src == null) return rawBytes;
+
+            int w = src.getWidth();
+            int h = src.getHeight();
+            if (w <= 0 || h <= 0) return rawBytes;
+
+            double scale = Math.min(1.0, (double) maxDim / Math.max(w, h));
+            int nw = Math.max(1, (int) Math.round(w * scale));
+            int nh = Math.max(1, (int) Math.round(h * scale));
+
+            BufferedImage scaled = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = scaled.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.drawImage(src, 0, 0, nw, nh, null);
+            g2d.dispose();
+
+            // Muestrear las esquinas y bordes para calibrar el tono del papel
+            int[][] samplePts = {
+                {2, 2}, {nw - 3, 2}, {2, nh - 3}, {nw - 3, nh - 3},
+                {nw / 2, 2}, {2, nh / 2}, {nw - 3, nh / 2}, {nw / 2, nh - 3}
+            };
+            long sumR = 0, sumG = 0, sumB = 0;
+            int countBg = 0;
+            for (int[] pt : samplePts) {
+                int px = pt[0], py = pt[1];
+                if (px >= 0 && px < nw && py >= 0 && py < nh) {
+                    int rgb = scaled.getRGB(px, py);
+                    int a = (rgb >> 24) & 0xff;
+                    int r = (rgb >> 16) & 0xff;
+                    int g = (rgb >> 8) & 0xff;
+                    int b = rgb & 0xff;
+                    double lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                    if (a > 50 && lum > 140) {
+                        sumR += r; sumG += g; sumB += b;
+                        countBg++;
+                    }
+                }
+            }
+            int bgR = countBg > 0 ? (int)(sumR / countBg) : 250;
+            int bgG = countBg > 0 ? (int)(sumG / countBg) : 250;
+            int bgB = countBg > 0 ? (int)(sumB / countBg) : 250;
+
+            BufferedImage transparentDst = new BufferedImage(nw, nh, BufferedImage.TYPE_INT_ARGB);
+            for (int y = 0; y < nh; y++) {
+                for (int x = 0; x < nw; x++) {
+                    int rgb = scaled.getRGB(x, y);
+                    int a = (rgb >> 24) & 0xff;
+                    int r = (rgb >> 16) & 0xff;
+                    int g = (rgb >> 8) & 0xff;
+                    int b = rgb & 0xff;
+                    if (a == 0) {
+                        transparentDst.setRGB(x, y, 0);
+                        continue;
+                    }
+
+                    double lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                    int maxC = Math.max(r, Math.max(g, b));
+                    int minC = Math.min(r, Math.min(g, b));
+                    double sat = maxC == 0 ? 0 : (double)(maxC - minC) / maxC;
+                    double dist = Math.sqrt((r - bgR)*(r - bgR) + (g - bgG)*(g - bgG) + (b - bgB)*(b - bgB));
+
+                    if ((lum > 215 && sat < 0.18) || dist < 28) {
+                        transparentDst.setRGB(x, y, 0); // Papel blanco/gris -> 100% transparente
+                    } else if (dist < 80 && lum > 165 && sat < 0.25) {
+                        // Transición suave en bordes anti-aliasing
+                        double factor = (dist - 28) / (80 - 28);
+                        int newA = (int) Math.min(a, factor * 255);
+                        transparentDst.setRGB(x, y, (newA << 24) | (r << 16) | (g << 8) | b);
+                    } else {
+                        // Tinta nítida: preservar y acentuar ligeramente contraste
+                        int nr = (int)Math.max(0, Math.min(255, Math.round(r * 0.95)));
+                        int ng = (int)Math.max(0, Math.min(255, Math.round(g * 0.95)));
+                        int nb = (int)Math.max(0, Math.min(255, Math.round(b * 0.95)));
+                        transparentDst.setRGB(x, y, (a << 24) | (nr << 16) | (ng << 8) | nb);
+                    }
+                }
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(transparentDst, "png", baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Convierte una cadena Data URI a formato PNG transparente si corresponde a firma o sello.
+     */
+    public static String convertirFirmaOSelloBase64Transparente(String dataUri) {
+        if (!esBase64Imagen(dataUri)) return dataUri;
+        try {
+            byte[] pngBytes = procesarFirmaOSelloTransparenteBytes(dataUri, 800);
+            if (pngBytes != null && pngBytes.length > 0) {
+                return "data:image/png;base64," + Base64.getEncoder().encodeToString(pngBytes);
+            }
+        } catch (Exception ignored) {}
+        return dataUri;
     }
 
     public static String sanitizarUrlOExistente(String url, String fallbackDefault) {

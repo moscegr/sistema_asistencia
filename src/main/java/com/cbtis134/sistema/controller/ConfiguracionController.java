@@ -260,8 +260,9 @@ public class ConfiguracionController {
             if (body.containsKey("firma_director_url") && body.get("firma_director_url") != null) {
                 String firmaD = body.get("firma_director_url").toString();
                 if (ImageOptimizer.esBase64Imagen(firmaD)) {
-                    body.put("firma_director_base64", firmaD);
-                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(firmaD, "firma_director");
+                    String transparentB64 = ImageOptimizer.convertirFirmaOSelloBase64Transparente(firmaD);
+                    body.put("firma_director_base64", transparentB64);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(transparentB64, "firma_director");
                     body.put("firma_director_url", urlDisco);
                 } else {
                     if (firmaD.contains("/uploads/")) {
@@ -275,8 +276,9 @@ public class ConfiguracionController {
             if (body.containsKey("sello_institucional_url") && body.get("sello_institucional_url") != null) {
                 String selloI = body.get("sello_institucional_url").toString();
                 if (ImageOptimizer.esBase64Imagen(selloI)) {
-                    body.put("sello_institucional_base64", selloI);
-                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(selloI, "sello_institucional");
+                    String transparentB64 = ImageOptimizer.convertirFirmaOSelloBase64Transparente(selloI);
+                    body.put("sello_institucional_base64", transparentB64);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(transparentB64, "sello_institucional");
                     body.put("sello_institucional_url", urlDisco);
                 } else {
                     if (selloI.contains("/uploads/")) {
