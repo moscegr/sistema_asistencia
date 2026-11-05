@@ -100,6 +100,21 @@ public class ConfiguracionController {
                 }
             }
 
+            String firmaD = doc.getString("firma_director_url");
+            if (ImageOptimizer.esBase64Imagen(firmaD)) {
+                doc.put("firma_director_base64", firmaD);
+                doc.put("firma_director_url", ImageOptimizer.guardarLogoEnDisco(firmaD, "firma_director"));
+                modificado = true;
+            } else if (doc.containsKey("firma_director_base64") && ImageOptimizer.esBase64Imagen(doc.getString("firma_director_base64"))) {
+                String urlF = doc.getString("firma_director_url");
+                if (urlF != null && urlF.startsWith("/uploads/")) {
+                    String cleanName = urlF.substring(urlF.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, doc.getString("firma_director_base64"));
+                }
+            }
+
             if (modificado) {
                 try {
                     mongoTemplate.save(doc, "configuracion");
@@ -225,6 +240,21 @@ public class ConfiguracionController {
                         logoI = logoI.substring(logoI.indexOf("/img/"));
                     }
                     body.put("logo_inicio_url", logoI);
+                }
+            }
+            if (body.containsKey("firma_director_url") && body.get("firma_director_url") != null) {
+                String firmaD = body.get("firma_director_url").toString();
+                if (ImageOptimizer.esBase64Imagen(firmaD)) {
+                    body.put("firma_director_base64", firmaD);
+                    String urlDisco = ImageOptimizer.guardarLogoEnDisco(firmaD, "firma_director");
+                    body.put("firma_director_url", urlDisco);
+                } else {
+                    if (firmaD.contains("/uploads/")) {
+                        firmaD = firmaD.substring(firmaD.indexOf("/uploads/"));
+                    } else if (firmaD.contains("/img/")) {
+                        firmaD = firmaD.substring(firmaD.indexOf("/img/"));
+                    }
+                    body.put("firma_director_url", firmaD);
                 }
             }
             VistaController.invalidarCacheConfig();

@@ -101,6 +101,16 @@ async function previewLogoInicio(event) {
 }
 window.previewLogoInicio = previewLogoInicio;
 
+async function previewFirmaDirector(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const base64Opt = await comprimirLogoClientSide(file, 800, 0.90);
+    const imgPrev = document.getElementById('imgPreviewFirmaDirector');
+    if (imgPrev && base64Opt) { imgPrev.src = base64Opt; imgPrev.dataset.nuevaImagen = base64Opt; }
+}
+window.previewFirmaDirector = previewFirmaDirector;
+
 async function cargarDatosInstitucionales() {
     try {
         const res = await fetch('/api/configuracion/sistema');
@@ -136,6 +146,16 @@ async function cargarDatosInstitucionales() {
                     imgI.src = data.logo_inicio_url.startsWith('data:') ? data.logo_inicio_url : (data.logo_inicio_url + sep + 't=' + Date.now());
                 } else {
                     imgI.src = '/img/tigres.png';
+                }
+            }
+            const imgF = document.getElementById('imgPreviewFirmaDirector');
+            if (imgF) {
+                imgF.onerror = () => { imgF.src = '/img/default_avatar.png'; };
+                if (data.firma_director_url && data.firma_director_url.trim() !== '') {
+                    const sep = data.firma_director_url.includes('?') ? '&' : '?';
+                    imgF.src = data.firma_director_url.startsWith('data:') ? data.firma_director_url : (data.firma_director_url + sep + 't=' + Date.now());
+                } else {
+                    imgF.src = '/img/default_avatar.png';
                 }
             }
         }
@@ -191,6 +211,20 @@ if (formInst) {
             actualizaciones.logo_inicio_url = logoIBase64;
         }
 
+        const inputFirmaD = document.getElementById('inputFirmaDirectorConfig');
+        const imgPreviewFirma = document.getElementById('imgPreviewFirmaDirector');
+        let firmaDBase64 = null;
+        if (imgPreviewFirma && imgPreviewFirma.dataset.nuevaImagen && imgPreviewFirma.dataset.nuevaImagen.startsWith('data:image')) {
+            firmaDBase64 = imgPreviewFirma.dataset.nuevaImagen;
+        } else if (inputFirmaD && inputFirmaD.files && inputFirmaD.files[0]) {
+            firmaDBase64 = await comprimirLogoClientSide(inputFirmaD.files[0], 800, 0.90);
+        } else if (imgPreviewFirma && imgPreviewFirma.src && imgPreviewFirma.src.startsWith('data:image')) {
+            firmaDBase64 = imgPreviewFirma.src;
+        }
+        if (firmaDBase64) {
+            actualizaciones.firma_director_url = firmaDBase64;
+        }
+
         try {
             const res = await fetch('/api/configuracion/sistema', {
                 method: 'POST',
@@ -207,6 +241,7 @@ if (formInst) {
 
             if (imgPreview) delete imgPreview.dataset.nuevaImagen;
             if (imgPreviewInicio) delete imgPreviewInicio.dataset.nuevaImagen;
+            if (imgPreviewFirma) delete imgPreviewFirma.dataset.nuevaImagen;
             try { sessionStorage.removeItem('cfg_sistema'); } catch(e) {}
 
             // Actualizar vistas locales de inmediato con lo que respondió el servidor
@@ -224,6 +259,10 @@ if (formInst) {
                 document.querySelectorAll('.img-logo-inicio, #headerMascotaLogo').forEach(img => {
                     if (img.tagName === 'IMG') img.src = nuevaUrlI;
                 });
+            }
+            if (respData.firma_director_url) {
+                const nuevaUrlF = respData.firma_director_url.startsWith('data:') ? respData.firma_director_url : (respData.firma_director_url + bust);
+                if (imgPreviewFirma) imgPreviewFirma.src = nuevaUrlF;
             }
 
             Swal.fire("Éxito", "Datos institucionales y logotipos guardados correctamente en MongoDB.", "success");

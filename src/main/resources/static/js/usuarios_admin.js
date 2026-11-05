@@ -1430,6 +1430,26 @@ async function abrirModalGafeteCredencialPersonal(id) {
         if (qrEl) qrEl.src = qrImg;
     });
 
+    if (document.getElementById('persPvcDirector')) {
+        document.getElementById('persPvcDirector').innerText = cfgSistemaPersonal.nombre_director || "Dirección del Plantel";
+    }
+    const persFirmaImg = document.getElementById('persPvcFirmaDirectorImg');
+    if (persFirmaImg) {
+        const firmaUrl = cfgSistemaPersonal.firma_director_url || cfgSistemaPersonal.firma_director_base64 || '';
+        if (firmaUrl) {
+            persFirmaImg.src = firmaUrl;
+            persFirmaImg.style.display = 'block';
+        } else {
+            persFirmaImg.style.display = 'none';
+        }
+    }
+    if (document.getElementById('persPvcTelefono')) {
+        document.getElementById('persPvcTelefono').innerText = cfgSistemaPersonal.telefono_escuela || '';
+    }
+    if (document.getElementById('persPvcDireccion')) {
+        document.getElementById('persPvcDireccion').innerText = cfgSistemaPersonal.direccion_plantel || '';
+    }
+
     cambiarCaraPreviaPersonalPVC('frente');
 
     const modalEl = document.getElementById('modalGafeteCredencialPersonal');
@@ -2026,6 +2046,9 @@ async function generarCanvasCredencialPersonalReverso(user) {
         const nomPlantel = cfgSistemaPersonal.nombre_plantel || 'CBTis 134';
         const director = cfgSistemaPersonal.nombre_director || 'JOSE MARTÍN RODEA ZUÑIGA';
         const cct = cfgSistemaPersonal.cct_escuela || '12DCT0001L';
+        const telPlantel = cfgSistemaPersonal.telefono_escuela || '';
+        const dirPlantel = cfgSistemaPersonal.direccion_plantel || '';
+        const firmaDirectorSrc = cfgSistemaPersonal.firma_director_url || cfgSistemaPersonal.firma_director_base64 || '';
 
         container.innerHTML = `
             <div id="cardPersReversoTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
@@ -2035,27 +2058,34 @@ async function generarCanvasCredencialPersonalReverso(user) {
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ffffff; object-fit: contain; background: #fff; padding: 1px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
                 
-                <div style="padding: 4px 8px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
-                    <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 10px; padding: 4px; box-shadow: 0 3px 8px rgba(123, 27, 55, 0.15);">
-                        <div style="width: 32mm; height: 32mm; margin: 0 auto;">
+                <div style="padding: 3px 6px; flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center;">
+                    <div style="background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; padding: 3px; box-shadow: 0 2px 6px rgba(123, 27, 55, 0.15);">
+                        <div style="width: 27mm; height: 27mm; margin: 0 auto;">
                             <img src="${qrImgData}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated;">
                         </div>
-                        <div style="font-size: 5.5px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 2px;">ESCANEAME PARA ACCESO</div>
+                        <div style="font-size: 5.2px; font-weight: 800; color: #7b1b37; letter-spacing: 0.5px; margin-top: 1px;">ESCANEAME PARA ACCESO</div>
                     </div>
                     
-                    <div style="font-size: 5.8px; font-weight: 600; color: #475569; line-height: 1.3; margin: 2px auto; max-width: 48mm;">
+                    <div style="font-size: 5.5px; font-weight: 600; color: #475569; line-height: 1.25; margin: 1.5px auto; max-width: 48mm;">
                         Esta credencial es personal e intransferible. Acredita al portador como personal adscrito al plantel educativo ${nomPlantel}.
                     </div>
                     
-                    <div style="width: 100%; margin-top: 2px;">
+                    <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
+                        <div style="height: 11mm; width: 34mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
+                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 11mm; max-width: 34mm; object-fit: contain; display: block;" onerror="this.style.display='none';">` : ''}
+                        </div>
                         <div style="width: 36mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
                         <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>
-                        <div style="font-size: 5.8px; color: #64748b; font-weight: 700;">Director del Plantel ${nomPlantel}</div>
+                        <div style="font-size: 5.6px; color: #64748b; font-weight: 700;">Director del Plantel ${nomPlantel}</div>
                     </div>
                 </div>
                 
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 4px 6px; border-top: 2px solid #d4af37; border-radius: 12px 12px 0 0;">
-                    <div style="font-size: 5.5px; font-weight: 800; letter-spacing: 0.4px;">CLAVE CCT: ${cct}</div>
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); color: #ffffff; padding: 3px 5px; border-top: 2px solid #d4af37; border-radius: 10px 10px 0 0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 5.2px; font-weight: 800; letter-spacing: 0.3px; margin-bottom: 1px;">
+                        <span>CLAVE CCT: ${cct}</span>
+                        ${telPlantel ? `<span>TEL: ${telPlantel}</span>` : ''}
+                    </div>
+                    ${dirPlantel ? `<div style="font-size: 4.5px; font-weight: 600; color: #ffe699; line-height: 1.2; text-align: center; word-break: break-word;">${dirPlantel}</div>` : ''}
                 </div>
             </div>
         `;

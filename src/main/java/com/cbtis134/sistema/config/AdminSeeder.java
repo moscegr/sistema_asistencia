@@ -369,6 +369,21 @@ public class AdminSeeder implements ApplicationRunner {
                     ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, docSistema.getString("logo_inicio_base64"));
                 }
             }
+
+            if (ImageOptimizer.esBase64Imagen(docSistema.getString("firma_director_url"))) {
+                String b64 = docSistema.getString("firma_director_url");
+                docSistema.put("firma_director_base64", b64);
+                docSistema.put("firma_director_url", ImageOptimizer.guardarLogoEnDisco(b64, "firma_director"));
+                mod = true;
+            } else if (docSistema.containsKey("firma_director_base64") && ImageOptimizer.esBase64Imagen(docSistema.getString("firma_director_base64"))) {
+                String urlF = docSistema.getString("firma_director_url");
+                if (urlF != null && urlF.startsWith("/uploads/")) {
+                    String cleanName = urlF.substring(urlF.lastIndexOf('/') + 1);
+                    int qIdx = cleanName.indexOf('?');
+                    if (qIdx >= 0) cleanName = cleanName.substring(0, qIdx);
+                    ImageOptimizer.restaurarArchivoEnDisco("logos", cleanName, docSistema.getString("firma_director_base64"));
+                }
+            }
             if (mod) {
                 mongoTemplate.save(docSistema, col);
                 System.out.println("-> [configuracion] Sincronización institucional actualizada en MongoDB");
