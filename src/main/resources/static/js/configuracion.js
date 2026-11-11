@@ -106,6 +106,25 @@ function comprimirYLimpiarFondoPng(file, maxDim = 800) {
                     const imgData = ctx.getImageData(0, 0, nw, nh);
                     const data = imgData.data;
 
+                    // 1. Detectar si la imagen ya cuenta con transparencia alfa (PNG/WebP recortado)
+                    let pixelesTransparentes = 0;
+                    const pasoMuestreo = 4;
+                    let totalMuestreados = 0;
+                    for (let i = 3; i < data.length; i += pasoMuestreo * 4) {
+                        totalMuestreados++;
+                        if (data[i] < 50) {
+                            pixelesTransparentes++;
+                        }
+                    }
+                    const esYaTransparente = totalMuestreados > 0 && (pixelesTransparentes / totalMuestreados) > 0.02;
+
+                    // Si ya es un PNG transparente, preservamos intactos sus colores y transparencia (azul, negro, etc.)
+                    if (esYaTransparente) {
+                        resolve(canvas.toDataURL('image/png'));
+                        return;
+                    }
+
+                    // 2. Si es una foto sobre papel blanco o grisáceo, procesamos y eliminamos el fondo
                     // Muestrear las esquinas y bordes para calibrar el tono del papel
                     const samplePts = [
                         [2, 2], [nw - 3, 2], [2, nh - 3], [nw - 3, nh - 3],
@@ -150,19 +169,30 @@ function comprimirYLimpiarFondoPng(file, maxDim = 800) {
                         const sat = maxVal === 0 ? 0 : (maxVal - minVal) / maxVal;
                         const distToBg = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
 
-                        if ((lum > 215 && sat < 0.18) || distToBg < 28) {
-                            data[i + 3] = 0; // Transparente total
-                        } else if (distToBg < 80 && lum > 165 && sat < 0.25) {
-                            const factor = (distToBg - 28) / (80 - 28);
+                        // Detección de tinta coloreada (azul, cyan, rojo, etc.) vs papel o tinta negra
+                        const esTintaColor = sat >= 0.16 || (b > r + 12 && b > g) || (r > g + 15 && r > b + 15);
+
+                        if ((lum > 215 && sat < 0.15) || (distToBg < 28 && sat < 0.15)) {
+                            data[i + 3] = 0; // Transparente total (papel de fondo)
+                        } else if (distToBg < 75 && lum > 165 && sat < 0.20 && !esTintaColor) {
+                            // Bordes suaves anti-aliasing para trazos neutros
+                            const factor = (distToBg - 28) / (75 - 28);
                             data[i + 3] = Math.round(Math.min(a, factor * 255));
-                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.70)));
-                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.70)));
-                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.70)));
+                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.85)));
+                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.85)));
+                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.85)));
                         } else {
-                            // Tinta nítida y profunda (más negrita y realista)
-                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.65)));
-                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.65)));
-                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.65)));
+                            if (esTintaColor) {
+                                // Tinta con color (ej. sello azul): Respetar color original exacto
+                                data[i] = r;
+                                data[i + 1] = g;
+                                data[i + 2] = b;
+                            } else {
+                                // Tinta negra: trazo nítido y limpio sin aplastar
+                                data[i] = Math.max(0, Math.min(255, Math.round(r * 0.85)));
+                                data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.85)));
+                                data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.85)));
+                            }
                         }
                     }
 
