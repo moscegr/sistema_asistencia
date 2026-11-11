@@ -842,7 +842,7 @@ function mostrarResultadoPersonal(persona, accion) {
                 </div>
                 <h4 class="fw-bold mb-1 text-dark">${persona.nombre}</h4>
                 <div class="mb-2">
-                    <span class="badge text-white px-3 py-1 fs-6" style="${rol === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${rol}</span>
+                    <span class="badge text-white px-3 py-1 fs-6" style="${rol === 'DOCENTE' ? 'background-color:#7b1b37 !important;' : 'background-color:#1e3a5f !important;'}">${rol}</span>
                 </div>
                 <div class="p-2 bg-light rounded-3 text-secondary mt-3">
                     <div class="row g-1 text-center small">
@@ -1142,7 +1142,7 @@ function renderizarListaFiltrada(filtro) {
         const esAlumno = (item.tipo === 'ALUMNO');
         const rolBadge = esAlumno 
             ? '<span class="badge bg-secondary me-1" style="font-size: 0.7rem;">ALUMNO</span>'
-            : `<span class="badge me-1 text-white" style="font-size: 0.7rem; ${item.tipo === 'DOCENTE' ? 'background-color:#6f42c1 !important;' : 'background-color:#0d6efd !important;'}">${item.tipo}</span>`;
+            : `<span class="badge me-1 text-white" style="font-size: 0.7rem; ${item.tipo === 'DOCENTE' ? 'background-color:#7b1b37 !important;' : 'background-color:#1e3a5f !important;'}">${item.tipo}</span>`;
 
         // Datos del tutor (solo para alumnos)
         let tutorHtml = '';

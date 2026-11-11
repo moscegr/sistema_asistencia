@@ -1419,10 +1419,9 @@ async function abrirModalGafeteCredencialPersonal(id) {
     const persPvcRolBadge = document.getElementById('persPvcRolBadge');
     if (persPvcRolBadge) {
         persPvcRolBadge.innerText = (user.rol || 'DOCENTE').toUpperCase();
-        if (user.rol === 'DOCENTE') {
-            persPvcRolBadge.style.backgroundColor = '#6f42c1';
-        } else if (user.rol === 'ADMINISTRATIVO') {
-            persPvcRolBadge.style.backgroundColor = '#0d6efd';
+        const rUpper = (user.rol || 'DOCENTE').toUpperCase();
+        if (rUpper === 'ADMINISTRATIVO') {
+            persPvcRolBadge.style.backgroundColor = '#1e3a5f';
         } else {
             persPvcRolBadge.style.backgroundColor = '#7b1b37';
         }
@@ -1705,7 +1704,7 @@ async function generarImagenGafetePersonal(user) {
                     ctx.fillText(rfc, 200, 368);
 
                     // Badge de Rol
-                    ctx.fillStyle = (rol === 'DOCENTE') ? "#6f42c1" : ((rol === 'ADMINISTRATIVO') ? "#0d6efd" : "#7b1b37");
+                    ctx.fillStyle = (rol === 'ADMINISTRATIVO') ? "#1e3a5f" : "#7b1b37";
                     ctx.fillRect(70, 390, 260, 32);
                     ctx.fillStyle = "#FFFFFF";
                     ctx.font = "bold 16px Arial";
@@ -1949,7 +1948,7 @@ async function generarCanvasCredencialPersonalFrente(user) {
         const turno = user.turno || 'Matutino';
         const fotoSrcOriginal = obtenerUrlFotoPersonalAltaResolucion(user);
         const fotoSrc = await recortarFotoAspectoHD(fotoSrcOriginal, 26, 32);
-        const colorRol = (rol === 'DOCENTE') ? '#6f42c1' : ((rol === 'ADMINISTRATIVO') ? '#0d6efd' : '#7b1b37');
+        const colorRol = (rol === 'ADMINISTRATIVO') ? '#1e3a5f' : '#7b1b37';
 
         const logoEscuelaSrc = obtenerLogoAltaResolucionPersonal(cfgSistemaPersonal.logo_plantel_url, 'plantel');
         const logoInicioSrc = obtenerLogoAltaResolucionPersonal(cfgSistemaPersonal.logo_inicio_url, 'inicio');
@@ -1959,11 +1958,11 @@ async function generarCanvasCredencialPersonalFrente(user) {
 
         container.innerHTML = `
             <div id="cardPersFrenteTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px;">
-                        <div style="font-size: 11.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.1; margin-bottom: 1.5px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE PERSONAL</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CREDENCIAL DE PERSONAL</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
@@ -1980,8 +1979,8 @@ async function generarCanvasCredencialPersonalFrente(user) {
                     
                     <div style="margin: 1px 0;">
                         <div style="font-size: 9.5px; font-weight: 900; color: #0f172a; text-transform: uppercase; line-height: 1.15; padding: 0 2px;">${nombre}</div>
-                        <div style="margin-top: 1.5px;">
-                            <span style="background: ${colorRol}; color: #ffffff; font-size: 6.5px; font-weight: 800; padding: 1.5px 8px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase;">${rol}</span>
+                        <div style="margin-top: 2px;">
+                            <span style="background: ${colorRol}; color: #ffffff; font-size: 6.5px; font-weight: 800; padding: 2px 10px; border-radius: 10px; letter-spacing: 0.5px; text-transform: uppercase; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.12);">${rol}</span>
                         </div>
                     </div>
                     
@@ -2069,11 +2068,11 @@ async function generarCanvasCredencialPersonalReverso(user) {
 
         container.innerHTML = `
             <div id="cardPersReversoTemp" style="width: 54mm; height: 85.6mm; background: #ffffff; border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px;">
-                        <div style="font-size: 11.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.1; margin-bottom: 1.5px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CONTROL Y ACCESO BIOMÉTRICO</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CONTROL Y ACCESO BIOMÉTRICO</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>

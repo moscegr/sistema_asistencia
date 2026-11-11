@@ -882,11 +882,11 @@ async function generarCanvasCredencialFrente(alumno) {
 
         container.innerHTML = `
             <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px;">
-                        <div style="font-size: 11.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.1; margin-bottom: 1.5px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CREDENCIAL DE ESTUDIANTE</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
@@ -1003,11 +1003,11 @@ async function generarCanvasCredencialReverso(alumno) {
 
         container.innerHTML = `
             <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px;">
-                        <div style="font-size: 11.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.1; margin-bottom: 1.5px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; margin-top: 1px;">CONTROL Y ACCESO VIGILANTE</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CONTROL Y ACCESO VIGILANTE</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
