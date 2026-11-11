@@ -882,11 +882,11 @@ async function generarCanvasCredencialFrente(alumno) {
 
         container.innerHTML = `
             <div id="cardFrenteTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 2.5px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CREDENCIAL DE ESTUDIANTE</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px;">
+                        <div style="font-size: 10.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1; margin: 0;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); height: 11px; padding: 0 8px 0.5px 8px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #ffe699; letter-spacing: 0.5px; line-height: 1; box-sizing: border-box;">CREDENCIAL DE ESTUDIANTE</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
@@ -897,7 +897,7 @@ async function generarCanvasCredencialFrente(alumno) {
                             <img src="${fotoSrc}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';" />
                         </div>
                         ${selloInstitucionalSrc ? `
-                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -6mm; bottom: -8mm; width: 22mm; height: 22mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.08));" onerror="this.style.display='none';">
+                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -4mm; bottom: -1mm; width: 20mm; height: 20mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.08));" onerror="this.style.display='none';">
                         ` : ''}
                     </div>
                     
@@ -908,20 +908,20 @@ async function generarCanvasCredencialFrente(alumno) {
                         </div>
                     </div>
                     
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 5px 7px; text-align: left; font-size: 6.5px; line-height: 1.45;">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 7px; text-align: left; font-size: 6.5px; line-height: 1.45;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
                             <span style="color: #64748b; font-weight: 700;">MATRÍCULA:</span>
                             <span style="color: #7b1b37; font-weight: 900; font-size: 8px; letter-spacing: 0.5px;">${mat}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
                             <span style="color: #64748b; font-weight: 700;">CARRERA:</span>
                             <span style="color: #0f172a; font-weight: 800; text-align: right; max-width: 65%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${alumno.especialidad || 'N/A'}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; margin-bottom: 2px;">
                             <span style="color: #64748b; font-weight: 700;">GRUPO / TURNO:</span>
                             <span style="color: #334155; font-weight: 800;">${alumno.grado || ''}° "${alumno.grupo || ''}" • ${alumno.turno || 'Matutino'}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: #64748b; font-weight: 700;">CURP:</span>
                             <span style="color: #334155; font-weight: 700; font-family: monospace; font-size: 6.5px;">${alumno.curp || 'N/A'}</span>
                         </div>
@@ -1003,11 +1003,11 @@ async function generarCanvasCredencialReverso(alumno) {
 
         container.innerHTML = `
             <div id="cardReversoTemp" style="width: 54mm; height: 85.6mm; ${estiloFondoCustom} border: 1.5px solid #7b1b37; border-radius: 8px; position: relative; box-shadow: none; overflow: hidden; font-family: 'DM Sans', Arial, sans-serif; text-align: center; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 4px 8px 3px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
+                <div style="background: linear-gradient(135deg, #7b1b37 0%, #4a0d1e 100%); height: 12mm; min-height: 12mm; max-height: 12mm; box-sizing: border-box; padding: 2.5px 8px; color: white; display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #d4af37; border-radius: 0 0 12px 12px;">
                     <img src="${logoEscuelaSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('logo_aniversario.jpg')) this.src='/img/logo_aniversario.jpg';">
-                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                        <div style="font-size: 11px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1.15; margin-top: 2px; margin-bottom: 2px;">${nomPlantel}</div>
-                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 8px; display: inline-block; color: #ffe699; letter-spacing: 0.5px; line-height: 1.1;">CONTROL Y ACCESO VIGILANTE</div>
+                    <div style="text-align: center; flex: 1; margin: 0 4px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px;">
+                        <div style="font-size: 10.5px; font-weight: 900; letter-spacing: 0.6px; text-transform: uppercase; color: #ffffff; line-height: 1; margin: 0;">${nomPlantel}</div>
+                        <div style="font-size: 5.5px; font-weight: 800; background: rgba(255,255,255,0.22); height: 11px; padding: 0 8px 0.5px 8px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #ffe699; letter-spacing: 0.5px; line-height: 1; box-sizing: border-box;">CONTROL Y ACCESO VIGILANTE</div>
                     </div>
                     <img src="${logoInicioSrc}" crossorigin="anonymous" style="width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #ffffff; object-fit: contain; background: #fff; padding: 1.5px; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('tigres.png')) this.src='/img/tigres.png';">
                 </div>
