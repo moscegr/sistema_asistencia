@@ -1973,7 +1973,7 @@ async function generarCanvasCredencialPersonalFrente(user) {
                             <img src="${fotoSrc}" crossorigin="anonymous" style="width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: -webkit-optimize-contrast; image-rendering: high-quality;" onerror="if(!this.src.includes('default_avatar.png')) this.src='/img/default_avatar.png';" />
                         </div>
                         ${selloInstitucionalSrc ? `
-                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -4mm; bottom: -1mm; width: 20mm; height: 20mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.08));" onerror="this.style.display='none';">
+                            <img src="${selloInstitucionalSrc}" crossorigin="anonymous" style="position: absolute; right: -10mm; bottom: -5.5mm; width: 20mm; height: 20mm; z-index: 10; pointer-events: none; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.08));" onerror="this.style.display='none';">
                         ` : ''}
                     </div>
                     
