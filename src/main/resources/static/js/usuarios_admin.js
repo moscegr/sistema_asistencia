@@ -2091,7 +2091,7 @@ async function generarCanvasCredencialPersonalReverso(user) {
                     
                     <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
                         <div style="height: 17mm; width: 44mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
-                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; mix-blend-mode: multiply; filter: contrast(110%);" onerror="this.style.display='none';">` : ''}
+                            ${firmaDirectorSrc ? `<img src="${firmaDirectorSrc}" crossorigin="anonymous" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; mix-blend-mode: multiply;" onerror="this.style.display='none';">` : ''}
                         </div>
                         <div style="width: 44mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
                         <div style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;">${director}</div>

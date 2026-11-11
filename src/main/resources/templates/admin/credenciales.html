@@ -329,7 +329,7 @@
 								                    
 								                    <div style="width: 100%; margin-top: 1px; display: flex; flex-direction: column; align-items: center;">
 								                        <div id="pvcFirmaContainer" style="height: 17mm; width: 44mm; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 1px;">
-								                            <img id="pvcFirmaDirectorImg" th:src="${configSistema != null and configSistema['firma_director_url'] != null and configSistema['firma_director_url'] != '' ? configSistema['firma_director_url'] : ''}" src="" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; mix-blend-mode: multiply; filter: contrast(110%);" onerror="this.style.display='none';">
+								                            <img id="pvcFirmaDirectorImg" th:src="${configSistema != null and configSistema['firma_director_url'] != null and configSistema['firma_director_url'] != '' ? configSistema['firma_director_url'] : ''}" src="" style="max-height: 17mm; max-width: 44mm; object-fit: contain; display: block; mix-blend-mode: multiply;" onerror="this.style.display='none';">
 								                        </div>
 								                        <div style="width: 44mm; border-bottom: 1.5px solid #334155; margin: 0 auto 2px auto;"></div>
 								                        <div id="pvcDirector" class="director-plantel" style="font-size: 7.5px; font-weight: 900; color: #0f172a; text-transform: uppercase;" th:text="${configSistema != null and configSistema['nombre_director'] != null ? configSistema['nombre_director'] : 'Dirección del Plantel'}">JOSE MARTÍN RODEA ZUÑIGA</div>

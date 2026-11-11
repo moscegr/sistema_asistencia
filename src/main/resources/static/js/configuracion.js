@@ -170,20 +170,28 @@ function comprimirYLimpiarFondoPng(file, maxDim = 800) {
                         const distToBg = Math.sqrt((r - bgR) ** 2 + (g - bgG) ** 2 + (b - bgB) ** 2);
 
                         // Detección de tinta coloreada (azul, cyan, rojo, etc.) vs papel o tinta negra
-                        const esTintaColor = sat >= 0.16 || (b > r + 12 && b > g) || (r > g + 15 && r > b + 15);
+                        const esTintaColor = sat >= 0.14 || (b > r + 8 && b >= g - 5) || (r > g + 12 && r > b + 12);
 
-                        if ((lum > 215 && sat < 0.15) || (distToBg < 28 && sat < 0.15)) {
+                        if ((lum > 215 && sat < 0.15) || (distToBg < 26 && sat < 0.14)) {
                             data[i + 3] = 0; // Transparente total (papel de fondo)
-                        } else if (distToBg < 75 && lum > 165 && sat < 0.20 && !esTintaColor) {
-                            // Bordes suaves anti-aliasing para trazos neutros
-                            const factor = (distToBg - 28) / (75 - 28);
+                        } else if (distToBg < 75 && lum > 160) {
+                            // Bordes suaves anti-aliasing
+                            const factor = Math.max(0.0, Math.min(1.0, (distToBg - 24) / (75 - 24)));
                             data[i + 3] = Math.round(Math.min(a, factor * 255));
-                            data[i] = Math.max(0, Math.min(255, Math.round(r * 0.85)));
-                            data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.85)));
-                            data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.85)));
+                            if (esTintaColor) {
+                                // Respetar color original exacto para tinta azul/color
+                                data[i] = r;
+                                data[i + 1] = g;
+                                data[i + 2] = b;
+                            } else {
+                                // Tinta negra/gris: oscurecer sutilmente para nitidez
+                                data[i] = Math.max(0, Math.min(255, Math.round(r * 0.85)));
+                                data[i + 1] = Math.max(0, Math.min(255, Math.round(g * 0.85)));
+                                data[i + 2] = Math.max(0, Math.min(255, Math.round(b * 0.85)));
+                            }
                         } else {
                             if (esTintaColor) {
-                                // Tinta con color (ej. sello azul): Respetar color original exacto
+                                // Tinta con color (ej. firma o sello azul): Respetar color original exacto
                                 data[i] = r;
                                 data[i + 1] = g;
                                 data[i + 2] = b;

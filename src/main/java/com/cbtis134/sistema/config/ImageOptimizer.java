@@ -364,21 +364,25 @@ public class ImageOptimizer {
                     double sat = maxC == 0 ? 0 : (double)(maxC - minC) / maxC;
                     double dist = Math.sqrt((r - bgR)*(r - bgR) + (g - bgG)*(g - bgG) + (b - bgB)*(b - bgB));
 
-                    boolean isColoredInk = sat >= 0.16 || (b > r + 12 && b > g) || (r > g + 15 && r > b + 15);
+                    boolean isColoredInk = sat >= 0.14 || (b > r + 8 && b >= g - 5) || (r > g + 12 && r > b + 12);
 
-                    if ((lum > 215 && sat < 0.15) || (dist < 28 && sat < 0.15)) {
+                    if ((lum > 215 && sat < 0.15) || (dist < 26 && sat < 0.14)) {
                         transparentDst.setRGB(x, y, 0); // Papel blanco/gris -> 100% transparente
-                    } else if (dist < 75 && lum > 165 && sat < 0.20 && !isColoredInk) {
+                    } else if (dist < 75 && lum > 160) {
                         // Transición suave en bordes anti-aliasing
-                        double factor = (dist - 28) / (75 - 28);
-                        int newA = (int) Math.min(a, factor * 255);
-                        int nr = (int) Math.max(0, Math.min(255, Math.round(r * 0.85)));
-                        int ng = (int) Math.max(0, Math.min(255, Math.round(g * 0.85)));
-                        int nb = (int) Math.max(0, Math.min(255, Math.round(b * 0.85)));
-                        transparentDst.setRGB(x, y, (newA << 24) | (nr << 16) | (ng << 8) | nb);
+                        double factor = Math.max(0.0, Math.min(1.0, (dist - 24.0) / (75.0 - 24.0)));
+                        int newA = (int) Math.round(Math.min(a, factor * 255));
+                        if (isColoredInk) {
+                            transparentDst.setRGB(x, y, (newA << 24) | (r << 16) | (g << 8) | b);
+                        } else {
+                            int nr = (int) Math.max(0, Math.min(255, Math.round(r * 0.85)));
+                            int ng = (int) Math.max(0, Math.min(255, Math.round(g * 0.85)));
+                            int nb = (int) Math.max(0, Math.min(255, Math.round(b * 0.85)));
+                            transparentDst.setRGB(x, y, (newA << 24) | (nr << 16) | (ng << 8) | nb);
+                        }
                     } else {
                         if (isColoredInk) {
-                            // Tinta de color (ej. sello azul): Respetar su tono original
+                            // Tinta de color (ej. firma o sello azul): Respetar su tono original
                             transparentDst.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
                         } else {
                             // Tinta negra: profundidad nítida y limpia
